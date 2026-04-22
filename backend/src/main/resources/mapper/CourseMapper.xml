@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.yujin.course_enrollment.mapper.CourseMapper">
+
+    <!-- 강의 등록 -->
+    <insert id="insertCourse " parameterType="Course" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO courses (
+                creator_id
+              , title
+              , description
+              , price
+              , capacity
+              , status
+              , start_date
+              , end_date
+        ) VALUES (
+                #{creatorId}
+              , #{title}
+              , #{description}
+              , #{price}
+              , #{capacity}
+              , 'DRAFT'
+              , #{startDate}
+              , #{endDate}
+        )
+    </insert>
+
+</mapper>

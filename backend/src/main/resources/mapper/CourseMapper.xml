@@ -4,7 +4,7 @@
 <mapper namespace="com.yujin.course_enrollment.mapper.CourseMapper">
 
     <!-- 강의 등록 -->
-    <insert id="insertCourse " parameterType="Course" useGeneratedKeys="true" keyProperty="id">
+    <insert id="insertCourse" parameterType="Course" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO courses (
                 creator_id
               , title
@@ -25,5 +25,23 @@
               , #{endDate}
         )
     </insert>
+
+    <!-- 강의 단건 조회 -->
+    <select id="selectCourseById" parameterType="long" resultType="Course">
+        SELECT id
+             , creator_id
+             , title
+             , description
+             , price
+             , capacity
+             , enrolled_count
+             , status
+             , start_date
+             , end_date
+             , created_at
+             , updated_at
+          FROM courses
+         WHERE id = #{id}
+    </select>
 
 </mapper>

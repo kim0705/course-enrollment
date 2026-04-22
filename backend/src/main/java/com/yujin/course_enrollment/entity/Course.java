@@ -1,5 +1,7 @@
 package com.yujin.course_enrollment.entity;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -12,7 +14,9 @@ import java.time.LocalDateTime;
  * 상태: DRAFT(초안) → OPEN(모집 중) → CLOSED(모집 마감)
  */
 @Getter
+@Builder
 @NoArgsConstructor
+@AllArgsConstructor
 public class Course {
     private Long id;
     private Long creatorId;

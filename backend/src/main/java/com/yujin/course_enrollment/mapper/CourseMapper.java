@@ -14,4 +14,7 @@ import java.util.Optional;
 public interface CourseMapper {
     /* 강의 등록 */
     void insertCourse(Course course);
+
+    /* 강의 단건 조회 */
+    Course selectCourseById(Long id);
 }

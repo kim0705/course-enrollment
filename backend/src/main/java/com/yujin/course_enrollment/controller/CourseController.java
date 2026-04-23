@@ -87,4 +87,34 @@ public class CourseController {
 
         return ResponseEntity.ok(ApiResponse.success(result));
     }
+
+    /**
+     * 강의 공개 (DRAFT → OPEN)
+     * PATCH /api/courses/{courseId}/publish
+     * @param creatorId 크리에이터 ID (헤더로 전달)
+     * @param courseId 강의 ID
+     */
+    @PatchMapping("/{courseId}/publish")
+    public ResponseEntity<ApiResponse<RespCourseDetailDto>> publishCourse(@RequestHeader("X-User-Id") Long creatorId, @PathVariable Long courseId) {
+        log.debug("[CourseController] 강의 공개 요청 - creatorId: {}, courseId: {}", creatorId, courseId);
+
+        RespCourseDetailDto result = courseService.publishCourse(creatorId, courseId);
+
+        return ResponseEntity.ok(ApiResponse.success(result));
+    }
+
+    /**
+     * 강의 마감 (OPEN → CLOSED)
+     * PATCH /api/courses/{courseId}/close
+     * @param creatorId 크리에이터 ID (헤더로 전달)
+     * @param courseId 강의 ID
+     */
+    @PatchMapping("/{courseId}/close")
+    public ResponseEntity<ApiResponse<RespCourseDetailDto>> closeCourse(@RequestHeader("X-User-Id") Long creatorId, @PathVariable Long courseId) {
+        log.debug("[CourseController] 강의 마감 요청 - creatorId: {}, courseId: {}", creatorId, courseId);
+
+        RespCourseDetailDto result = courseService.closeCourse(creatorId, courseId);
+
+        return ResponseEntity.ok(ApiResponse.success(result));
+    }
 }

@@ -148,4 +148,11 @@
          WHERE id = #{id}
     </update>
 
+    <!-- 강의 상태 변경 -->
+    <update id="updateCourseStatus" parameterType="Course">
+        UPDATE courses
+           SET status = #{status}
+         WHERE id = #{id}
+    </update>
+
 </mapper>

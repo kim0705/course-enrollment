@@ -158,4 +158,66 @@ public class CourseService {
 
         return courseMapper.selectCourseDetailById(courseId);
     }
+
+    /**
+     * 강의 공개 (DRAFT → OPEN)
+     * @param creatorId 크리에이터 ID
+     * @param courseId 강의 ID
+     */
+    public RespCourseDetailDto publishCourse(Long creatorId, Long courseId) {
+        log.info("[CourseService] 강의 공개 - creatorId: {}, courseId: {}", creatorId, courseId);
+
+        Course course = courseMapper.selectCourseById(courseId);
+        if (course == null) {
+            log.warn("[CourseService] 강의 없음 - courseId: {}", courseId);
+            throw new IllegalArgumentException("존재하지 않는 강의입니다.");
+        }
+
+        if (!course.getCreatorId().equals(creatorId)) {
+            log.warn("[CourseService] 권한 없음 - creatorId: {}, courseId: {}", creatorId, courseId);
+            throw new IllegalArgumentException("강의 공개 권한이 없습니다.");
+        }
+
+        if (!"DRAFT".equals(course.getStatus())) {
+            log.warn("[CourseService] DRAFT 상태 아님 - courseId: {}, status: {}", courseId, course.getStatus());
+            throw new IllegalArgumentException("DRAFT 상태의 강의만 공개할 수 있습니다.");
+        }
+
+        courseMapper.updateCourseStatus(Course.builder().id(courseId).status("OPEN").build());
+
+        log.info("[CourseService] 강의 공개 완료 - courseId: {}", courseId);
+
+        return courseMapper.selectCourseDetailById(courseId);
+    }
+
+    /**
+     * 강의 마감 (OPEN → CLOSED)
+     * @param creatorId 크리에이터 ID
+     * @param courseId 강의 ID
+     */
+    public RespCourseDetailDto closeCourse(Long creatorId, Long courseId) {
+        log.info("[CourseService] 강의 마감 - creatorId: {}, courseId: {}", creatorId, courseId);
+
+        Course course = courseMapper.selectCourseById(courseId);
+        if (course == null) {
+            log.warn("[CourseService] 강의 없음 - courseId: {}", courseId);
+            throw new IllegalArgumentException("존재하지 않는 강의입니다.");
+        }
+
+        if (!course.getCreatorId().equals(creatorId)) {
+            log.warn("[CourseService] 권한 없음 - creatorId: {}, courseId: {}", creatorId, courseId);
+            throw new IllegalArgumentException("강의 마감 권한이 없습니다.");
+        }
+
+        if (!"OPEN".equals(course.getStatus())) {
+            log.warn("[CourseService] OPEN 상태 아님 - courseId: {}, status: {}", courseId, course.getStatus());
+            throw new IllegalArgumentException("OPEN 상태의 강의만 마감할 수 있습니다.");
+        }
+
+        courseMapper.updateCourseStatus(Course.builder().id(courseId).status("CLOSED").build());
+
+        log.info("[CourseService] 강의 마감 완료 - courseId: {}", courseId);
+
+        return courseMapper.selectCourseDetailById(courseId);
+    }
 }

@@ -2,6 +2,7 @@ package com.yujin.course_enrollment.service;
 
 import com.yujin.course_enrollment.dto.req.ReqCourseCreateDto;
 import com.yujin.course_enrollment.dto.req.ReqCourseSearchDto;
+import com.yujin.course_enrollment.dto.req.ReqCourseUpdateDto;
 import com.yujin.course_enrollment.dto.resp.RespCourseCreateDto;
 import com.yujin.course_enrollment.dto.resp.RespCourseDetailDto;
 import com.yujin.course_enrollment.dto.resp.RespCourseListDto;
@@ -115,5 +116,46 @@ public class CourseService {
         log.info("[CourseService] 강의 상세 조회 완료 - courseId: {}", courseId);
 
         return course;
+    }
+
+    /**
+     * 강의 수정
+     * @param creatorId 크리에이터 ID
+     * @param courseId 강의 ID
+     * @param reqCourseUpdateDto 강의 수정 요청 DTO
+     */
+    public RespCourseDetailDto modifyCourse(Long creatorId, Long courseId, ReqCourseUpdateDto reqCourseUpdateDto) {
+        log.info("[CourseService] 강의 수정 - creatorId: {}, courseId: {}", creatorId, courseId);
+
+        // 강의 존재 여부 확인
+        Course course = courseMapper.selectCourseById(courseId);
+        if (course == null) {
+            log.warn("[CourseService] 강의 없음 - courseId: {}", courseId);
+            throw new IllegalArgumentException("존재하지 않는 강의입니다.");
+        }
+
+        // 크리에이터 권한 확인
+        if (!course.getCreatorId().equals(creatorId)) {
+            log.warn("[CourseService] 수정 권한 없음 - creatorId: {}, courseId: {}", creatorId, courseId);
+            throw new IllegalArgumentException("강의 수정 권한이 없습니다.");
+        }
+
+        // DRAFT 상태에서만 수정 가능
+        if (!"DRAFT".equals(course.getStatus())) {
+            log.warn("[CourseService] DRAFT 상태가 아님 - courseId: {}, status: {}", courseId, course.getStatus());
+            throw new IllegalArgumentException("DRAFT 상태의 강의만 수정할 수 있습니다.");
+        }
+
+        // 날짜 유효성 확인
+        if (reqCourseUpdateDto.getEndDate().isBefore(reqCourseUpdateDto.getStartDate())) {
+            log.warn("[CourseService] 날짜 유효성 오류 - startDate: {}, endDate: {}", reqCourseUpdateDto.getStartDate(), reqCourseUpdateDto.getEndDate());
+            throw new IllegalArgumentException("종료일은 시작일보다 이전일 수 없습니다.");
+        }
+
+        courseMapper.updateCourse(reqCourseUpdateDto.toEntity(courseId, creatorId));
+
+        log.info("[CourseService] 강의 수정 완료 - courseId: {}", courseId);
+
+        return courseMapper.selectCourseDetailById(courseId);
     }
 }

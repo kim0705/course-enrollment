@@ -2,6 +2,7 @@ package com.yujin.course_enrollment.controller;
 
 import com.yujin.course_enrollment.dto.req.ReqCourseCreateDto;
 import com.yujin.course_enrollment.dto.req.ReqCourseSearchDto;
+import com.yujin.course_enrollment.dto.req.ReqCourseUpdateDto;
 import com.yujin.course_enrollment.dto.resp.RespCourseCreateDto;
 import com.yujin.course_enrollment.dto.resp.RespCourseDetailDto;
 import com.yujin.course_enrollment.dto.resp.RespCourseListDto;
@@ -67,6 +68,22 @@ public class CourseController {
         log.debug("[CourseController] 강의 상세 조회 요청 - courseId: {}", courseId);
 
         RespCourseDetailDto result = courseService.findCourseById(courseId);
+
+        return ResponseEntity.ok(ApiResponse.success(result));
+    }
+
+    /**
+     * 강의 수정
+     * PUT /api/courses/{courseId}
+     * @param creatorId 크리에이터 ID (헤더로 전달)
+     * @param courseId 강의 ID
+     * @param reqCourseUpdateDto 강의 수정 요청 DTO
+     */
+    @PutMapping("/{courseId}")
+    public ResponseEntity<ApiResponse<RespCourseDetailDto>> updateCourse(@RequestHeader("X-User-Id") Long creatorId, @PathVariable Long courseId, @Valid @RequestBody ReqCourseUpdateDto reqCourseUpdateDto) {
+        log.debug("[CourseController] 강의 수정 요청 - creatorId: {}, courseId: {}", creatorId, courseId);
+
+        RespCourseDetailDto result = courseService.modifyCourse(creatorId, courseId, reqCourseUpdateDto);
 
         return ResponseEntity.ok(ApiResponse.success(result));
     }

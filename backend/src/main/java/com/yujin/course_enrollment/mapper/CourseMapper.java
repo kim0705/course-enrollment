@@ -28,4 +28,7 @@ public interface CourseMapper {
 
     /* 강의 상세 조회 */
     RespCourseDetailDto selectCourseDetailById(Long id);
+
+    /* 강의 수정 */
+    void updateCourse(Course course);
 }

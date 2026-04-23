@@ -136,4 +136,16 @@
          WHERE c.id = #{id}
     </select>
 
+    <!-- 강의 수정 -->
+    <update id="updateCourse" parameterType="Course">
+        UPDATE courses
+           SET title = #{title}
+             , description = #{description}
+             , price = #{price}
+             , capacity = #{capacity}
+             , start_date = #{startDate}
+             , end_date = #{endDate}
+         WHERE id = #{id}
+    </update>
+
 </mapper>

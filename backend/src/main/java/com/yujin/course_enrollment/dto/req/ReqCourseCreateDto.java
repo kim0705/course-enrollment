@@ -19,6 +19,7 @@ public class ReqCourseCreateDto {
     @Size(max = 100, message = "강의 제목은 100자 이하여야 합니다.")
     private String title;
 
+    @Size(max = 3000, message = "강의 설명은 3000자 이하여야 합니다.")
     private String description;
 
     @Min(value = 0, message = "가격은 0원 이상이어야 합니다.")
@@ -28,9 +29,11 @@ public class ReqCourseCreateDto {
     private int capacity;
 
     @NotNull(message = "수강 시작일은 필수입니다.")
+    @FutureOrPresent(message = "시작일은 오늘 이후여야 합니다.")
     private LocalDate startDate;
 
     @NotNull(message = "수강 종료일은 필수입니다.")
+    @FutureOrPresent(message = "종료일은 오늘 이후여야 합니다.")
     private LocalDate endDate;
 
     /* DTO → Course 엔티티 변환 */

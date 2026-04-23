@@ -11,3 +11,8 @@ export const registerCourse = (creatorId, data) => {
 export const getCourseList = (params) => {
     return instance.get('/api/courses', { params }).then(res => res.data);
 };
+
+/* 강의 상세 조회 */
+export const getCourseDetail = (courseId) => {
+    return instance.get(`/api/courses/${courseId}`).then(res => res.data);
+};

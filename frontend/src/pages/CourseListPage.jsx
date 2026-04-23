@@ -1,18 +1,36 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { getCourseList } from '../api/course';
 
 const CourseListPage = () => {
     const navigate = useNavigate();
+    const location = useLocation();
+    const [searchParams, setSearchParams] = useSearchParams();
+    const [tempKeyword, setTempKeyword] = useState(searchParams.get('keyword') || '');
 
     /* 검색 조건 상태 */
     const [search, setSearch] = useState({
-        status: '',
-        searchType: '',
-        keyword: '',
-        page: 0,
-        size: 12,
+        status: searchParams.get('status') || '',
+        searchType: searchParams.get('searchType') || '',
+        keyword: searchParams.get('keyword') || '',
+        page: parseInt(searchParams.get('page')) || 0,
+        size: parseInt(searchParams.get('size')) || 12,
     });
+
+    /* URL 파라미터가 변경될 때 상태 동기화 */
+    useEffect(() => {
+        const currentKeyword = searchParams.get('keyword') || '';
+
+        setSearch({
+            status: searchParams.get('status') || '',
+            searchType: searchParams.get('searchType') || '',
+            keyword: currentKeyword,
+            page: parseInt(searchParams.get('page')) || 0,
+            size: parseInt(searchParams.get('size')) || 12,
+        });
+
+        setTempKeyword(currentKeyword);
+    }, [searchParams]);
 
     /* 목록 데이터 상태 */
     const [data, setData] = useState({
@@ -22,47 +40,49 @@ const CourseListPage = () => {
         last: false,
     });
 
-    /* 강의 목록 조회 */
-    const fetchCourseList = async () => {
-        try {
-            const result = await getCourseList(search);
-
-            setData(result.data);
-        } catch (err) {
-            console.error(err);
-        }
-    };
-
-    /* 페이지 사이즈 변경 핸들러 */
-    const handleSizeChange = (e) => {
-        const newSize = parseInt(e.target.value);
-
-        setSearch(prev => ({
-            ...prev,
-            size: newSize,
-            page: 0
-        }));
-    };
-
+    /* API 호출 (search 상태가 바뀔 때마다 실행) */
     useEffect(() => {
-        fetchCourseList();
-    }, [search.page, search.status, search.size]);
+        const fetchCourseList = async () => {
+            try {
+                const result = await getCourseList(search);
+                setData(result.data);
+            } catch (err) {
+                console.error(err);
+            }
+        };
 
-    /* 검색 입력값 변경 */
-    const handleSearchChange = (e) => {
-        const { name, value } = e.target;
-        setSearch(prev => ({ ...prev, [name]: value }));
-    };
+        fetchCourseList();
+    }, [search]);
 
     /* 검색 실행 */
     const handleSearch = (e) => {
         e.preventDefault();
 
-        if (search.page === 0) {
-            fetchCourseList();
+        setSearchParams({
+            ...search,
+            keyword: tempKeyword,
+            page: 0
+        });
+    };
+
+    /* 검색 입력값 변경 */
+    const handleSearchChange = (e) => {
+        const { name, value } = e.target;
+
+        if (name === 'keyword') {
+            setTempKeyword(value);
         } else {
-            setSearch(prev => ({ ...prev, page: 0 }));
+            setSearchParams({ ...search, [name]: value, page: 0 });
         }
+    };
+
+    /* 페이지 사이즈 변경 핸들러 */
+    const handleSizeChange = (e) => {
+        setSearchParams({
+            ...search,
+            size: parseInt(e.target.value),
+            page: 0
+        });
     };
 
     return (
@@ -77,21 +97,22 @@ const CourseListPage = () => {
 
             {/* 검색 섹션 */}
             <form onSubmit={handleSearch} className="flex flex-wrap gap-3 mb-10 bg-gray-50 p-4 rounded-xl border border-gray-100">
-                <select name="status" onChange={handleSearchChange}
+                <select name="status" value={search.status} onChange={handleSearchChange}
                     className="bg-white border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
                     <option value="">전체 상태</option>
                     <option value="DRAFT">초안</option>
                     <option value="OPEN">모집 중</option>
                     <option value="CLOSED">마감</option>
                 </select>
+
                 <div className="flex flex-1 gap-2">
-                    <select name="searchType" onChange={handleSearchChange}
+                    <select name="searchType" value={search.searchType} onChange={handleSearchChange}
                         className="bg-white border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
                         <option value="">제목+내용</option>
                         <option value="title">제목</option>
                         <option value="creator">강사명</option>
                     </select>
-                    <input name="keyword" placeholder="어떤 강의를 찾으시나요?" onChange={handleSearchChange}
+                    <input name="keyword" value={tempKeyword} placeholder="어떤 강의를 찾으시나요?" onChange={handleSearchChange}
                         className="bg-white border border-gray-300 rounded-md px-4 py-2 text-sm flex-1 focus:outline-none focus:ring-2 focus:ring-blue-500" />
                     <button type="submit"
                         className="px-6 py-2 bg-gray-800 text-white rounded-md text-sm font-bold hover:bg-black cursor-pointer transition-colors">
@@ -127,7 +148,7 @@ const CourseListPage = () => {
             ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                     {data?.content?.map(course => (
-                        <div key={course.id} onClick={() => navigate(`/courses/${course.id}`)}
+                        <div key={course.id} onClick={() => navigate(`/courses/${course.id}`, { state: { fromSearch: location.search } })}
                             className="group flex flex-col bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-xl transition-all duration-300 cursor-pointer">
 
                             {/* 카드 상단: 이미지 영역(썸네일 대신 제목 앞글자) */}
@@ -181,15 +202,23 @@ const CourseListPage = () => {
             {(data?.totalPages ?? 0) > 1 && (
                 <div className="flex justify-center items-center gap-4 mt-12">
                     <button disabled={search.page === 0}
-                        onClick={() => setSearch(prev => ({ ...prev, page: prev.page - 1 }))}
+                        onClick={() => {
+                            setSearchParams({ ...Object.fromEntries(searchParams), page: search.page - 1 });
+                            setSearch(prev => ({ ...prev, page: prev.page - 1 }));
+                        }}
                         className="p-2 border rounded-full hover:bg-gray-50 disabled:opacity-30 cursor-pointer transition-colors">
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="15 19l-7-7 7-7" /></svg>
                     </button>
+
                     <span className="text-sm font-medium text-gray-700">
                         <span className="text-blue-600">{search.page + 1}</span> / {data?.totalPages}
                     </span>
+
                     <button disabled={data.last}
-                        onClick={() => setSearch(prev => ({ ...prev, page: prev.page + 1 }))}
+                        onClick={() => {
+                            setSearchParams({ ...Object.fromEntries(searchParams), page: search.page + 1 });
+                            setSearch(prev => ({ ...prev, page: prev.page + 1 }));
+                        }}
                         className="p-2 border rounded-full hover:bg-gray-50 disabled:opacity-30 cursor-pointer transition-colors">
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="9 5l7 7-7 7" /></svg>
                     </button>

@@ -2,6 +2,7 @@ package com.yujin.course_enrollment.dto.req;
 
 import com.yujin.course_enrollment.entity.Course;
 import jakarta.validation.constraints.*;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -14,6 +15,7 @@ import java.time.LocalDate;
 @Getter
 @Setter
 @NoArgsConstructor
+@AllArgsConstructor
 public class ReqCourseUpdateDto {
     @NotBlank(message = "강의 제목은 필수입니다.")
     @Size(max = 100, message = "강의 제목은 100자 이하여야 합니다.")

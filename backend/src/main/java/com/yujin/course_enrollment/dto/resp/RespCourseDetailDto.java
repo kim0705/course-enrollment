@@ -1,6 +1,9 @@
 package com.yujin.course_enrollment.dto.resp;
 
+import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -9,6 +12,9 @@ import java.time.LocalDateTime;
  * 강의 상세 응답 DTO
  */
 @Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
 public class RespCourseDetailDto {
     private Long id;
     private Long creatorId;

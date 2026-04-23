@@ -1,7 +1,9 @@
 package com.yujin.course_enrollment.service;
 
 import com.yujin.course_enrollment.dto.req.ReqCourseCreateDto;
+import com.yujin.course_enrollment.dto.req.ReqCourseUpdateDto;
 import com.yujin.course_enrollment.dto.resp.RespCourseCreateDto;
+import com.yujin.course_enrollment.dto.resp.RespCourseDetailDto;
 import com.yujin.course_enrollment.entity.Course;
 import com.yujin.course_enrollment.entity.User;
 import com.yujin.course_enrollment.mapper.CourseMapper;
@@ -207,5 +209,227 @@ class CourseServiceTest {
         assertThatThrownBy(() -> courseService.registerCourse(creatorId, req))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("종료일은 오늘 이후여야 합니다.");
+    }
+
+    @Test
+    @DisplayName("강의 수정 성공 - DRAFT 상태에서 정상 수정")
+    void modifyCourse_success() {
+        // given
+        Long courseId = 1L;
+        Long creatorId = 1L;
+        Course existingCourse = Course.builder()
+                .id(courseId)
+                .creatorId(creatorId)
+                .status("DRAFT")
+                .build();
+
+        ReqCourseUpdateDto req = new ReqCourseUpdateDto(
+                "수정 제목", "수정 설명", 20000, 50,
+                LocalDate.now().plusDays(1), LocalDate.now().plusDays(10)
+        );
+
+        RespCourseDetailDto respDto = new RespCourseDetailDto();
+        respDto.setId(courseId);
+        respDto.setTitle("수정 제목");
+
+        given(courseMapper.selectCourseById(courseId)).willReturn(existingCourse);
+        willDoNothing().given(courseMapper).updateCourse(any(Course.class));
+        given(courseMapper.selectCourseDetailById(courseId)).willReturn(respDto);
+
+        // when
+        RespCourseDetailDto result = courseService.modifyCourse(creatorId, courseId, req);
+
+        // then
+        assertThat(result.getTitle()).isEqualTo("수정 제목");
+        then(courseMapper).should().updateCourse(any(Course.class));
+        then(courseMapper).should().selectCourseDetailById(courseId);
+    }
+
+    @Test
+    @DisplayName("강의 수정 실패 - 수정 권한 없음")
+    void modifyCourse_fail_forbidden() {
+        // given
+        Long courseId = 1L;
+        Long otherUserId = 99L;
+        Course existingCourse = Course.builder()
+                .id(courseId)
+                .creatorId(1L)
+                .status("DRAFT")
+                .build();
+
+        ReqCourseUpdateDto req = new ReqCourseUpdateDto(
+                "수정 제목", "수정 설명", 20000, 50,
+                LocalDate.now().plusDays(1), LocalDate.now().plusDays(10)
+        );
+
+        given(courseMapper.selectCourseById(courseId)).willReturn(existingCourse);
+
+        // when & then
+        assertThatThrownBy(() -> courseService.modifyCourse(otherUserId, courseId, req))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("강의 수정 권한이 없습니다.");
+    }
+
+    @Test
+    @DisplayName("강의 수정 실패 - DRAFT 상태가 아님")
+    void modifyCourse_fail_notDraft() {
+        // given
+        Long courseId = 1L;
+        Long creatorId = 1L;
+        Course openCourse = Course.builder()
+                .id(courseId)
+                .creatorId(creatorId)
+                .status("OPEN")
+                .build();
+
+        ReqCourseUpdateDto resp = new ReqCourseUpdateDto(
+                "제목 수정", "설명", 1000, 10,
+                LocalDate.now().plusDays(1), LocalDate.now().plusDays(5)
+        );
+
+        given(courseMapper.selectCourseById(courseId)).willReturn(openCourse);
+
+        // when & then
+        assertThatThrownBy(() -> courseService.modifyCourse(creatorId, courseId, resp))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("DRAFT 상태의 강의만 수정할 수 있습니다.");
+    }
+
+    @Test
+    @DisplayName("강의 공개 성공 - DRAFT에서 OPEN으로 변경")
+    void publishCourse_success() {
+        // given
+        Long courseId = 1L;
+        Long creatorId = 1L;
+        Course draftCourse = Course.builder()
+                .id(courseId)
+                .creatorId(creatorId)
+                .status("DRAFT")
+                .build();
+
+        RespCourseDetailDto resp = new RespCourseDetailDto();
+        resp.setId(courseId);
+        resp.setStatus("OPEN");
+
+        given(courseMapper.selectCourseById(courseId)).willReturn(draftCourse);
+        willDoNothing().given(courseMapper).updateCourseStatus(any(Course.class));
+        given(courseMapper.selectCourseDetailById(courseId)).willReturn(resp);
+
+        // when
+        RespCourseDetailDto result = courseService.publishCourse(creatorId, courseId);
+
+        // then
+        assertThat(result.getStatus()).isEqualTo("OPEN");
+        then(courseMapper).should().updateCourseStatus(any(Course.class));
+        then(courseMapper).should().selectCourseDetailById(courseId);
+    }
+
+    @Test
+    @DisplayName("강의 공개 실패 - 공개 권한 없음")
+    void publishCourse_fail_forbidden() {
+        // given
+        Long courseId = 1L;
+        Long otherUserId = 99L;
+        Course draftCourse = Course.builder()
+                .id(courseId)
+                .creatorId(1L)
+                .status("DRAFT")
+                .build();
+
+        given(courseMapper.selectCourseById(courseId)).willReturn(draftCourse);
+
+        // when & then
+        assertThatThrownBy(() -> courseService.publishCourse(otherUserId, courseId))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("강의 공개 권한이 없습니다.");
+    }
+
+    @Test
+    @DisplayName("강의 공개 실패 - DRAFT 상태가 아님")
+    void publishCourse_fail_notDraft() {
+        // given
+        Long courseId = 1L;
+        Long creatorId = 1L;
+        Course openCourse = Course.builder()
+                .id(courseId)
+                .creatorId(creatorId)
+                .status("OPEN")
+                .build();
+
+        given(courseMapper.selectCourseById(courseId)).willReturn(openCourse);
+
+        // when & then
+        assertThatThrownBy(() -> courseService.publishCourse(creatorId, courseId))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("DRAFT 상태의 강의만 공개할 수 있습니다.");
+    }
+
+    @Test
+    @DisplayName("강의 마감 성공 - OPEN에서 CLOSED로 변경")
+    void closeCourse_success() {
+        // given
+        Long courseId = 1L;
+        Long creatorId = 1L;
+        Course openCourse = Course.builder()
+                .id(courseId)
+                .creatorId(creatorId)
+                .status("OPEN")
+                .build();
+
+        RespCourseDetailDto respDto = new RespCourseDetailDto();
+        respDto.setId(courseId);
+        respDto.setStatus("CLOSED");
+
+        given(courseMapper.selectCourseById(courseId)).willReturn(openCourse);
+        willDoNothing().given(courseMapper).updateCourseStatus(any(Course.class));
+        given(courseMapper.selectCourseDetailById(courseId)).willReturn(respDto);
+
+        // when
+        RespCourseDetailDto result = courseService.closeCourse(creatorId, courseId);
+
+        // then
+        assertThat(result.getStatus()).isEqualTo("CLOSED");
+        then(courseMapper).should().updateCourseStatus(any(Course.class));
+        then(courseMapper).should().selectCourseDetailById(courseId);
+    }
+
+    @Test
+    @DisplayName("강의 마감 권한 없음 - 실패")
+    void closeCourse_forbidden() {
+        // given
+        Long courseId = 1L;
+        Long wrongUserId = 99L;
+        Course course = Course.builder()
+                .id(courseId)
+                .creatorId(1L)
+                .status("OPEN")
+                .build();
+
+        given(courseMapper.selectCourseById(courseId)).willReturn(course);
+
+        // when & then
+        assertThatThrownBy(() -> courseService.closeCourse(wrongUserId, courseId))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("강의 마감 권한이 없습니다.");
+    }
+
+    @Test
+    @DisplayName("강의 마감 실패 - OPEN 상태가 아님")
+    void closeCourse_fail_notOpen() {
+        // given
+        Long courseId = 1L;
+        Long creatorId = 1L;
+        Course draftCourse = Course.builder()
+                .id(courseId)
+                .creatorId(creatorId)
+                .status("DRAFT")
+                .build();
+
+        given(courseMapper.selectCourseById(courseId)).willReturn(draftCourse);
+
+        // when & then
+        assertThatThrownBy(() -> courseService.closeCourse(creatorId, courseId))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("OPEN 상태의 강의만 마감할 수 있습니다.");
     }
 }

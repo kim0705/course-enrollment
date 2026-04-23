@@ -3,6 +3,7 @@ package com.yujin.course_enrollment.controller;
 import com.yujin.course_enrollment.dto.req.ReqCourseCreateDto;
 import com.yujin.course_enrollment.dto.req.ReqCourseSearchDto;
 import com.yujin.course_enrollment.dto.resp.RespCourseCreateDto;
+import com.yujin.course_enrollment.dto.resp.RespCourseDetailDto;
 import com.yujin.course_enrollment.dto.resp.RespCourseListDto;
 import com.yujin.course_enrollment.dto.resp.RespPageDto;
 import com.yujin.course_enrollment.global.response.ApiResponse;
@@ -52,6 +53,20 @@ public class CourseController {
         log.debug("[CourseController] 강의 목록 조회 요청 - status: {}, keyword: {}", reqCourseSearchDto.getStatus(), reqCourseSearchDto.getKeyword());
 
         RespPageDto<RespCourseListDto> result = courseService.findCourseList(reqCourseSearchDto);
+
+        return ResponseEntity.ok(ApiResponse.success(result));
+    }
+
+    /**
+     * 강의 상세 조회
+     * GET /api/courses/{courseId}
+     * @param courseId 강의 ID
+     */
+    @GetMapping("/{courseId}")
+    public ResponseEntity<ApiResponse<RespCourseDetailDto>> getCourseDetail(@PathVariable Long courseId) {
+        log.debug("[CourseController] 강의 상세 조회 요청 - courseId: {}", courseId);
+
+        RespCourseDetailDto result = courseService.findCourseById(courseId);
 
         return ResponseEntity.ok(ApiResponse.success(result));
     }

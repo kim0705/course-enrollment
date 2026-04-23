@@ -3,6 +3,7 @@ package com.yujin.course_enrollment.service;
 import com.yujin.course_enrollment.dto.req.ReqCourseCreateDto;
 import com.yujin.course_enrollment.dto.req.ReqCourseSearchDto;
 import com.yujin.course_enrollment.dto.resp.RespCourseCreateDto;
+import com.yujin.course_enrollment.dto.resp.RespCourseDetailDto;
 import com.yujin.course_enrollment.dto.resp.RespCourseListDto;
 import com.yujin.course_enrollment.dto.resp.RespPageDto;
 import com.yujin.course_enrollment.entity.Course;
@@ -96,5 +97,23 @@ public class CourseService {
         log.info("[CourseService] 강의 목록 조회 완료 - 총 {}건", totalCount);
 
         return RespPageDto.of(content, reqCourseSearchDto.getPage(), reqCourseSearchDto.getSize(), totalCount);
+    }
+
+    /**
+     * 강의 상세 조회
+     * @param courseId 강의 ID
+     */
+    public RespCourseDetailDto findCourseById(Long courseId) {
+        log.info("[CourseService] 강의 상세 조회 - courseId: {}", courseId);
+
+        RespCourseDetailDto course = courseMapper.selectCourseDetailById(courseId);
+        if (course == null) {
+            log.warn("[CourseService] 강의 없음 - courseId: {}", courseId);
+            throw new IllegalArgumentException("존재하지 않는 강의입니다.");
+        }
+
+        log.info("[CourseService] 강의 상세 조회 완료 - courseId: {}", courseId);
+
+        return course;
     }
 }

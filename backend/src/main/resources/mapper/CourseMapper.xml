@@ -116,4 +116,24 @@
           </where>
     </select>
 
+    <!-- 강의 상세 조회 -->
+    <select id="selectCourseDetailById" parameterType="long" resultType="RespCourseDetailDto">
+        SELECT c.id
+             , c.creator_id
+             , u.name AS creatorName
+             , c.title
+             , c.description
+             , c.price
+             , c.capacity
+             , c.enrolled_count
+             , c.status
+             , c.start_date
+             , c.end_date
+             , c.created_at
+             , c.updated_at
+          FROM courses c
+          JOIN users u ON c.creator_id = u.id
+         WHERE c.id = #{id}
+    </select>
+
 </mapper>

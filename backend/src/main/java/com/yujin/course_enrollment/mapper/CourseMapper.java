@@ -1,0 +1,37 @@
+package com.yujin.course_enrollment.mapper;
+
+import com.yujin.course_enrollment.dto.req.ReqCourseSearchDto;
+import com.yujin.course_enrollment.dto.resp.RespCourseDetailDto;
+import com.yujin.course_enrollment.dto.resp.RespCourseListDto;
+import com.yujin.course_enrollment.entity.Course;
+import org.apache.ibatis.annotations.Mapper;
+
+import java.util.List;
+
+/**
+ * 강의 Mapper 인터페이스
+ * CourseMapper.xml과 매핑되어 강의 관련 DB 접근을 담당
+ */
+@Mapper
+public interface CourseMapper {
+    /* 강의 등록 */
+    void insertCourse(Course course);
+
+    /* 강의 단건 조회 */
+    Course selectCourseById(Long id);
+
+    /* 강의 목록 조회 (상태 필터 가능) */
+    List<RespCourseListDto> selectCourseList(ReqCourseSearchDto reqCourseSearchDto);
+
+    /* 강의 목록 전체 수 조회 (페이징용) */
+    int selectCourseListCount(ReqCourseSearchDto reqCourseSearchDto);
+
+    /* 강의 상세 조회 */
+    RespCourseDetailDto selectCourseDetailById(Long id);
+
+    /* 강의 수정 */
+    void updateCourse(Course course);
+
+    /* 강의 상태 변경 */
+    void updateCourseStatus(Course course);
+}

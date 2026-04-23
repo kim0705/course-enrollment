@@ -24,7 +24,11 @@ spring:
 
 mybatis:
   mapper-locations: classpath:mapper/**/*.xml
-  type-aliases-package: com.yujin.course_enrollment.entity
+  type-aliases-package: com.yujin.course_enrollment.entity, com.yujin.course_enrollment.dto.resp, , com.yujin.course_enrollment.dto.req
   configuration:
     map-underscore-to-camel-case: true
     log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+
+logging:
+  level:
+    com.yujin.course_enrollment: DEBUG

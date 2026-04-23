@@ -1,18 +1,17 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import { Route, Routes } from 'react-router-dom'
+import CourseRegisterPage from './pages/CourseRegisterPage'
+import CourseListPage from './pages/CourseListPage'
+import CourseDetailPage from './pages/CourseDetailPage'
 
 function App() {
-    const [count, setCount] = useState(0)
 
     return (
-        <>
-            <h1 className="text-3xl font-bold text-red-500 underline">
-                확인
-            </h1>
-        </>
+        <Routes>
+            <Route path="/courses" element={<CourseListPage />} />
+            <Route path="/courses/:courseId" element={<CourseDetailPage />} />
+            <Route path="/courses/new" element={<CourseRegisterPage />} />
+            <Route path="/courses/:courseId/edit" element={<CourseRegisterPage />} />
+        </Routes>
     )
 }
 

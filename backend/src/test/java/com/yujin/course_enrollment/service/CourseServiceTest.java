@@ -42,8 +42,8 @@ class CourseServiceTest {
         User creator = new User(1L, "강사A", "CREATOR");
         ReqCourseCreateDto req = new ReqCourseCreateDto(
                 "Spring Boot 강의", "설명", 50000, 30,
-                LocalDate.of(2025, 6, 1),
-                LocalDate.of(2025, 8, 31)
+                LocalDate.now().plusDays(1),
+                LocalDate.now().plusMonths(1)
         );
         Course savedCourse = Course.builder()
                 .id(1L)
@@ -52,8 +52,8 @@ class CourseServiceTest {
                 .description("설명")
                 .price(50000)
                 .capacity(30)
-                .startDate(LocalDate.of(2025, 6, 1))
-                .endDate(LocalDate.of(2025, 8, 31))
+                .startDate(LocalDate.now().plusDays(1))
+                .endDate(LocalDate.now().plusMonths(1))
                 .createdAt(LocalDateTime.now())
                 .build();
 
@@ -80,8 +80,8 @@ class CourseServiceTest {
 
         ReqCourseCreateDto req = new ReqCourseCreateDto(
                 "Spring Boot 강의", "설명", 50000, 30,
-                LocalDate.of(2025, 6, 1),
-                LocalDate.of(2025, 8, 31)
+                LocalDate.now().plusDays(1),
+                LocalDate.now().plusDays(10)
         );
 
         // when & then
@@ -100,8 +100,8 @@ class CourseServiceTest {
 
         ReqCourseCreateDto req = new ReqCourseCreateDto(
                 "Spring Boot 강의", "설명", 50000, 30,
-                LocalDate.of(2025, 6, 1),
-                LocalDate.of(2025, 8, 31)
+                LocalDate.now().plusDays(1),
+                LocalDate.now().plusDays(10)
         );
 
         // when & then
@@ -120,8 +120,8 @@ class CourseServiceTest {
 
         ReqCourseCreateDto req = new ReqCourseCreateDto(
                 "Spring Boot 강의", "설명", 50000, 30,
-                LocalDate.of(2025, 8, 31),
-                LocalDate.of(2025, 6, 1)
+                LocalDate.now().plusDays(10),
+                LocalDate.now().plusDays(1)
         );
 
         // when & then
@@ -136,6 +136,14 @@ class CourseServiceTest {
         // given
         Long creatorId = 1L;
         User creator = new User(1L, "강사A", "CREATOR");
+        LocalDate futureDate = LocalDate.now().plusDays(10);
+
+        ReqCourseCreateDto req = new ReqCourseCreateDto(
+                "당일 클래스", "설명", 10000, 10,
+                futureDate,
+                futureDate
+        );
+
         Course savedCourse = Course.builder()
                 .id(1L)
                 .creatorId(creatorId)
@@ -143,20 +151,14 @@ class CourseServiceTest {
                 .description("설명")
                 .price(10000)
                 .capacity(10)
-                .startDate(LocalDate.of(2025, 6, 1))
-                .endDate(LocalDate.of(2025, 6, 1))
+                .startDate(futureDate)
+                .endDate(futureDate)
                 .createdAt(LocalDateTime.now())
                 .build();
 
         given(userMapper.selectUserById(creatorId)).willReturn(creator);
         willDoNothing().given(courseMapper).insertCourse(any());
         given(courseMapper.selectCourseById(any())).willReturn(savedCourse);
-
-        ReqCourseCreateDto req = new ReqCourseCreateDto(
-                "당일 클래스", "설명", 10000, 10,
-                LocalDate.of(2025, 6, 1),
-                LocalDate.of(2025, 6, 1)
-        );
 
         // when
         RespCourseCreateDto result = courseService.registerCourse(creatorId, req);
@@ -165,5 +167,45 @@ class CourseServiceTest {
         assertThat(result.getTitle()).isEqualTo("당일 클래스");
         then(courseMapper).should().insertCourse(any());
         then(courseMapper).should().selectCourseById(any());
+    }
+
+    @Test
+    @DisplayName("시작일이 과거 - 강의 등록 실패")
+    void registerCourse_pastStartDate() {
+        // given
+        Long creatorId = 1L;
+        User creator = new User(1L, "강사A", "CREATOR");
+        given(userMapper.selectUserById(creatorId)).willReturn(creator);
+
+        ReqCourseCreateDto req = new ReqCourseCreateDto(
+                "Spring Boot 강의", "설명", 50000, 30,
+                LocalDate.now().minusDays(1),
+                LocalDate.now().plusMonths(1)
+        );
+
+        // when & then
+        assertThatThrownBy(() -> courseService.registerCourse(creatorId, req))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("시작일은 오늘 이후여야 합니다.");
+    }
+
+    @Test
+    @DisplayName("종료일이 과거 - 강의 등록 실패")
+    void registerCourse_pastEndDate() {
+        // given
+        Long creatorId = 1L;
+        User creator = new User(1L, "강사A", "CREATOR");
+        given(userMapper.selectUserById(creatorId)).willReturn(creator);
+
+        ReqCourseCreateDto req = new ReqCourseCreateDto(
+                "Spring Boot 강의", "설명", 50000, 30,
+                LocalDate.now(),
+                LocalDate.now().minusDays(1)
+        );
+
+        // when & then
+        assertThatThrownBy(() -> courseService.registerCourse(creatorId, req))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("종료일은 오늘 이후여야 합니다.");
     }
 }

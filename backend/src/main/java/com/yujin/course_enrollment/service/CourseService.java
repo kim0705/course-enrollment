@@ -11,6 +11,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+
 /**
  * 강의 서비스
  * 강의 등록, 수정, 조회 등 강의 관련 비즈니스 로직을 처리
@@ -43,6 +45,18 @@ public class CourseService {
         if (!"CREATOR".equals(user.getRole())) {
             log.warn("[CourseService] 크리에이터 권한 없음 - creatorId: {}, role: {}", creatorId, user.getRole());
             throw new IllegalArgumentException("강의 등록 권한이 없습니다.");
+        }
+
+        // 시작일 과거 검증
+        if (reqCourseCreateDto.getStartDate().isBefore(LocalDate.now())) {
+            log.warn("[CourseService] 시작일이 과거 - startDate: {}", reqCourseCreateDto.getStartDate());
+            throw new IllegalArgumentException("시작일은 오늘 이후여야 합니다.");
+        }
+
+        // 종료일 과거 검증
+        if (reqCourseCreateDto.getEndDate().isBefore(LocalDate.now())) {
+            log.warn("[CourseService] 종료일이 과거 - endDate: {}", reqCourseCreateDto.getEndDate());
+            throw new IllegalArgumentException("종료일은 오늘 이후여야 합니다.");
         }
 
         // 날짜 유효성 확인

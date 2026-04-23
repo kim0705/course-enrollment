@@ -16,3 +16,10 @@ export const getCourseList = (params) => {
 export const getCourseDetail = (courseId) => {
     return instance.get(`/api/courses/${courseId}`).then(res => res.data);
 };
+
+/* 강의 수정 */
+export const updateCourse = (courseId, creatorId, data) => {
+    return instance.put(`/api/courses/${courseId}`, data, {
+        headers: { 'X-User-Id': creatorId },
+    }).then(res => res.data);
+};

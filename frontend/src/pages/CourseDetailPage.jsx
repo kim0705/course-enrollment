@@ -36,11 +36,18 @@ const CourseDetailPage = () => {
     return (
         <div className="max-w-7xl mx-auto mt-10 p-6">
             {/* 상단 헤더 섹션 */}
-            <div className="flex justify-end mb-8 border-b pb-6">
+            <div className="flex justify-end gap-3 mb-8 border-b pb-6">
+                {course.status === 'DRAFT' && (
+                    <button onClick={() => navigate(`/courses/${courseId}/edit`, { state: { fromSearch: location.state?.fromSearch } })}
+                        className="px-4 py-2 bg-blue-600 text-white rounded-md font-semibold hover:bg-blue-700 cursor-pointer transition-all shadow-sm text-sm">
+                        수정하기
+                    </button>
+                )}
+
                 <button onClick={handleBackToList}
                     className="px-4 py-2 border border-gray-300 text-gray-600 rounded-md font-semibold hover:bg-gray-50 cursor-pointer transition-all shadow-sm text-sm"
                 >
-                    ← 목록으로
+                    목록으로
                 </button>
             </div>
 
@@ -95,7 +102,7 @@ const CourseDetailPage = () => {
                                         </p>
                                     </div>
 
-                                    <div className="space-y-6 pt-8 border-t border-gray-100">   
+                                    <div className="space-y-6 pt-8 border-t border-gray-100">
                                         <div>
                                             <div className="flex justify-between text-xs font-bold mb-2">
                                                 <span className="text-gray-500">현재 수강 인원</span>

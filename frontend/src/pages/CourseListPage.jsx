@@ -89,7 +89,7 @@ const CourseListPage = () => {
         <div className="max-w-7xl mx-auto mt-10 p-6">
             <div className="flex justify-between items-center mb-8">
                 <h1 className="text-3xl font-extrabold text-gray-900">전체 강의</h1>
-                <button onClick={() => navigate('/courses/new')}
+                <button onClick={() => navigate('/courses/new', { state: { fromSearch: location.search } })}
                     className="px-5 py-2 bg-blue-600 text-white rounded-md font-semibold hover:bg-blue-700 transition-all cursor-pointer shadow-sm">
                     강의 등록
                 </button>
@@ -207,7 +207,9 @@ const CourseListPage = () => {
                             setSearch(prev => ({ ...prev, page: prev.page - 1 }));
                         }}
                         className="p-2 border rounded-full hover:bg-gray-50 disabled:opacity-30 cursor-pointer transition-colors">
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="15 19l-7-7 7-7" /></svg>
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 19l-7-7 7-7" />
+                        </svg>
                     </button>
 
                     <span className="text-sm font-medium text-gray-700">
@@ -220,7 +222,9 @@ const CourseListPage = () => {
                             setSearch(prev => ({ ...prev, page: prev.page + 1 }));
                         }}
                         className="p-2 border rounded-full hover:bg-gray-50 disabled:opacity-30 cursor-pointer transition-colors">
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="9 5l7 7-7 7" /></svg>
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7" />
+                        </svg>
                     </button>
                 </div>
             )}

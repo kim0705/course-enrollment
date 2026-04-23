@@ -1,10 +1,14 @@
-import { useState } from 'react';
-import { registerCourse } from '../api/course';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { registerCourse, getCourseDetail, updateCourse } from '../api/course';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 
-/* 강의 등록 페이지 */
+/* 강의 등록/수정 페이지 */
 const CourseRegisterPage = () => {
+    const { courseId } = useParams();
+    const isEdit = !!courseId;
     const navigate = useNavigate();
+    const location = useLocation();
+    const previousSearch = location.state?.fromSearch || '';
 
     /* 오늘 날짜 */
     const today = new Date().toISOString().split('T')[0];
@@ -18,6 +22,28 @@ const CourseRegisterPage = () => {
         startDate: '',
         endDate: '',
     });
+
+    /* 수정 모드일 때 기존 데이터 불러오기 */
+    useEffect(() => {
+
+        if (isEdit) {
+            const fetchCourseData = async () => {
+                try {
+                    const response = await getCourseDetail(courseId);
+                    const data = response.data;
+                    setForm({
+                        ...data,
+                        priceDisplay: data.price.toLocaleString()
+                    });
+                } catch (err) {
+                    alert('강의 정보를 불러오는데 실패했습니다.');
+                    navigate(`/courses${previousSearch}`);
+                }
+            };
+
+            fetchCourseData();
+        }
+    }, [courseId, isEdit]);
 
     /* 입력값 변경 핸들러 */
     const handleChange = (e) => {
@@ -49,15 +75,31 @@ const CourseRegisterPage = () => {
         }));
     };
 
-    /* 강의 등록 요청 */
+    /* 강의 등록/수정 요청 */
     const handleSubmit = async (e) => {
         e.preventDefault();
+
         try {
-            await registerCourse(1, form); // 임시 크리에이터 ID
-            alert('강의가 등록되었습니다!');
-            navigate('/courses');
+            if (isEdit) {
+                await updateCourse(courseId, 1, form); // 임시 크리에이터 ID
+                alert('강의 정보가 수정되었습니다!');
+                navigate(`/courses/${courseId}`, { state: { fromSearch: previousSearch } });
+            } else {
+                const result = await registerCourse(1, form); // 임시 크리에이터 ID
+                alert('강의가 등록되었습니다!');
+                navigate(`/courses/${result.data.id}`, { state: { fromSearch: previousSearch } });
+            }
         } catch (err) {
-            alert(err.response?.data?.message || '강의 등록에 실패했습니다.');
+            alert(err.response?.data?.message || '저장에 실패했습니다.');
+        }
+    };
+
+    /* 취소 버튼 핸들러 */
+    const handleCancel = () => {
+        if (isEdit) {
+            navigate(`/courses/${courseId}`, { state: { fromSearch: previousSearch } });
+        } else {
+            navigate(`/courses${previousSearch}`);
         }
     };
 
@@ -66,17 +108,20 @@ const CourseRegisterPage = () => {
             {/* 헤더 섹션 */}
             <div className="flex justify-between items-center mb-8 border-b pb-4">
                 <div className="flex flex-col justify-center">
-                    <h1 className="text-3xl font-extrabold text-gray-900">강의 등록</h1>
+                    <h1 className="text-3xl font-extrabold text-gray-900">
+                        {isEdit ? '강의 수정' : '강의 등록'}
+                    </h1>
                     <p className="text-gray-500 mt-5">강의의 상세 정보를 입력해주세요.</p>
                 </div>
+
                 <div className="flex items-center gap-3">
-                    <button type="button" onClick={() => navigate('/courses')}
+                    <button type="button" onClick={handleCancel}
                         className="px-5 py-2 border border-gray-300 text-gray-600 rounded-md font-semibold hover:bg-gray-50 cursor-pointer transition-all shadow-sm">
                         취소
                     </button>
                     <button form="course-form" type="submit"
                         className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md font-semibold cursor-pointer shadow-sm transition-all active:scale-95">
-                        강의 저장하기
+                        {isEdit ? '수정 사항 저장' : '강의 저장하기'}
                     </button>
                 </div>
             </div>
@@ -89,13 +134,14 @@ const CourseRegisterPage = () => {
                         <div className="space-y-4 flex-1 flex flex-col">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">강의 제목</label>
-                                <input name="title" required maxLength={100} placeholder="예: 초보자를 위한 Java Spring Boot 마스터" onChange={handleChange}
+                                <input name="title" value={form.title} required maxLength={100} placeholder="예: 초보자를 위한 Java Spring Boot 마스터" onChange={handleChange}
                                     className="w-full border-gray-300 border py-3 px-4 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
                                 <p className="text-right text-xs text-gray-400 mt-1">{form.title.length} / 100</p>
                             </div>
+
                             <div className="flex-1 flex flex-col">
                                 <label className="block text-sm font-medium text-gray-700 mb-1">강의 설명</label>
-                                <textarea name="description" rows="10" maxLength={3000} placeholder="강의 내용을 상세히 적어주세요." onChange={handleChange}
+                                <textarea name="description" value={form.description} rows="10" maxLength={3000} placeholder="강의 내용을 상세히 적어주세요." onChange={handleChange}
                                     className="w-full border-gray-300 border py-3 px-4 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none flex-1 resize-none" />
                                 <p className="text-right text-xs text-gray-400 mt-1">{form.description.length} / 3000</p>
                             </div>
@@ -116,9 +162,10 @@ const CourseRegisterPage = () => {
                                     <span className="absolute right-3 top-3.5 text-gray-500">원</span>
                                 </div>
                             </div>
+
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">수강 정원</label>
-                                <input name="capacity" type="number" required min="1" onChange={handleChange}
+                                <input name="capacity" value={form.capacity} type="number" required min="1" onChange={handleChange}
                                     className="w-full border-gray-300 border py-3 px-4 rounded-lg" />
                             </div>
                         </div>
@@ -130,11 +177,12 @@ const CourseRegisterPage = () => {
                         <div className="space-y-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">시작일</label>
-                                <input name="startDate" type="date" required min={today} onChange={handleChange} className="w-full border-gray-300 border py-3 px-4 rounded-lg" />
+                                <input name="startDate" value={form.startDate} type="date" required min={today} onChange={handleChange} className="w-full border-gray-300 border py-3 px-4 rounded-lg" />
                             </div>
+
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">종료일</label>
-                                <input name="endDate" type="date" required min={form.startDate || today} onChange={handleChange} className="w-full border-gray-300 border py-3 px-4 rounded-lg" />
+                                <input name="endDate" value={form.endDate} type="date" required min={form.startDate || today} onChange={handleChange} className="w-full border-gray-300 border py-3 px-4 rounded-lg" />
                             </div>
                         </div>
                     </div>

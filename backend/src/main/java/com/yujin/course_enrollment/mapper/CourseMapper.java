@@ -1,10 +1,11 @@
 package com.yujin.course_enrollment.mapper;
 
+import com.yujin.course_enrollment.dto.req.ReqCourseSearchDto;
+import com.yujin.course_enrollment.dto.resp.RespCourseListDto;
 import com.yujin.course_enrollment.entity.Course;
 import org.apache.ibatis.annotations.Mapper;
 
 import java.util.List;
-import java.util.Optional;
 
 /**
  * 강의 Mapper 인터페이스
@@ -17,4 +18,10 @@ public interface CourseMapper {
 
     /* 강의 단건 조회 */
     Course selectCourseById(Long id);
+
+    /* 강의 목록 조회 (상태 필터 가능) */
+    List<RespCourseListDto> selectCourseList(ReqCourseSearchDto reqCourseSearchDto);
+
+    /* 강의 목록 전체 수 조회 (페이징용) */
+    int selectCourseListCount(ReqCourseSearchDto reqCourseSearchDto);
 }

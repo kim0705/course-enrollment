@@ -1,7 +1,10 @@
 package com.yujin.course_enrollment.service;
 
 import com.yujin.course_enrollment.dto.req.ReqCourseCreateDto;
+import com.yujin.course_enrollment.dto.req.ReqCourseSearchDto;
 import com.yujin.course_enrollment.dto.resp.RespCourseCreateDto;
+import com.yujin.course_enrollment.dto.resp.RespCourseListDto;
+import com.yujin.course_enrollment.dto.resp.RespPageDto;
 import com.yujin.course_enrollment.entity.Course;
 import com.yujin.course_enrollment.entity.User;
 import com.yujin.course_enrollment.mapper.CourseMapper;
@@ -12,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.List;
 
 /**
  * 강의 서비스
@@ -77,5 +81,20 @@ public class CourseService {
         }
 
         return RespCourseCreateDto.from(savedCourse);
+    }
+
+    /**
+     * 강의 목록 조회
+     * @param reqCourseSearchDto 검색 조건 DTO
+     */
+    public RespPageDto<RespCourseListDto> findCourseList(ReqCourseSearchDto reqCourseSearchDto) {
+        log.info("[CourseService] 강의 목록 조회 - status: {}, keyword: {}", reqCourseSearchDto.getStatus(), reqCourseSearchDto.getKeyword());
+
+        List<RespCourseListDto> content = courseMapper.selectCourseList(reqCourseSearchDto);
+        int totalCount = courseMapper.selectCourseListCount(reqCourseSearchDto);
+
+        log.info("[CourseService] 강의 목록 조회 완료 - 총 {}건", totalCount);
+
+        return RespPageDto.of(content, reqCourseSearchDto.getPage(), reqCourseSearchDto.getSize(), totalCount);
     }
 }

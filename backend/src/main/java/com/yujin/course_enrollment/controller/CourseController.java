@@ -1,7 +1,10 @@
 package com.yujin.course_enrollment.controller;
 
 import com.yujin.course_enrollment.dto.req.ReqCourseCreateDto;
+import com.yujin.course_enrollment.dto.req.ReqCourseSearchDto;
 import com.yujin.course_enrollment.dto.resp.RespCourseCreateDto;
+import com.yujin.course_enrollment.dto.resp.RespCourseListDto;
+import com.yujin.course_enrollment.dto.resp.RespPageDto;
 import com.yujin.course_enrollment.global.response.ApiResponse;
 import com.yujin.course_enrollment.service.CourseService;
 import jakarta.validation.Valid;
@@ -9,6 +12,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 /**
  * 강의 컨트롤러
@@ -35,5 +40,19 @@ public class CourseController {
         RespCourseCreateDto respCourseCreateDto = courseService.registerCourse(creatorId, reqCourseCreateDto);
 
         return ResponseEntity.ok(ApiResponse.success(respCourseCreateDto));
+    }
+
+    /**
+     * 강의 목록 조회
+     * GET /api/courses
+     * @param reqCourseSearchDto 검색 조건 DTO
+     */
+    @GetMapping
+    public ResponseEntity<ApiResponse<RespPageDto<RespCourseListDto>>> getCourseList(ReqCourseSearchDto reqCourseSearchDto) {
+        log.debug("[CourseController] 강의 목록 조회 요청 - status: {}, keyword: {}", reqCourseSearchDto.getStatus(), reqCourseSearchDto.getKeyword());
+
+        RespPageDto<RespCourseListDto> result = courseService.findCourseList(reqCourseSearchDto);
+
+        return ResponseEntity.ok(ApiResponse.success(result));
     }
 }

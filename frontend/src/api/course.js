@@ -23,3 +23,17 @@ export const updateCourse = (courseId, creatorId, data) => {
         headers: { 'X-User-Id': creatorId },
     }).then(res => res.data);
 };
+
+/* 강의 공개 (DRAFT → OPEN) */
+export const publishCourse = (courseId, creatorId) => {
+    return instance.patch(`/api/courses/${courseId}/publish`, {}, {
+        headers: { 'X-User-Id': creatorId },
+    }).then(res => res.data);
+};
+
+/* 강의 마감 (OPEN → CLOSED) */
+export const closeCourse = (courseId, creatorId) => {
+    return instance.patch(`/api/courses/${courseId}/close`, {}, {
+        headers: { 'X-User-Id': creatorId },
+    }).then(res => res.data);
+};

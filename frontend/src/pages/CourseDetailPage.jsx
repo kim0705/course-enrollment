@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
-import { getCourseDetail } from '../api/course';
+import { closeCourse, getCourseDetail, publishCourse } from '../api/course';
 
 const CourseDetailPage = () => {
     const { courseId } = useParams();
@@ -8,6 +8,9 @@ const CourseDetailPage = () => {
     const location = useLocation();
 
     const [course, setCourse] = useState(null);
+
+    /* 임시 현재 사용자 (로그인 기능 구현 전) */
+    const currentUser = { id: 1, role: 'CREATOR' };
 
     useEffect(() => {
         /* 강의 상세 조회 */
@@ -29,6 +32,30 @@ const CourseDetailPage = () => {
     const handleBackToList = () => {
         const previousSearch = location.state?.fromSearch || '';
         navigate(`/courses${previousSearch}`);
+    };
+
+    /* 강의 공개 */
+    const handlePublish = async () => {
+        if (!window.confirm('강의를 공개하시겠습니까?')) return;
+
+        try {
+            const result = await publishCourse(courseId, 1); // 임시 크리에이터 ID
+            setCourse(result.data);
+        } catch (err) {
+            alert(err.response?.data?.message || '강의 공개에 실패했습니다.');
+        }
+    };
+
+    /* 강의 마감 */
+    const handleClose = async () => {
+        if (!window.confirm('강의를 마감하시겠습니까?')) return;
+
+        try {
+            const result = await closeCourse(courseId, 1); // 임시 크리에이터 ID
+            setCourse(result.data);
+        } catch (err) {
+            alert(err.response?.data?.message || '강의 마감에 실패했습니다.');
+        }
     };
 
     if (!course) return <div className="text-center py-20 text-gray-400">로딩 중...</div>;
@@ -128,15 +155,38 @@ const CourseDetailPage = () => {
                                     </div>
                                 </div>
 
-                                <button
-                                    className={`w-full mt-8 py-4 font-bold rounded-md transition-all shadow-md active:scale-95 cursor-pointer ${course.status === 'OPEN'
-                                        ? 'bg-blue-600 text-white hover:bg-blue-700'
-                                        : 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                                        }`}
-                                    disabled={course.status !== 'OPEN'}
-                                >
-                                    {course.status === 'OPEN' ? '수강 신청하기' : '지금은 신청할 수 없습니다'}
-                                </button>
+                                {currentUser.role === 'CREATOR' ? (
+                                    <>
+                                        {course.status === 'DRAFT' && (
+                                            <button onClick={handlePublish}
+                                                className="w-full mt-8 py-4 font-bold rounded-md transition-all shadow-md active:scale-95 cursor-pointer bg-green-600 text-white hover:bg-green-700">
+                                                강의 공개하기
+                                            </button>
+                                        )}
+                                        {course.status === 'OPEN' && (
+                                            <button onClick={handleClose}
+                                                className="w-full mt-8 py-4 font-bold rounded-md transition-all shadow-md active:scale-95 cursor-pointer bg-red-500 text-white hover:bg-red-600">
+                                                모집 마감하기
+                                            </button>
+                                        )}
+                                        {course.status === 'CLOSED' && (
+                                            <button disabled
+                                                className="w-full mt-8 py-4 font-bold rounded-md transition-all shadow-md cursor-not-allowed bg-gray-200 text-gray-500">
+                                                마감된 강의입니다
+                                            </button>
+                                        )}
+                                    </>
+                                ) : (
+                                    <button
+                                        className={`w-full mt-8 py-4 font-bold rounded-md transition-all shadow-md active:scale-95 cursor-pointer ${course.status === 'OPEN'
+                                                ? 'bg-blue-600 text-white hover:bg-blue-700'
+                                                : 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                                            }`}
+                                        disabled={course.status !== 'OPEN'}
+                                    >
+                                        {course.status === 'OPEN' ? '수강 신청하기' : '지금은 신청할 수 없습니다'}
+                                    </button>
+                                )}
                             </div>
                         </div>
                     </div>

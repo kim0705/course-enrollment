@@ -1,8 +1,11 @@
 import { useState } from 'react';
 import { registerCourse } from '../api/course';
+import { useNavigate } from 'react-router-dom';
 
 /* 강의 등록 페이지 */
 const CourseRegisterPage = () => {
+    const navigate = useNavigate();
+
     /* 오늘 날짜 */
     const today = new Date().toISOString().split('T')[0];
 
@@ -52,26 +55,27 @@ const CourseRegisterPage = () => {
         try {
             await registerCourse(1, form); // 임시 크리에이터 ID
             alert('강의가 등록되었습니다!');
+            navigate('/courses');
         } catch (err) {
             alert(err.response?.data?.message || '강의 등록에 실패했습니다.');
         }
     };
 
     return (
-        <div className="max-w-4xl mx-auto mt-10 p-8">
+        <div className="max-w-7xl mx-auto mt-10 p-6">
             {/* 헤더 섹션 */}
-            <div className="flex justify-between items-end mb-8 border-b pb-4">
-                <div>
+            <div className="flex justify-between items-center mb-8 border-b pb-4">
+                <div className="flex flex-col justify-center">
                     <h1 className="text-3xl font-extrabold text-gray-900">강의 등록</h1>
-                    <p className="text-gray-500 mt-5">새로운 강의의 상세 정보를 입력해주세요.</p>
+                    <p className="text-gray-500 mt-5">강의의 상세 정보를 입력해주세요.</p>
                 </div>
-                <div className="flex gap-2">
-                    <button type="button"
-                        className="px-4 py-2 border border-gray-300 text-gray-600 rounded-xl font-bold hover:bg-gray-50 cursor-pointer transition-all shadow-sm">
+                <div className="flex items-center gap-3">
+                    <button type="button" onClick={() => navigate('/courses')}
+                        className="px-5 py-2 border border-gray-300 text-gray-600 rounded-md font-semibold hover:bg-gray-50 cursor-pointer transition-all shadow-sm">
                         취소
                     </button>
                     <button form="course-form" type="submit"
-                        className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold cursor-pointer shadow-md transition-all active:scale-95">
+                        className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md font-semibold cursor-pointer shadow-sm transition-all active:scale-95">
                         강의 저장하기
                     </button>
                 </div>

@@ -6,3 +6,8 @@ export const registerCourse = (creatorId, data) => {
         headers: { 'X-User-Id': creatorId },
     }).then(res => res.data);
 };
+
+/* 강의 목록 조회 */
+export const getCourseList = (params) => {
+    return instance.get('/api/courses', { params }).then(res => res.data);
+};

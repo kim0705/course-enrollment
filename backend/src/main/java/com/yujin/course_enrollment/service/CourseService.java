@@ -10,7 +10,9 @@ import com.yujin.course_enrollment.dto.resp.RespPageDto;
 import com.yujin.course_enrollment.entity.Course;
 import com.yujin.course_enrollment.entity.User;
 import com.yujin.course_enrollment.global.exception.BusinessException;
+import com.yujin.course_enrollment.entity.Enrollment;
 import com.yujin.course_enrollment.mapper.CourseMapper;
+import com.yujin.course_enrollment.mapper.EnrollmentMapper;
 import com.yujin.course_enrollment.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -33,6 +35,7 @@ public class CourseService {
 
     private final CourseMapper courseMapper;
     private final UserMapper userMapper;
+    private final EnrollmentMapper enrollmentMapper;
 
     /**
      * 강의 등록
@@ -107,9 +110,10 @@ public class CourseService {
     /**
      * 강의 상세 조회
      * @param courseId 강의 ID
+     * @param userId 조회하는 사용자 ID (수강 신청 여부 확인용)
      * @throws BusinessException 강의 없음(400)
      */
-    public RespCourseDetailDto findCourseById(Long courseId) {
+    public RespCourseDetailDto findCourseById(Long courseId, Long userId) {
         log.info("[CourseService] 강의 상세 조회 - courseId: {}", courseId);
 
         RespCourseDetailDto course = courseMapper.selectCourseDetailById(courseId);
@@ -117,6 +121,9 @@ public class CourseService {
             log.warn("[CourseService] 강의 없음 - courseId: {}", courseId);
             throw new BusinessException(HttpStatus.BAD_REQUEST, "존재하지 않는 강의입니다.");
         }
+
+        Enrollment enrollment = enrollmentMapper.selectEnrollmentByUserIdAndCourseId(userId, courseId);
+        course.setEnrolled(enrollment != null);
 
         log.info("[CourseService] 강의 상세 조회 완료 - courseId: {}", courseId);
 

@@ -61,13 +61,14 @@ public class CourseController {
     /**
      * 강의 상세 조회
      * GET /api/courses/{courseId}
+     * @param userId 사용자 ID (헤더로 전달, 수강 신청 여부 확인용)
      * @param courseId 강의 ID
      */
     @GetMapping("/{courseId}")
-    public ResponseEntity<ApiResponse<RespCourseDetailDto>> getCourseDetail(@PathVariable Long courseId) {
+    public ResponseEntity<ApiResponse<RespCourseDetailDto>> getCourseDetail(@RequestHeader("X-User-Id") Long userId, @PathVariable Long courseId) {
         log.debug("[CourseController] 강의 상세 조회 요청 - courseId: {}", courseId);
 
-        RespCourseDetailDto result = courseService.findCourseById(courseId);
+        RespCourseDetailDto result = courseService.findCourseById(courseId, userId);
 
         return ResponseEntity.ok(ApiResponse.success(result));
     }

@@ -37,5 +37,5 @@ CREATE TABLE enrollments (
                              FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE RESTRICT
 );
 
-CREATE INDEX idx_enrollment_user_course ON enrollments(user_id, course_id);
-CREATE INDEX idx_enrollment_course      ON enrollments(course_id);
+CREATE UNIQUE INDEX idx_enrollment_user_course ON enrollments(user_id, course_id);
+CREATE INDEX idx_enrollment_course             ON enrollments(course_id);

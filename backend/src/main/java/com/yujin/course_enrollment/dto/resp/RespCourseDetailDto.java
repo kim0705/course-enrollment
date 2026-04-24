@@ -29,4 +29,5 @@ public class RespCourseDetailDto {
     private LocalDate endDate;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private boolean enrolled;
 }

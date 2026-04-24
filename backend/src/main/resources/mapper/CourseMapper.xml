@@ -155,4 +155,12 @@
          WHERE id = #{id}
     </update>
 
+    <!-- 수강 인원 증가 (정원 미만일 때만) -->
+    <update id="incrementEnrolledCount" parameterType="long">
+        UPDATE courses
+           SET enrolled_count = enrolled_count + 1
+         WHERE id = #{courseId}
+           AND <![CDATA[ enrolled_count < capacity ]]>
+    </update>
+
 </mapper>

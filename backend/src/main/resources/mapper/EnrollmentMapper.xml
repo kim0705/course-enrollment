@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.yujin.course_enrollment.mapper.EnrollmentMapper">
+
+    <!-- 수강 신청 등록 -->
+    <insert id="insertEnrollment" parameterType="Enrollment" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO enrollments (
+                user_id
+              , course_id
+              , status
+        ) VALUES (
+                #{userId}
+              , #{courseId}
+              , 'PENDING'
+        )
+    </insert>
+
+    <!-- 수강 신청 단건 조회 -->
+    <select id="selectEnrollmentById" parameterType="long" resultType="Enrollment">
+        SELECT id
+             , user_id
+             , course_id
+             , status
+             , confirmed_at
+             , cancelled_at
+             , created_at
+             , updated_at
+          FROM enrollments
+         WHERE id = #{id}
+    </select>
+
+    <!-- 사용자-강의 수강 신청 조회 -->
+    <select id="selectEnrollmentByUserIdAndCourseId" resultType="Enrollment">
+        SELECT id
+             , user_id
+             , course_id
+             , status
+             , confirmed_at
+             , cancelled_at
+             , created_at
+             , updated_at
+          FROM enrollments
+         WHERE user_id   = #{userId}
+           AND course_id = #{courseId}
+    </select>
+
+    <!-- 수강 신청 상태 변경 -->
+    <update id="updateEnrollmentStatus" parameterType="Enrollment">
+        UPDATE enrollments
+           SET status       = #{status}
+             , confirmed_at = #{confirmedAt}
+             , cancelled_at = #{cancelledAt}
+         WHERE id = #{id}
+    </update>
+
+</mapper>

@@ -34,4 +34,7 @@ public interface CourseMapper {
 
     /* 강의 상태 변경 */
     void updateCourseStatus(Course course);
+
+    /* 수강 인원 증가 (정원 미만일 때만, 반환값: 업데이트된 행 수) */
+    int incrementEnrolledCount(Long courseId);
 }

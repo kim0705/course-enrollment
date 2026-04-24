@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { closeCourse, getCourseDetail, publishCourse } from '../api/course';
+import { createEnrollment } from '../api/enrollment';
 import { useAuth } from '../context/AuthContext';
 
 const CourseDetailPage = () => {
@@ -45,6 +46,20 @@ const CourseDetailPage = () => {
             setCourse(result.data);
         } catch (err) {
             alert(err.response?.data?.message || '강의 공개에 실패했습니다.');
+        }
+    };
+
+    /* 수강 신청 */
+    const handleEnroll = async () => {
+        if (!window.confirm('수강 신청하시겠습니까?')) return;
+
+        try {
+            await createEnrollment(Number(courseId));
+            alert('수강 신청이 완료되었습니다.');
+            const result = await getCourseDetail(courseId);
+            setCourse(result.data);
+        } catch (err) {
+            alert(err.response?.data?.message || '수강 신청에 실패했습니다.');
         }
     };
 
@@ -179,15 +194,25 @@ const CourseDetailPage = () => {
                                         )}
                                     </>
                                 ) : (
-                                    <button
-                                        className={`w-full mt-8 py-4 font-bold rounded-md transition-all shadow-md active:scale-95 cursor-pointer ${course.status === 'OPEN'
-                                                ? 'bg-blue-600 text-white hover:bg-blue-700'
-                                                : 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                                            }`}
-                                        disabled={course.status !== 'OPEN'}
-                                    >
-                                        {course.status === 'OPEN' ? '수강 신청하기' : '지금은 신청할 수 없습니다'}
-                                    </button>
+                                    <>
+                                        {course.enrolled ? (
+                                            <button disabled
+                                                className="w-full mt-8 py-4 font-bold rounded-md transition-all shadow-md cursor-not-allowed bg-gray-200 text-gray-500">
+                                                이미 신청한 강의입니다
+                                            </button>
+                                        ) : (
+                                            <button
+                                                onClick={course.status === 'OPEN' ? handleEnroll : undefined}
+                                                className={`w-full mt-8 py-4 font-bold rounded-md transition-all shadow-md active:scale-95 cursor-pointer ${course.status === 'OPEN'
+                                                        ? 'bg-blue-600 text-white hover:bg-blue-700'
+                                                        : 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                                                    }`}
+                                                disabled={course.status !== 'OPEN'}
+                                            >
+                                                {course.status === 'OPEN' ? '수강 신청하기' : '지금은 신청할 수 없습니다'}
+                                            </button>
+                                        )}
+                                    </>
                                 )}
                             </div>
                         </div>

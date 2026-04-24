@@ -3,6 +3,7 @@ package com.yujin.course_enrollment.global.exception;
 import com.yujin.course_enrollment.global.response.ApiResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -48,6 +49,15 @@ public class GlobalExceptionHandler {
         String message = e.getHeaderName() + " 헤더가 누락되었습니다.";
         log.warn("[GlobalExceptionHandler] MissingRequestHeaderException: {}", message);
         return ResponseEntity.badRequest().body(ApiResponse.fail(400, message));
+    }
+
+    /**
+     * 요청 바디 파싱 실패 처리 (잘못된 JSON 형식, 타입 불일치 등)
+     */
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ApiResponse<?>> handleHttpMessageNotReadableException(HttpMessageNotReadableException e) {
+        log.warn("[GlobalExceptionHandler] HttpMessageNotReadableException: {}", e.getMessage());
+        return ResponseEntity.badRequest().body(ApiResponse.fail(400, "요청 형식이 올바르지 않습니다."));
     }
 
     /**

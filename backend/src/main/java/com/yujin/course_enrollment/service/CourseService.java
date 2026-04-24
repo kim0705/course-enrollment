@@ -28,6 +28,7 @@ import java.util.List;
 @Slf4j
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class CourseService {
 
     private final CourseMapper courseMapper;
@@ -37,6 +38,7 @@ public class CourseService {
      * 강의 등록
      * @param creatorId 강의를 등록하는 크리에이터 ID
      * @param reqCourseCreateDto 강의 등록 요청 DTO
+     * @throws BusinessException 사용자 없음(400), 등록 권한 없음(403), 날짜 유효성 오류(400), 등록 실패(500)
      */
     @Transactional
     public RespCourseCreateDto registerCourse(Long creatorId, ReqCourseCreateDto reqCourseCreateDto) {
@@ -105,6 +107,7 @@ public class CourseService {
     /**
      * 강의 상세 조회
      * @param courseId 강의 ID
+     * @throws BusinessException 강의 없음(400)
      */
     public RespCourseDetailDto findCourseById(Long courseId) {
         log.info("[CourseService] 강의 상세 조회 - courseId: {}", courseId);
@@ -125,7 +128,9 @@ public class CourseService {
      * @param creatorId 크리에이터 ID
      * @param courseId 강의 ID
      * @param reqCourseUpdateDto 강의 수정 요청 DTO
+     * @throws BusinessException 강의 없음(400), 수정 권한 없음(403), DRAFT 상태 아님(400), 날짜 유효성 오류(400)
      */
+    @Transactional
     public RespCourseDetailDto modifyCourse(Long creatorId, Long courseId, ReqCourseUpdateDto reqCourseUpdateDto) {
         log.info("[CourseService] 강의 수정 - creatorId: {}, courseId: {}", creatorId, courseId);
 
@@ -165,7 +170,9 @@ public class CourseService {
      * 강의 공개 (DRAFT → OPEN)
      * @param creatorId 크리에이터 ID
      * @param courseId 강의 ID
+     * @throws BusinessException 강의 없음(400), 공개 권한 없음(403), DRAFT 상태 아님(400)
      */
+    @Transactional
     public RespCourseDetailDto publishCourse(Long creatorId, Long courseId) {
         log.info("[CourseService] 강의 공개 - creatorId: {}, courseId: {}", creatorId, courseId);
 
@@ -196,7 +203,9 @@ public class CourseService {
      * 강의 마감 (OPEN → CLOSED)
      * @param creatorId 크리에이터 ID
      * @param courseId 강의 ID
+     * @throws BusinessException 강의 없음(400), 마감 권한 없음(403), OPEN 상태 아님(400)
      */
+    @Transactional
     public RespCourseDetailDto closeCourse(Long creatorId, Long courseId) {
         log.info("[CourseService] 강의 마감 - creatorId: {}, courseId: {}", creatorId, courseId);
 

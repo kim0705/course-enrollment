@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { registerCourse, getCourseDetail, updateCourse } from '../api/course';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 /* 강의 등록/수정 페이지 */
 const CourseRegisterPage = () => {
@@ -8,6 +9,7 @@ const CourseRegisterPage = () => {
     const isEdit = !!courseId;
     const navigate = useNavigate();
     const location = useLocation();
+    const { user } = useAuth();
     const previousSearch = location.state?.fromSearch || '';
 
     /* 오늘 날짜 */
@@ -81,11 +83,11 @@ const CourseRegisterPage = () => {
 
         try {
             if (isEdit) {
-                await updateCourse(courseId, 1, form); // 임시 크리에이터 ID
+                await updateCourse(courseId, user?.id, form);
                 alert('강의 정보가 수정되었습니다!');
                 navigate(`/courses/${courseId}`, { state: { fromSearch: previousSearch } });
             } else {
-                const result = await registerCourse(1, form); // 임시 크리에이터 ID
+                const result = await registerCourse(user?.id, form);
                 alert('강의가 등록되었습니다!');
                 navigate(`/courses/${result.data.id}`, { state: { fromSearch: previousSearch } });
             }

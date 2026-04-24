@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { closeCourse, getCourseDetail, publishCourse } from '../api/course';
+import { useAuth } from '../context/AuthContext';
 
 const CourseDetailPage = () => {
     const { courseId } = useParams();
@@ -8,9 +9,10 @@ const CourseDetailPage = () => {
     const location = useLocation();
 
     const [course, setCourse] = useState(null);
+    const { user } = useAuth();
 
-    /* 임시 현재 사용자 (로그인 기능 구현 전) */
-    const currentUser = { id: 1, role: 'CREATOR' };
+    /* 현재 로그인한 사용자가 강의 소유자인지 여부 */
+    const isOwner = course?.creatorId === user?.id;
 
     useEffect(() => {
         /* 강의 상세 조회 */
@@ -39,7 +41,7 @@ const CourseDetailPage = () => {
         if (!window.confirm('강의를 공개하시겠습니까?')) return;
 
         try {
-            const result = await publishCourse(courseId, 1); // 임시 크리에이터 ID
+            const result = await publishCourse(courseId, user?.id);
             setCourse(result.data);
         } catch (err) {
             alert(err.response?.data?.message || '강의 공개에 실패했습니다.');
@@ -51,7 +53,7 @@ const CourseDetailPage = () => {
         if (!window.confirm('강의를 마감하시겠습니까?')) return;
 
         try {
-            const result = await closeCourse(courseId, 1); // 임시 크리에이터 ID
+            const result = await closeCourse(courseId, user?.id);
             setCourse(result.data);
         } catch (err) {
             alert(err.response?.data?.message || '강의 마감에 실패했습니다.');
@@ -64,7 +66,7 @@ const CourseDetailPage = () => {
         <div className="max-w-7xl mx-auto mt-10 p-6">
             {/* 상단 헤더 섹션 */}
             <div className="flex justify-end gap-3 mb-8 border-b pb-6">
-                {course.status === 'DRAFT' && (
+                {isOwner && course.status === 'DRAFT' && (
                     <button onClick={() => navigate(`/courses/${courseId}/edit`, { state: { fromSearch: location.state?.fromSearch } })}
                         className="px-4 py-2 bg-blue-600 text-white rounded-md font-semibold hover:bg-blue-700 cursor-pointer transition-all shadow-sm text-sm">
                         수정하기
@@ -155,7 +157,7 @@ const CourseDetailPage = () => {
                                     </div>
                                 </div>
 
-                                {currentUser.role === 'CREATOR' ? (
+                                {isOwner ? (
                                     <>
                                         {course.status === 'DRAFT' && (
                                             <button onClick={handlePublish}

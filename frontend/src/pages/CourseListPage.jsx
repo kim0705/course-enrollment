@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { getCourseList } from '../api/course';
+import { useAuth } from '../context/AuthContext';
 
 const CourseListPage = () => {
     const navigate = useNavigate();
     const location = useLocation();
+    const { user } = useAuth();
     const [searchParams, setSearchParams] = useSearchParams();
     const [tempKeyword, setTempKeyword] = useState(searchParams.get('keyword') || '');
 
@@ -89,10 +91,12 @@ const CourseListPage = () => {
         <div className="max-w-7xl mx-auto mt-10 p-6">
             <div className="flex justify-between items-center mb-8">
                 <h1 className="text-3xl font-extrabold text-gray-900">전체 강의</h1>
-                <button onClick={() => navigate('/courses/new', { state: { fromSearch: location.search } })}
-                    className="px-5 py-2 bg-blue-600 text-white rounded-md font-semibold hover:bg-blue-700 transition-all cursor-pointer shadow-sm">
-                    강의 등록
-                </button>
+                {user?.role === 'CREATOR' && (
+                    <button onClick={() => navigate('/courses/new', { state: { fromSearch: location.search } })}
+                        className="px-5 py-2 bg-blue-600 text-white rounded-md font-semibold hover:bg-blue-700 transition-all cursor-pointer shadow-sm">
+                        강의 등록
+                    </button>
+                )}
             </div>
 
             {/* 검색 섹션 */}

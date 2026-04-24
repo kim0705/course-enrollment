@@ -1,6 +1,7 @@
 package com.yujin.course_enrollment.service;
 
 import com.yujin.course_enrollment.dto.req.ReqCourseCreateDto;
+import com.yujin.course_enrollment.global.exception.BusinessException;
 import com.yujin.course_enrollment.dto.req.ReqCourseUpdateDto;
 import com.yujin.course_enrollment.dto.resp.RespCourseCreateDto;
 import com.yujin.course_enrollment.dto.resp.RespCourseDetailDto;
@@ -88,7 +89,7 @@ class CourseServiceTest {
 
         // when & then
         assertThatThrownBy(() -> courseService.registerCourse(creatorId, req))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(BusinessException.class)
                 .hasMessage("존재하지 않는 사용자입니다.");
     }
 
@@ -108,7 +109,7 @@ class CourseServiceTest {
 
         // when & then
         assertThatThrownBy(() -> courseService.registerCourse(creatorId, req))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(BusinessException.class)
                 .hasMessage("강의 등록 권한이 없습니다.");
     }
 
@@ -128,7 +129,7 @@ class CourseServiceTest {
 
         // when & then
         assertThatThrownBy(() -> courseService.registerCourse(creatorId, req))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(BusinessException.class)
                 .hasMessage("종료일은 시작일보다 이전일 수 없습니다.");
     }
 
@@ -187,7 +188,7 @@ class CourseServiceTest {
 
         // when & then
         assertThatThrownBy(() -> courseService.registerCourse(creatorId, req))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(BusinessException.class)
                 .hasMessage("시작일은 오늘 이후여야 합니다.");
     }
 
@@ -207,7 +208,7 @@ class CourseServiceTest {
 
         // when & then
         assertThatThrownBy(() -> courseService.registerCourse(creatorId, req))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(BusinessException.class)
                 .hasMessage("종료일은 오늘 이후여야 합니다.");
     }
 
@@ -266,7 +267,7 @@ class CourseServiceTest {
 
         // when & then
         assertThatThrownBy(() -> courseService.modifyCourse(otherUserId, courseId, req))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(BusinessException.class)
                 .hasMessage("강의 수정 권한이 없습니다.");
     }
 
@@ -291,7 +292,7 @@ class CourseServiceTest {
 
         // when & then
         assertThatThrownBy(() -> courseService.modifyCourse(creatorId, courseId, resp))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(BusinessException.class)
                 .hasMessage("DRAFT 상태의 강의만 수정할 수 있습니다.");
     }
 
@@ -340,7 +341,7 @@ class CourseServiceTest {
 
         // when & then
         assertThatThrownBy(() -> courseService.publishCourse(otherUserId, courseId))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(BusinessException.class)
                 .hasMessage("강의 공개 권한이 없습니다.");
     }
 
@@ -360,7 +361,7 @@ class CourseServiceTest {
 
         // when & then
         assertThatThrownBy(() -> courseService.publishCourse(creatorId, courseId))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(BusinessException.class)
                 .hasMessage("DRAFT 상태의 강의만 공개할 수 있습니다.");
     }
 
@@ -409,7 +410,7 @@ class CourseServiceTest {
 
         // when & then
         assertThatThrownBy(() -> courseService.closeCourse(wrongUserId, courseId))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(BusinessException.class)
                 .hasMessage("강의 마감 권한이 없습니다.");
     }
 
@@ -429,7 +430,7 @@ class CourseServiceTest {
 
         // when & then
         assertThatThrownBy(() -> courseService.closeCourse(creatorId, courseId))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(BusinessException.class)
                 .hasMessage("OPEN 상태의 강의만 마감할 수 있습니다.");
     }
 }

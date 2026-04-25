@@ -25,4 +25,22 @@ public class Enrollment {
     private LocalDateTime cancelledAt;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+
+    /* 결제 확정 상태로 변경할 엔티티 생성 */
+    public static Enrollment ofConfirm(Long id) {
+        return Enrollment.builder()
+                .id(id)
+                .status("CONFIRMED")
+                .confirmedAt(LocalDateTime.now())
+                .build();
+    }
+
+    /* 취소 상태로 변경할 엔티티 생성 */
+    public static Enrollment ofCancel(Long id) {
+        return Enrollment.builder()
+                .id(id)
+                .status("CANCELLED")
+                .cancelledAt(LocalDateTime.now())
+                .build();
+    }
 }

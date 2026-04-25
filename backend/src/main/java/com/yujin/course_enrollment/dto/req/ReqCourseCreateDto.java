@@ -46,6 +46,7 @@ public class ReqCourseCreateDto {
                 .capacity(this.capacity)
                 .startDate(this.startDate)
                 .endDate(this.endDate)
+                .status("DRAFT")
                 .build();
     }
 }

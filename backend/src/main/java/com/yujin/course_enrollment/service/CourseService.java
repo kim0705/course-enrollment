@@ -123,7 +123,7 @@ public class CourseService {
         }
 
         Enrollment enrollment = enrollmentMapper.selectEnrollmentByUserIdAndCourseId(userId, courseId);
-        course.setEnrolled(enrollment != null);
+        course.setEnrolled(enrollment != null && !"CANCELLED".equals(enrollment.getStatus()));
 
         log.info("[CourseService] 강의 상세 조회 완료 - courseId: {}", courseId);
 

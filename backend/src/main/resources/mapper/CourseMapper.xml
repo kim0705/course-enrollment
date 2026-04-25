@@ -20,7 +20,7 @@
               , #{description}
               , #{price}
               , #{capacity}
-              , 'DRAFT'
+              , #{status}
               , #{startDate}
               , #{endDate}
         )
@@ -156,11 +156,19 @@
     </update>
 
     <!-- 수강 인원 증가 (정원 미만일 때만) -->
-    <update id="incrementEnrolledCount" parameterType="long">
+    <update id="updateCourseEnrolledCountPlus" parameterType="long">
         UPDATE courses
            SET enrolled_count = enrolled_count + 1
          WHERE id = #{courseId}
            AND <![CDATA[ enrolled_count < capacity ]]>
+    </update>
+
+    <!-- 수강 인원 감소 -->
+    <update id="updateCourseEnrolledCountMinus" parameterType="long">
+        UPDATE courses
+           SET enrolled_count = enrolled_count - 1
+         WHERE id = #{courseId}
+           AND enrolled_count > 0
     </update>
 
 </mapper>

@@ -21,6 +21,7 @@ public class ReqEnrollmentCreateDto {
         return Enrollment.builder()
                 .userId(userId)
                 .courseId(this.courseId)
+                .status("PENDING")
                 .build();
     }
 }

@@ -2,6 +2,7 @@ package com.yujin.course_enrollment.service;
 
 import com.yujin.course_enrollment.dto.req.ReqEnrollmentCreateDto;
 import com.yujin.course_enrollment.dto.resp.RespEnrollmentDto;
+import com.yujin.course_enrollment.dto.resp.RespEnrollmentStudentDto;
 import com.yujin.course_enrollment.entity.Course;
 import com.yujin.course_enrollment.entity.Enrollment;
 import com.yujin.course_enrollment.entity.User;
@@ -17,6 +18,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.BDDMockito.*;
@@ -64,10 +66,9 @@ class EnrollmentServiceTest {
 
         given(userMapper.selectUserById(userId)).willReturn(student);
         given(courseMapper.selectCourseById(courseId)).willReturn(openCourse);
-        given(enrollmentMapper.selectEnrollmentByUserIdAndCourseId(userId, courseId)).willReturn(null);
+        given(enrollmentMapper.selectEnrollmentByUserIdAndCourseId(userId, courseId)).willReturn(null).willReturn(saved);
         willDoNothing().given(enrollmentMapper).insertEnrollment(any());
-        given(courseMapper.incrementEnrolledCount(courseId)).willReturn(1);
-        given(enrollmentMapper.selectEnrollmentById(any())).willReturn(saved);
+        given(courseMapper.updateCourseEnrolledCountPlus(courseId)).willReturn(1);
 
         // when
         RespEnrollmentDto result = enrollmentService.registerEnrollment(userId, new ReqEnrollmentCreateDto(courseId));
@@ -77,7 +78,7 @@ class EnrollmentServiceTest {
         assertThat(result.getCourseId()).isEqualTo(courseId);
         assertThat(result.getStatus()).isEqualTo("PENDING");
         then(enrollmentMapper).should().insertEnrollment(any());
-        then(courseMapper).should().incrementEnrolledCount(courseId);
+        then(courseMapper).should().updateCourseEnrolledCountPlus(courseId);
     }
 
     @Test
@@ -189,6 +190,51 @@ class EnrollmentServiceTest {
     }
 
     @Test
+    @DisplayName("취소 후 재신청 성공")
+    void registerEnrollment_reEnrollAfterCancel() {
+        // given
+        Long userId = 4L;
+        Long courseId = 1L;
+        User student = new User(userId, "수강생A", "STUDENT");
+        Course openCourse = Course.builder()
+                .id(courseId)
+                .creatorId(1L)
+                .title("Spring Boot 강의")
+                .status("OPEN")
+                .capacity(30)
+                .enrolledCount(10)
+                .build();
+        Enrollment cancelled = Enrollment.builder()
+                .id(1L)
+                .userId(userId)
+                .courseId(courseId)
+                .status("CANCELLED")
+                .build();
+        Enrollment reEnrolled = Enrollment.builder()
+                .id(1L)
+                .userId(userId)
+                .courseId(courseId)
+                .status("PENDING")
+                .createdAt(LocalDateTime.now())
+                .build();
+        ReqEnrollmentCreateDto req = new ReqEnrollmentCreateDto(courseId);
+
+        given(userMapper.selectUserById(userId)).willReturn(student);
+        given(courseMapper.selectCourseById(courseId)).willReturn(openCourse);
+        given(enrollmentMapper.selectEnrollmentByUserIdAndCourseId(userId, courseId)).willReturn(cancelled).willReturn(reEnrolled);
+        willDoNothing().given(enrollmentMapper).insertEnrollment(any());
+        given(courseMapper.updateCourseEnrolledCountPlus(courseId)).willReturn(1);
+
+        // when
+        RespEnrollmentDto result = enrollmentService.registerEnrollment(userId, req);
+
+        // then
+        assertThat(result.getStatus()).isEqualTo("PENDING");
+        then(enrollmentMapper).should().insertEnrollment(any());
+        then(courseMapper).should().updateCourseEnrolledCountPlus(courseId);
+    }
+
+    @Test
     @DisplayName("동시 신청으로 정원 초과 - 수강 신청 실패")
     void registerEnrollment_capacityExceeded_concurrent() {
         // given
@@ -208,7 +254,7 @@ class EnrollmentServiceTest {
         given(courseMapper.selectCourseById(courseId)).willReturn(openCourse);
         given(enrollmentMapper.selectEnrollmentByUserIdAndCourseId(userId, courseId)).willReturn(null);
         willDoNothing().given(enrollmentMapper).insertEnrollment(any());
-        given(courseMapper.incrementEnrolledCount(courseId)).willReturn(0);
+        given(courseMapper.updateCourseEnrolledCountPlus(courseId)).willReturn(0);
 
         // when & then
         assertThatThrownBy(() -> enrollmentService.registerEnrollment(userId, req))
@@ -240,5 +286,174 @@ class EnrollmentServiceTest {
         assertThatThrownBy(() -> enrollmentService.registerEnrollment(userId, req))
                 .isInstanceOf(BusinessException.class)
                 .hasMessage("수강 정원이 초과되었습니다.");
+    }
+
+    @Test
+    @DisplayName("수강 신청 목록 조회 성공")
+    void findMyEnrollments_success() {
+        // given
+        Long userId = 4L;
+        List<RespEnrollmentStudentDto> list = List.of(new RespEnrollmentStudentDto(), new RespEnrollmentStudentDto());
+        given(enrollmentMapper.selectEnrollmentListByUserId(userId)).willReturn(list);
+
+        // when
+        List<RespEnrollmentStudentDto> result = enrollmentService.findMyEnrollments(userId);
+
+        // then
+        assertThat(result).hasSize(2);
+        then(enrollmentMapper).should().selectEnrollmentListByUserId(userId);
+    }
+
+    @Test
+    @DisplayName("결제 요청 성공 - PENDING → CONFIRMED")
+    void confirmEnrollment_success() {
+        // given
+        Long userId = 4L;
+        Long enrollmentId = 1L;
+        Enrollment pending = Enrollment.builder()
+                .id(enrollmentId)
+                .userId(userId)
+                .courseId(1L)
+                .status("PENDING")
+                .build();
+        Course course = Course.builder().id(1L).title("Spring Boot 강의").build();
+        Enrollment confirmed = Enrollment.builder()
+                .id(enrollmentId)
+                .userId(userId)
+                .courseId(1L)
+                .status("CONFIRMED")
+                .confirmedAt(LocalDateTime.now())
+                .build();
+
+        given(enrollmentMapper.selectEnrollmentById(enrollmentId)).willReturn(pending).willReturn(confirmed);
+        willDoNothing().given(enrollmentMapper).updateEnrollmentStatus(any());
+        given(courseMapper.selectCourseById(1L)).willReturn(course);
+
+        // when
+        RespEnrollmentDto result = enrollmentService.confirmEnrollment(userId, enrollmentId);
+
+        // then
+        assertThat(result.getStatus()).isEqualTo("CONFIRMED");
+        then(enrollmentMapper).should().updateEnrollmentStatus(any());
+    }
+
+    @Test
+    @DisplayName("본인 신청 아님 - 결제 요청 실패")
+    void confirmEnrollment_fail_notOwner() {
+        // given
+        Long userId = 99L;
+        Long enrollmentId = 1L;
+        Enrollment pending = Enrollment.builder()
+                .id(enrollmentId)
+                .userId(4L)
+                .courseId(1L)
+                .status("PENDING")
+                .build();
+
+        given(enrollmentMapper.selectEnrollmentById(enrollmentId)).willReturn(pending);
+
+        // when & then
+        assertThatThrownBy(() -> enrollmentService.confirmEnrollment(userId, enrollmentId))
+                .isInstanceOf(BusinessException.class)
+                .hasMessage("본인의 수강 신청만 결제할 수 있습니다.");
+    }
+
+    @Test
+    @DisplayName("PENDING 상태 아님 - 결제 요청 실패")
+    void confirmEnrollment_fail_notPending() {
+        // given
+        Long userId = 4L;
+        Long enrollmentId = 1L;
+        Enrollment confirmed = Enrollment.builder()
+                .id(enrollmentId)
+                .userId(userId)
+                .courseId(1L)
+                .status("CONFIRMED")
+                .build();
+
+        given(enrollmentMapper.selectEnrollmentById(enrollmentId)).willReturn(confirmed);
+
+        // when & then
+        assertThatThrownBy(() -> enrollmentService.confirmEnrollment(userId, enrollmentId))
+                .isInstanceOf(BusinessException.class)
+                .hasMessage("PENDING 상태의 수강 신청만 결제할 수 있습니다.");
+    }
+
+    @Test
+    @DisplayName("수강 취소 성공 - PENDING → CANCELLED")
+    void cancelEnrollment_success_pending() {
+        // given
+        Long userId = 4L;
+        Long enrollmentId = 1L;
+        Enrollment pending = Enrollment.builder()
+                .id(enrollmentId)
+                .userId(userId)
+                .courseId(1L)
+                .status("PENDING")
+                .build();
+        Course course = Course.builder().id(1L).title("Spring Boot 강의").build();
+        Enrollment cancelled = Enrollment.builder()
+                .id(enrollmentId)
+                .userId(userId)
+                .courseId(1L)
+                .status("CANCELLED")
+                .cancelledAt(LocalDateTime.now())
+                .build();
+
+        given(enrollmentMapper.selectEnrollmentById(enrollmentId)).willReturn(pending).willReturn(cancelled);
+        willDoNothing().given(enrollmentMapper).updateEnrollmentStatus(any());
+        willDoNothing().given(courseMapper).updateCourseEnrolledCountMinus(1L);
+        given(courseMapper.selectCourseById(1L)).willReturn(course);
+
+        // when
+        RespEnrollmentDto result = enrollmentService.cancelEnrollment(userId, enrollmentId);
+
+        // then
+        assertThat(result.getStatus()).isEqualTo("CANCELLED");
+        then(enrollmentMapper).should().updateEnrollmentStatus(any());
+        then(courseMapper).should().updateCourseEnrolledCountMinus(1L);
+    }
+
+    @Test
+    @DisplayName("이미 취소됨 - 수강 취소 실패")
+    void cancelEnrollment_fail_alreadyCancelled() {
+        // given
+        Long userId = 4L;
+        Long enrollmentId = 1L;
+        Enrollment cancelled = Enrollment.builder()
+                .id(enrollmentId)
+                .userId(userId)
+                .courseId(1L)
+                .status("CANCELLED")
+                .build();
+
+        given(enrollmentMapper.selectEnrollmentById(enrollmentId)).willReturn(cancelled);
+
+        // when & then
+        assertThatThrownBy(() -> enrollmentService.cancelEnrollment(userId, enrollmentId))
+                .isInstanceOf(BusinessException.class)
+                .hasMessage("이미 취소된 수강 신청입니다.");
+    }
+
+    @Test
+    @DisplayName("취소 기간 초과 - 수강 취소 실패")
+    void cancelEnrollment_fail_expiredCancelPeriod() {
+        // given
+        Long userId = 4L;
+        Long enrollmentId = 1L;
+        Enrollment confirmed = Enrollment.builder()
+                .id(enrollmentId)
+                .userId(userId)
+                .courseId(1L)
+                .status("CONFIRMED")
+                .confirmedAt(LocalDateTime.now().minusDays(8))
+                .build();
+
+        given(enrollmentMapper.selectEnrollmentById(enrollmentId)).willReturn(confirmed);
+
+        // when & then
+        assertThatThrownBy(() -> enrollmentService.cancelEnrollment(userId, enrollmentId))
+                .isInstanceOf(BusinessException.class)
+                .hasMessage("수강 확정 후 7일이 지나 취소할 수 없습니다.");
     }
 }

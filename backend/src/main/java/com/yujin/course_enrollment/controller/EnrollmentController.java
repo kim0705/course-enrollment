@@ -2,6 +2,7 @@ package com.yujin.course_enrollment.controller;
 
 import com.yujin.course_enrollment.dto.req.ReqEnrollmentCreateDto;
 import com.yujin.course_enrollment.dto.resp.RespEnrollmentDto;
+import com.yujin.course_enrollment.dto.resp.RespEnrollmentStudentDto;
 import com.yujin.course_enrollment.global.response.ApiResponse;
 import com.yujin.course_enrollment.service.EnrollmentService;
 import jakarta.validation.Valid;
@@ -9,6 +10,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 /**
  * 수강 신청 컨트롤러
@@ -33,6 +36,50 @@ public class EnrollmentController {
         log.debug("[EnrollmentController] 수강 신청 요청 - userId: {}, courseId: {}", userId, reqEnrollmentCreateDto.getCourseId());
 
         RespEnrollmentDto result = enrollmentService.registerEnrollment(userId, reqEnrollmentCreateDto);
+
+        return ResponseEntity.ok(ApiResponse.success(result));
+    }
+
+    /**
+     * 수강 신청 목록 조회
+     * GET /api/enrollments/me
+     * @param userId 사용자 ID (헤더로 전달)
+     */
+    @GetMapping("/me")
+    public ResponseEntity<ApiResponse<List<RespEnrollmentStudentDto>>> getMyEnrollments(@RequestHeader("X-User-Id") Long userId) {
+        log.debug("[EnrollmentController] 수강 신청 목록 조회 요청 - userId: {}", userId);
+
+        List<RespEnrollmentStudentDto> result = enrollmentService.findMyEnrollments(userId);
+
+        return ResponseEntity.ok(ApiResponse.success(result));
+    }
+
+    /**
+     * 결제 요청 (PENDING → CONFIRMED)
+     * PATCH /api/enrollments/{enrollmentId}/confirm
+     * @param userId 사용자 ID (헤더로 전달)
+     * @param enrollmentId 수강 신청 ID
+     */
+    @PatchMapping("/{enrollmentId}/confirm")
+    public ResponseEntity<ApiResponse<RespEnrollmentDto>> confirmEnrollment(@RequestHeader("X-User-Id") Long userId, @PathVariable Long enrollmentId) {
+        log.debug("[EnrollmentController] 결제 요청 - userId: {}, enrollmentId: {}", userId, enrollmentId);
+
+        RespEnrollmentDto result = enrollmentService.confirmEnrollment(userId, enrollmentId);
+
+        return ResponseEntity.ok(ApiResponse.success(result));
+    }
+
+    /**
+     * 수강 취소 (PENDING, CONFIRMED → CANCELLED)
+     * PATCH /api/enrollments/{enrollmentId}/cancel
+     * @param userId 사용자 ID (헤더로 전달)
+     * @param enrollmentId 수강 신청 ID
+     */
+    @PatchMapping("/{enrollmentId}/cancel")
+    public ResponseEntity<ApiResponse<RespEnrollmentDto>> cancelEnrollment(@RequestHeader("X-User-Id") Long userId, @PathVariable Long enrollmentId) {
+        log.debug("[EnrollmentController] 수강 취소 요청 - userId: {}, enrollmentId: {}", userId, enrollmentId);
+
+        RespEnrollmentDto result = enrollmentService.cancelEnrollment(userId, enrollmentId);
 
         return ResponseEntity.ok(ApiResponse.success(result));
     }

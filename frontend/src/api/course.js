@@ -37,3 +37,13 @@ export const closeCourse = (courseId, creatorId) => {
         headers: { 'X-User-Id': creatorId },
     }).then(res => res.data);
 };
+
+/* 나의 강의 목록 조회 (CREATOR 전용) */
+export const getMyCourses = () => {
+    return instance.get('/api/courses/my').then(res => res.data);
+};
+
+/* 강의별 수강생 목록 조회 (CREATOR 전용) */
+export const getCourseEnrollments = (courseId) => {
+    return instance.get(`/api/courses/${courseId}/enrollments`).then(res => res.data);
+};

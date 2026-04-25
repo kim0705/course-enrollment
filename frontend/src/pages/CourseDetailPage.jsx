@@ -99,7 +99,7 @@ const CourseDetailPage = () => {
             {/* 제목 및 강사 섹션 */}
             <div className="mb-10">
                 <div className="flex items-center gap-3 mb-6">
-                    <h1 className="text-4xl font-extrabold text-gray-900 tracking-tight leading-tight">
+                    <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight leading-tight">
                         {course.title}
                     </h1>
                     <span className={`text-xs font-bold px-3 py-1.5 rounded-md border ${COURSE_STATUS_BADGE_STYLE[course.status]}`}>

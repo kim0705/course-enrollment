@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { cancelEnrollment, confirmEnrollment, getMyEnrollments } from '../api/enrollment';
+import { getCourseEnrollments, getMyCourses } from '../api/course';
 import { useAuth } from '../context/AuthContext';
 import { ENROLLMENT_STATUS_BADGE_STYLE, ENROLLMENT_STATUS_LABEL } from '../utils/statusConfig';
 
@@ -9,6 +10,9 @@ const MyPage = () => {
     const { user } = useAuth();
     const [activeTab, setActiveTab] = useState('enrollments');
     const [enrollments, setEnrollments] = useState([]);
+    const [myCourses, setMyCourses] = useState([]);
+    const [selectedCourseId, setSelectedCourseId] = useState('');
+    const [courseEnrollments, setCourseEnrollments] = useState([]);
 
     useEffect(() => {
         const fetchMyEnrollments = async () => {
@@ -23,6 +27,41 @@ const MyPage = () => {
 
         fetchMyEnrollments();
     }, []);
+
+    /* 강의별 수강생 목록 탭 진입 시 나의 강의 목록 조회 */
+    useEffect(() => {
+        if (activeTab !== 'students') return;
+
+        const fetchMyCourses = async () => {
+            try {
+                const result = await getMyCourses();
+                setMyCourses(result.data);
+                setSelectedCourseId('');
+                setCourseEnrollments([]);
+            } catch (err) {
+                console.error(err);
+                alert('강의 목록을 불러오는데 실패했습니다.');
+            }
+        };
+
+        fetchMyCourses();
+    }, [activeTab]);
+
+    /* 강의 선택 시 수강생 목록 조회 */
+    const handleCourseSelect = async (courseId) => {
+        setSelectedCourseId(courseId);
+        if (!courseId) {
+            setCourseEnrollments([]);
+            return;
+        }
+
+        try {
+            const result = await getCourseEnrollments(courseId);
+            setCourseEnrollments(result.data);
+        } catch (err) {
+            alert(err.response?.data?.message || '수강생 목록을 불러오는데 실패했습니다.');
+        }
+    };
 
     /* 결제 요청 */
     const handleConfirm = async (enrollmentId) => {
@@ -156,14 +195,73 @@ const MyPage = () => {
                             ))}
                         </div>
                     )}
+
                 </>
             )}
 
             {/* 강의별 수강생 목록 (CREATOR 전용) */}
             {activeTab === 'students' && (
-                <div className="text-center text-gray-400 py-32 border-2 border-dashed border-gray-100 rounded-2xl">
-                    준비 중입니다.
-                </div>
+                <>
+                    {/* 강의 선택 */}
+                    <div className="mb-6">
+                        <select
+                            value={selectedCourseId}
+                            onChange={(e) => handleCourseSelect(e.target.value)}
+                            className="w-full sm:w-80 border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                            <option value="">강의를 선택하세요</option>
+                            {myCourses.map(course => (
+                                <option key={course.id} value={course.id}>
+                                    {course.title}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+
+                    {/* 수강생 목록 */}
+                    {!selectedCourseId ? (
+                        <div className="text-center text-gray-400 py-32 border-2 border-dashed border-gray-100 rounded-2xl">
+                            강의를 선택하면 수강생 목록이 표시됩니다.
+                        </div>
+                    ) : courseEnrollments.length === 0 ? (
+                        <div className="text-center text-gray-400 py-32 border-2 border-dashed border-gray-100 rounded-2xl">
+                            수강생이 없습니다.
+                        </div>
+                    ) : (
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-sm text-left">
+                                <thead>
+                                    <tr className="border-b border-gray-200 text-gray-500 text-xs uppercase">
+                                        <th className="pb-3 pr-6 font-semibold">수강생</th>
+                                        <th className="pb-3 pr-6 font-semibold">상태</th>
+                                        <th className="pb-3 pr-6 font-semibold">신청일</th>
+                                        <th className="pb-3 font-semibold">결제일 / 취소일</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-100">
+                                    {courseEnrollments.map(enrollment => (
+                                        <tr key={enrollment.id} className="hover:bg-gray-50">
+                                            <td className="py-4 pr-6 font-medium text-gray-900">{enrollment.userName}</td>
+                                            <td className="py-4 pr-6">
+                                                <span className={`text-xs font-bold px-2 py-0.5 rounded border ${ENROLLMENT_STATUS_BADGE_STYLE[enrollment.status]}`}>
+                                                    {ENROLLMENT_STATUS_LABEL[enrollment.status]}
+                                                </span>
+                                            </td>
+                                            <td className="py-4 pr-6 text-gray-500">{enrollment.createdAt?.substring(0, 10)}</td>
+                                            <td className="py-4 text-gray-500">
+                                                {enrollment.status === 'CONFIRMED' && enrollment.confirmedAt
+                                                    ? enrollment.confirmedAt.substring(0, 10)
+                                                    : enrollment.status === 'CANCELLED' && enrollment.cancelledAt
+                                                        ? enrollment.cancelledAt.substring(0, 10)
+                                                        : '-'}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+                </>
             )}
         </div>
     );

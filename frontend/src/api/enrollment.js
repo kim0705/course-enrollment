@@ -5,7 +5,7 @@ export const createEnrollment = (courseId) => {
     return instance.post('/api/enrollments', { courseId }).then(res => res.data);
 };
 
-/* 수강 신청 목록 조회 */
+/* 나의 수강 신청 목록 조회 */
 export const getMyEnrollments = () => {
     return instance.get('/api/enrollments/me').then(res => res.data);
 };

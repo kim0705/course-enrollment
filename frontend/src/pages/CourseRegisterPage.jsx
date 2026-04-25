@@ -6,15 +6,16 @@ import { useAuth } from '../context/AuthContext';
 /* 강의 등록/수정 페이지 */
 const CourseRegisterPage = () => {
     const { courseId } = useParams();
-    const isEdit = !!courseId;
     const navigate = useNavigate();
     const location = useLocation();
     const { user } = useAuth();
-    const previousSearch = location.state?.fromSearch || '';
 
+    /* 수정 모드 여부 */
+    const isEdit = !!courseId;
+    /* 이전 검색어 유지 */
+    const previousSearch = location.state?.fromSearch || '';
     /* 오늘 날짜 */
     const today = new Date().toISOString().split('T')[0];
-
     /* 폼 상태 */
     const [form, setForm] = useState({
         title: '',
@@ -24,28 +25,44 @@ const CourseRegisterPage = () => {
         startDate: '',
         endDate: '',
     });
+    /* 데이터 로딩 상태 */
+    const [ready, setReady] = useState(!isEdit);
 
     /* 수정 모드일 때 기존 데이터 불러오기 */
     useEffect(() => {
+        if (!isEdit) return;
 
-        if (isEdit) {
-            const fetchCourseData = async () => {
-                try {
-                    const response = await getCourseDetail(courseId);
-                    const data = response.data;
+        let cancelled = false;
 
-                    setForm({
-                        ...data,
-                        priceDisplay: data.price.toLocaleString()
-                    });
-                } catch (err) {
-                    alert('강의 정보를 불러오는데 실패했습니다.');
-                    navigate(`/courses${previousSearch}`);
+        const fetchCourseData = async () => {
+            try {
+                const response = await getCourseDetail(courseId);
+                
+                if (cancelled) return;
+
+                const data = response.data;
+
+                if (data.creatorId !== user?.id) {
+                    alert('수정 권한이 없습니다.');
+                    navigate(`/courses${previousSearch}`, { replace: true });
+                    return;
                 }
-            };
 
-            fetchCourseData();
-        }
+                setForm({
+                    ...data,
+                    priceDisplay: data.price.toLocaleString()
+                });
+                setReady(true);
+            } catch (err) {
+                if (cancelled) return;
+                alert('강의 정보를 불러오는데 실패했습니다.');
+                navigate(`/courses${previousSearch}`);
+            }
+        };
+
+        fetchCourseData();
+
+        return () => { cancelled = true; };
     }, [courseId, isEdit]);
 
     /* 입력값 변경 핸들러 */
@@ -104,6 +121,8 @@ const CourseRegisterPage = () => {
             navigate(`/courses${previousSearch}`);
         }
     };
+
+    if (!ready) return null;
 
     return (
         <div className="max-w-7xl mx-auto mt-10 p-6">

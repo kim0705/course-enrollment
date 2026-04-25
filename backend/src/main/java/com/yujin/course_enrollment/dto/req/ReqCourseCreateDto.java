@@ -1,6 +1,7 @@
 package com.yujin.course_enrollment.dto.req;
 
 import com.yujin.course_enrollment.entity.Course;
+import com.yujin.course_enrollment.global.CourseStatus;
 import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -48,7 +49,7 @@ public class ReqCourseCreateDto {
                 .capacity(this.capacity)
                 .startDate(this.startDate)
                 .endDate(this.endDate)
-                .status("DRAFT")
+                .status(CourseStatus.DRAFT)
                 .build();
     }
 }

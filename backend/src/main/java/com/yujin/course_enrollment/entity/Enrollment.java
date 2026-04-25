@@ -11,6 +11,7 @@ import java.time.LocalDateTime;
  * 수강 신청 엔티티
  * 사용자가 신청한 수강 신청 정보를 담는 객체
  * 상태: PENDING(신청 완료, 결제 대기) → CONFIRMED(결제 완료, 수강 확정) → CANCELLED(취소됨)
+ *       WAITLIST(대기 중) → PENDING(자동 승격)
  */
 @Getter
 @Builder
@@ -41,6 +42,23 @@ public class Enrollment {
                 .id(id)
                 .status("CANCELLED")
                 .cancelledAt(LocalDateTime.now())
+                .build();
+    }
+
+    /* 대기열 상태로 변경할 엔티티 생성 */
+    public static Enrollment ofWaitlist(Long userId, Long courseId) {
+        return Enrollment.builder()
+                .userId(userId)
+                .courseId(courseId)
+                .status("WAITLIST")
+                .build();
+    }
+
+    /* 대기열에서 PENDING으로 승격할 엔티티 생성 */
+    public static Enrollment ofPromote(Long id) {
+        return Enrollment.builder()
+                .id(id)
+                .status("PENDING")
                 .build();
     }
 }

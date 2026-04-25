@@ -35,4 +35,7 @@ public interface EnrollmentMapper {
 
     /* 강의별 수강생 목록 조회 (CREATOR 전용) */
     List<RespEnrollmentCreatorDto> selectEnrollmentListByCourseId(Long courseId);
+
+    /* 대기열 첫 번째 조회 (자동 승격용) */
+    Enrollment selectNextWaitlist(Long courseId);
 }

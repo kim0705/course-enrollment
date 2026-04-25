@@ -26,4 +26,5 @@ public class RespEnrollmentStudentDto {
     private LocalDateTime confirmedAt;
     private LocalDateTime cancelledAt;
     private LocalDateTime createdAt;
+    private Integer waitlistPosition;
 }

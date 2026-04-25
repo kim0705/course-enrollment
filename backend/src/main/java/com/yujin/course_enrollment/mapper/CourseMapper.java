@@ -40,4 +40,7 @@ public interface CourseMapper {
 
     /* 수강 인원 감소 */
     void updateCourseEnrolledCountMinus(Long courseId);
+
+    /* 나의 강의 목록 조회 (CREATOR 전용) */
+    List<RespCourseListDto> selectCourseListByCreatorId(Long creatorId);
 }

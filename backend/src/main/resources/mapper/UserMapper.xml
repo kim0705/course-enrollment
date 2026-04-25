@@ -4,7 +4,7 @@
 <mapper namespace="com.yujin.course_enrollment.mapper.UserMapper">
 
     <!-- 사용자 단건 조회 -->
-    <select id="selectUserById" parameterType="long" resultType="User">
+    <select id="selectUserById" parameterType="Long" resultType="User">
         SELECT id
              , name
              , role

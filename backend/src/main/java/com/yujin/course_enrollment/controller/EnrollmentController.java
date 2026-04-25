@@ -41,13 +41,13 @@ public class EnrollmentController {
     }
 
     /**
-     * 수강 신청 목록 조회
+     * 나의 수강 신청 목록 조회
      * GET /api/enrollments/me
      * @param userId 사용자 ID (헤더로 전달)
      */
     @GetMapping("/me")
     public ResponseEntity<ApiResponse<List<RespEnrollmentStudentDto>>> getMyEnrollments(@RequestHeader("X-User-Id") Long userId) {
-        log.debug("[EnrollmentController] 수강 신청 목록 조회 요청 - userId: {}", userId);
+        log.debug("[EnrollmentController] 나의 수강 신청 목록 조회 요청 - userId: {}", userId);
 
         List<RespEnrollmentStudentDto> result = enrollmentService.findMyEnrollments(userId);
 

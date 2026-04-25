@@ -27,7 +27,7 @@
     </insert>
 
     <!-- 강의 단건 조회 -->
-    <select id="selectCourseById" parameterType="long" resultType="Course">
+    <select id="selectCourseById" parameterType="Long" resultType="Course">
         SELECT id
              , creator_id
              , title
@@ -117,7 +117,7 @@
     </select>
 
     <!-- 강의 상세 조회 -->
-    <select id="selectCourseDetailById" parameterType="long" resultType="RespCourseDetailDto">
+    <select id="selectCourseDetailById" parameterType="Long" resultType="RespCourseDetailDto">
         SELECT c.id
              , c.creator_id
              , u.name AS creatorName
@@ -156,15 +156,36 @@
     </update>
 
     <!-- 수강 인원 증가 (정원 미만일 때만) -->
-    <update id="updateCourseEnrolledCountPlus" parameterType="long">
+    <update id="updateCourseEnrolledCountPlus" parameterType="Long">
         UPDATE courses
            SET enrolled_count = enrolled_count + 1
          WHERE id = #{courseId}
            AND <![CDATA[ enrolled_count < capacity ]]>
     </update>
 
+    <!-- 나의 강의 목록 조회 (CREATOR 전용) -->
+    <select id="selectCourseListByCreatorId" parameterType="Long" resultType="RespCourseListDto">
+        SELECT c.id
+             , c.creator_id
+             , u.name AS creatorName
+             , c.title
+             , c.description
+             , c.price
+             , c.capacity
+             , c.enrolled_count
+             , c.status
+             , c.start_date
+             , c.end_date
+             , c.created_at
+             , c.updated_at
+          FROM courses c
+          JOIN users u ON c.creator_id = u.id
+         WHERE c.creator_id = #{creatorId}
+        ORDER BY c.created_at DESC
+    </select>
+
     <!-- 수강 인원 감소 -->
-    <update id="updateCourseEnrolledCountMinus" parameterType="long">
+    <update id="updateCourseEnrolledCountMinus" parameterType="Long">
         UPDATE courses
            SET enrolled_count = enrolled_count - 1
          WHERE id = #{courseId}

@@ -6,6 +6,7 @@ import com.yujin.course_enrollment.dto.req.ReqCourseUpdateDto;
 import com.yujin.course_enrollment.dto.resp.RespCourseCreateDto;
 import com.yujin.course_enrollment.dto.resp.RespCourseDetailDto;
 import com.yujin.course_enrollment.dto.resp.RespCourseListDto;
+import com.yujin.course_enrollment.dto.resp.RespEnrollmentCreatorDto;
 import com.yujin.course_enrollment.dto.resp.RespPageDto;
 import com.yujin.course_enrollment.entity.Course;
 import com.yujin.course_enrollment.entity.User;
@@ -237,5 +238,38 @@ public class CourseService {
         log.info("[CourseService] 강의 마감 완료 - courseId: {}", courseId);
 
         return courseMapper.selectCourseDetailById(courseId);
+    }
+
+    /**
+     * 강의 목록 조회 (CREATOR 전용)
+     * @param creatorId 크리에이터 ID
+     */
+    public List<RespCourseListDto> findMyCourses(Long creatorId) {
+        log.info("[CourseService] 나의 강의 목록 조회 - creatorId: {}", creatorId);
+
+        return courseMapper.selectCourseListByCreatorId(creatorId);
+    }
+
+    /**
+     * 강의별 수강생 목록 조회 (CREATOR 전용)
+     * @param creatorId 크리에이터 ID
+     * @param courseId 강의 ID
+     * @throws BusinessException 강의 없음(400), 조회 권한 없음(403)
+     */
+    public List<RespEnrollmentCreatorDto> findCourseEnrollments(Long creatorId, Long courseId) {
+        log.info("[CourseService] 강의별 수강생 목록 조회 - creatorId: {}, courseId: {}", creatorId, courseId);
+
+        Course course = courseMapper.selectCourseById(courseId);
+        if (course == null) {
+            log.warn("[CourseService] 강의 없음 - courseId: {}", courseId);
+            throw new BusinessException(HttpStatus.BAD_REQUEST, "존재하지 않는 강의입니다.");
+        }
+
+        if (!course.getCreatorId().equals(creatorId)) {
+            log.warn("[CourseService] 조회 권한 없음 - creatorId: {}, courseId: {}", creatorId, courseId);
+            throw new BusinessException(HttpStatus.FORBIDDEN, "본인의 강의만 조회할 수 있습니다.");
+        }
+
+        return enrollmentMapper.selectEnrollmentListByCourseId(courseId);
     }
 }

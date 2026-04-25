@@ -102,11 +102,11 @@ public class EnrollmentService {
     }
 
     /**
-     * 수강 신청 목록 조회
+     * 나의 수강 신청 목록 조회
      * @param userId 사용자 ID
      */
     public List<RespEnrollmentStudentDto> findMyEnrollments(Long userId) {
-        log.info("[EnrollmentService] 수강 신청 목록 조회 - userId: {}", userId);
+        log.info("[EnrollmentService] 나의 수강 신청 목록 조회 - userId: {}", userId);
 
         return enrollmentMapper.selectEnrollmentListByUserId(userId);
     }

@@ -1,5 +1,6 @@
 package com.yujin.course_enrollment.mapper;
 
+import com.yujin.course_enrollment.dto.resp.RespEnrollmentCreatorDto;
 import com.yujin.course_enrollment.dto.resp.RespEnrollmentStudentDto;
 import com.yujin.course_enrollment.entity.Enrollment;
 import org.apache.ibatis.annotations.Mapper;
@@ -25,6 +26,9 @@ public interface EnrollmentMapper {
     /* 수강 신청 상태 변경 */
     void updateEnrollmentStatus(Enrollment enrollment);
 
-    /* 수강 신청 목록 조회 */
+    /* 나의 수강 신청 목록 조회 */
     List<RespEnrollmentStudentDto> selectEnrollmentListByUserId(Long userId);
+
+    /* 강의별 수강생 목록 조회 (CREATOR 전용) */
+    List<RespEnrollmentCreatorDto> selectEnrollmentListByCourseId(Long courseId);
 }

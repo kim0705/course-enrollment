@@ -6,6 +6,7 @@ import com.yujin.course_enrollment.dto.req.ReqCourseUpdateDto;
 import com.yujin.course_enrollment.dto.resp.RespCourseCreateDto;
 import com.yujin.course_enrollment.dto.resp.RespCourseDetailDto;
 import com.yujin.course_enrollment.dto.resp.RespCourseListDto;
+import com.yujin.course_enrollment.dto.resp.RespEnrollmentCreatorDto;
 import com.yujin.course_enrollment.dto.resp.RespPageDto;
 import com.yujin.course_enrollment.global.response.ApiResponse;
 import com.yujin.course_enrollment.service.CourseService;
@@ -16,6 +17,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+
 
 /**
  * 강의 컨트롤러
@@ -115,6 +117,35 @@ public class CourseController {
         log.debug("[CourseController] 강의 마감 요청 - creatorId: {}, courseId: {}", creatorId, courseId);
 
         RespCourseDetailDto result = courseService.closeCourse(creatorId, courseId);
+
+        return ResponseEntity.ok(ApiResponse.success(result));
+    }
+
+    /**
+     * 나의 강의 목록 조회 (CREATOR 전용)
+     * GET /api/courses/my
+     * @param creatorId 크리에이터 ID (헤더로 전달)
+     */
+    @GetMapping("/my")
+    public ResponseEntity<ApiResponse<List<RespCourseListDto>>> getMyCourses(@RequestHeader("X-User-Id") Long creatorId) {
+        log.debug("[CourseController] 나의 강의 목록 조회 요청 - creatorId: {}", creatorId);
+
+        List<RespCourseListDto> result = courseService.findMyCourses(creatorId);
+
+        return ResponseEntity.ok(ApiResponse.success(result));
+    }
+
+    /**
+     * 강의별 수강생 목록 조회 (CREATOR 전용)
+     * GET /api/courses/{courseId}/enrollments
+     * @param creatorId 크리에이터 ID (헤더로 전달)
+     * @param courseId 강의 ID
+     */
+    @GetMapping("/{courseId}/enrollments")
+    public ResponseEntity<ApiResponse<List<RespEnrollmentCreatorDto>>> getCourseEnrollments(@RequestHeader("X-User-Id") Long creatorId, @PathVariable Long courseId) {
+        log.debug("[CourseController] 강의별 수강생 목록 조회 요청 - creatorId: {}, courseId: {}", creatorId, courseId);
+
+        List<RespEnrollmentCreatorDto> result = courseService.findCourseEnrollments(creatorId, courseId);
 
         return ResponseEntity.ok(ApiResponse.success(result));
     }

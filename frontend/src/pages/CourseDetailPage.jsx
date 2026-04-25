@@ -52,11 +52,16 @@ const CourseDetailPage = () => {
 
     /* 수강 신청 */
     const handleEnroll = async () => {
-        if (!window.confirm('수강 신청하시겠습니까?')) return;
+        const isFull = course.enrolledCount >= course.capacity;
+        const confirmMsg = isFull ? '현재 정원이 초과되었습니다. 대기열에 등록하시겠습니까?' : '수강 신청하시겠습니까?';
+
+        if (!window.confirm(confirmMsg)) return;
 
         try {
-            await createEnrollment(Number(courseId));
-            alert('수강 신청이 완료되었습니다.');
+            const enrolled = await createEnrollment(Number(courseId));
+
+            alert(enrolled.data?.status === 'WAITLIST' ? '정원이 초과되어 대기열에 등록되었습니다.\n마이페이지에서 대기 순번을 확인하세요.' : '수강 신청이 완료되었습니다.');
+            
             const result = await getCourseDetail(courseId);
             setCourse(result.data);
         } catch (err) {

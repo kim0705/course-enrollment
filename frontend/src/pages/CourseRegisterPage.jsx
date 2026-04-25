@@ -33,6 +33,7 @@ const CourseRegisterPage = () => {
                 try {
                     const response = await getCourseDetail(courseId);
                     const data = response.data;
+
                     setForm({
                         ...data,
                         priceDisplay: data.price.toLocaleString()
@@ -55,7 +56,6 @@ const CourseRegisterPage = () => {
 
     /* 가격 입력 핸들러 */
     const handlePriceChange = (e) => {
-
         const raw = e.target.value.replace(/[^0-9]/g, '');
 
         if (raw === '') {

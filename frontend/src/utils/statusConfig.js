@@ -24,6 +24,7 @@ export const ENROLLMENT_STATUS_LABEL = {
     PENDING: '결제 대기',
     CONFIRMED: '수강 확정',
     CANCELLED: '취소됨',
+    WAITLIST: '대기 중',
 };
 
 /* 수강 신청 상태 뱃지 스타일 */
@@ -31,4 +32,5 @@ export const ENROLLMENT_STATUS_BADGE_STYLE = {
     PENDING: 'bg-amber-50 text-amber-600 border-amber-100',
     CONFIRMED: 'bg-green-50 text-green-600 border-green-100',
     CANCELLED: 'bg-gray-50 text-gray-400 border-gray-200',
+    WAITLIST: 'bg-purple-50 text-purple-600 border-purple-100',
 };

@@ -36,6 +36,7 @@ const MyPage = () => {
         const fetchMyCourses = async () => {
             try {
                 const result = await getMyCourses();
+                
                 setMyCourses(result.data);
                 setSelectedCourseId('');
                 setCourseEnrollments([]);
@@ -51,6 +52,7 @@ const MyPage = () => {
     /* 강의 선택 시 수강생 목록 조회 */
     const handleCourseSelect = async (courseId) => {
         setSelectedCourseId(courseId);
+        
         if (!courseId) {
             setCourseEnrollments([]);
             return;
@@ -105,11 +107,10 @@ const MyPage = () => {
                     <button
                         key={tab.key}
                         onClick={() => setActiveTab(tab.key)}
-                        className={`px-5 py-2.5 text-sm font-semibold transition-colors cursor-pointer ${
-                            activeTab === tab.key
+                        className={`px-5 py-2.5 text-sm font-semibold transition-colors cursor-pointer ${activeTab === tab.key
                                 ? 'border-b-2 border-blue-600 text-blue-600'
                                 : 'text-gray-500 hover:text-gray-700'
-                        }`}
+                            }`}
                     >
                         {tab.label}
                     </button>
@@ -161,6 +162,11 @@ const MyPage = () => {
                                                 취소일 {enrollment.cancelledAt.substring(0, 10)}
                                             </p>
                                         )}
+                                        {enrollment.status === 'WAITLIST' && enrollment.waitlistPosition && (
+                                            <p className="text-xs text-purple-600 mt-1">
+                                                대기 순번 {enrollment.waitlistPosition}번
+                                            </p>
+                                        )}
                                     </div>
 
                                     {/* 액션 버튼 */}
@@ -187,6 +193,14 @@ const MyPage = () => {
                                                 className="px-4 py-2 border border-gray-300 text-gray-600 text-sm font-semibold rounded-md hover:bg-gray-50 transition-colors cursor-pointer"
                                             >
                                                 취소하기
+                                            </button>
+                                        )}
+                                        {enrollment.status === 'WAITLIST' && (
+                                            <button
+                                                onClick={() => handleCancel(enrollment.id)}
+                                                className="px-4 py-2 border border-gray-300 text-gray-600 text-sm font-semibold rounded-md hover:bg-gray-50 transition-colors cursor-pointer"
+                                            >
+                                                대기 취소
                                             </button>
                                         )}
                                     </div>

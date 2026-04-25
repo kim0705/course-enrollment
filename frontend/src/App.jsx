@@ -5,6 +5,7 @@ import LoginPage from './pages/LoginPage'
 import CourseRegisterPage from './pages/CourseRegisterPage'
 import CourseListPage from './pages/CourseListPage'
 import CourseDetailPage from './pages/CourseDetailPage'
+import MyPage from './pages/MyPage'
 
 /* 인증 여부에 따라 라우트 보호 및 공통 레이아웃 적용 */
 const PrivateRoute = ({ children }) => {
@@ -32,6 +33,7 @@ function App() {
                 <Route path="/courses/:courseId" element={<PrivateRoute><CourseDetailPage /></PrivateRoute>} />
                 <Route path="/courses/new" element={<CreatorRoute><CourseRegisterPage /></CreatorRoute>} />
                 <Route path="/courses/:courseId/edit" element={<CreatorRoute><CourseRegisterPage /></CreatorRoute>} />
+                <Route path="/my-page" element={<PrivateRoute><MyPage /></PrivateRoute>} />
                 <Route path="*" element={<Navigate to="/courses" replace />} />
             </Routes>
         </AuthProvider>

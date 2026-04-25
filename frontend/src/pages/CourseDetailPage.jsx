@@ -3,6 +3,7 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { closeCourse, getCourseDetail, publishCourse } from '../api/course';
 import { createEnrollment } from '../api/enrollment';
 import { useAuth } from '../context/AuthContext';
+import { COURSE_STATUS_BADGE_STYLE, COURSE_STATUS_LABEL } from '../utils/statusConfig';
 
 const CourseDetailPage = () => {
     const { courseId } = useParams();
@@ -101,11 +102,8 @@ const CourseDetailPage = () => {
                     <h1 className="text-4xl font-extrabold text-gray-900 tracking-tight leading-tight">
                         {course.title}
                     </h1>
-                    <span className={`text-xs font-bold px-3 py-1.5 rounded-md border ${course.status === 'OPEN'
-                        ? 'bg-blue-50 text-blue-600 border-blue-100'
-                        : 'bg-gray-50 text-gray-500 border-gray-200'
-                        }`}>
-                        {course.status === 'OPEN' ? '모집 중' : course.status === 'DRAFT' ? '준비 중' : '마감'}
+                    <span className={`text-xs font-bold px-3 py-1.5 rounded-md border ${COURSE_STATUS_BADGE_STYLE[course.status]}`}>
+                        {COURSE_STATUS_LABEL[course.status]}
                     </span>
                 </div>
 

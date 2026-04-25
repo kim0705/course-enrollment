@@ -2,8 +2,11 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 const Header = () => {
+    /* 페이지 이동을 위한 navigate 함수 */
     const navigate = useNavigate();
+    /* 인증 정보에서 현재 사용자 정보와 로그아웃 함수 추출 */
     const { user, logout } = useAuth();
+
     /* 역할에 따른 라벨 */
     const roleLabel = (role) => role === 'CREATOR' ? '강사' : '수강생';
 

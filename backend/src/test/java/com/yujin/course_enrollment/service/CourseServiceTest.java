@@ -482,4 +482,60 @@ class CourseServiceTest {
         assertThat(result.isEnrolled()).isFalse();
         then(enrollmentMapper).should(never()).selectEnrollmentByUserIdAndCourseId(any(), any());
     }
+
+    @Test
+    @DisplayName("강의 상세 조회 성공 - DRAFT 강의 본인 강사 접근")
+    void findCourseById_success_draftOwner() {
+        // given
+        Long courseId = 1L;
+        Long creatorId = 1L;
+        RespCourseDetailDto respDto = new RespCourseDetailDto();
+        respDto.setId(courseId);
+        respDto.setCreatorId(creatorId);
+        respDto.setStatus("DRAFT");
+
+        given(courseMapper.selectCourseDetailById(courseId)).willReturn(respDto);
+
+        // when
+        RespCourseDetailDto result = courseService.findCourseById(courseId, creatorId);
+
+        // then
+        assertThat(result).isNotNull();
+    }
+
+    @Test
+    @DisplayName("강의 상세 조회 실패 - DRAFT 강의 비회원 접근")
+    void findCourseById_fail_draftGuest() {
+        // given
+        Long courseId = 1L;
+        RespCourseDetailDto respDto = new RespCourseDetailDto();
+        respDto.setId(courseId);
+        respDto.setCreatorId(1L);
+        respDto.setStatus("DRAFT");
+
+        given(courseMapper.selectCourseDetailById(courseId)).willReturn(respDto);
+
+        // when & then
+        assertThatThrownBy(() -> courseService.findCourseById(courseId, null))
+                .isInstanceOf(BusinessException.class)
+                .hasMessage("접근할 수 없는 강의입니다.");
+    }
+
+    @Test
+    @DisplayName("강의 상세 조회 실패 - DRAFT 강의 다른 사용자 접근")
+    void findCourseById_fail_draftOtherUser() {
+        // given
+        Long courseId = 1L;
+        RespCourseDetailDto respDto = new RespCourseDetailDto();
+        respDto.setId(courseId);
+        respDto.setCreatorId(1L);
+        respDto.setStatus("DRAFT");
+
+        given(courseMapper.selectCourseDetailById(courseId)).willReturn(respDto);
+
+        // when & then
+        assertThatThrownBy(() -> courseService.findCourseById(courseId, 4L))
+                .isInstanceOf(BusinessException.class)
+                .hasMessage("접근할 수 없는 강의입니다.");
+    }
 }

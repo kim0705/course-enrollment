@@ -4,11 +4,17 @@ import { getCourseList } from '../api/course';
 import { useAuth } from '../context/AuthContext';
 import { COURSE_STATUS_CARD_STYLE, COURSE_STATUS_LABEL } from '../utils/statusConfig';
 
+/* 강의 목록 페이지 */
 const CourseListPage = () => {
+    /* 페이지 이동을 위한 navigate 함수 */
     const navigate = useNavigate();
+    /* 현재 페이지의 위치 정보 */
     const location = useLocation();
+    /* 인증 정보에서 현재 사용자 정보 추출 */
     const { user } = useAuth();
+    /* URL 검색 파라미터 상태 */
     const [searchParams, setSearchParams] = useSearchParams();
+    /* 검색어 입력값 상태 (URL 파라미터와 별도로 관리) */
     const [tempKeyword, setTempKeyword] = useState(searchParams.get('keyword') || '');
 
     /* 검색 조건 상태 */
@@ -105,7 +111,6 @@ const CourseListPage = () => {
                 <select name="status" value={search.status} onChange={handleSearchChange}
                     className="bg-white border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
                     <option value="">전체 상태</option>
-                    <option value="DRAFT">초안</option>
                     <option value="OPEN">모집 중</option>
                     <option value="CLOSED">마감</option>
                 </select>

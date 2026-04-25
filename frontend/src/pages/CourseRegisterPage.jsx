@@ -5,15 +5,21 @@ import { useAuth } from '../context/AuthContext';
 
 /* 강의 등록/수정 페이지 */
 const CourseRegisterPage = () => {
+    /* URL 파라미터에서 courseId 추출 */
     const { courseId } = useParams();
+    /* 페이지 이동을 위한 navigate 함수 */
     const navigate = useNavigate();
+    /* 현재 페이지의 위치 정보 */
     const location = useLocation();
+    /* 인증 정보에서 현재 사용자 정보 추출 */
     const { user } = useAuth();
 
     /* 수정 모드 여부 */
     const isEdit = !!courseId;
     /* 이전 검색어 유지 */
     const previousSearch = location.state?.fromSearch || '';
+    /* 이전 페이지 정보 (수정 후 돌아갈 때 활용) */
+    const from = location.state?.from || null;
     /* 오늘 날짜 */
     const today = new Date().toISOString().split('T')[0];
     /* 폼 상태 */
@@ -108,7 +114,7 @@ const CourseRegisterPage = () => {
             if (isEdit) {
                 await updateCourse(courseId, user?.id, form);
                 alert('강의 정보가 수정되었습니다!');
-                navigate(`/courses/${courseId}`, { state: { fromSearch: previousSearch } });
+                navigate(`/courses/${courseId}`, { state: { fromSearch: previousSearch, from } });
             } else {
                 const result = await registerCourse(user?.id, form);
                 alert('강의가 등록되었습니다!');

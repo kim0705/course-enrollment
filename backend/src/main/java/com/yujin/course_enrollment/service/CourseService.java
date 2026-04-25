@@ -123,6 +123,11 @@ public class CourseService {
             throw new BusinessException(HttpStatus.BAD_REQUEST, "존재하지 않는 강의입니다.");
         }
 
+        if ("DRAFT".equals(course.getStatus()) && !course.getCreatorId().equals(userId)) {
+            log.warn("[CourseService] DRAFT 강의 접근 차단 - courseId: {}, userId: {}", courseId, userId);
+            throw new BusinessException(HttpStatus.FORBIDDEN, "접근할 수 없는 강의입니다.");
+        }
+
         if (userId != null) {
             Enrollment enrollment = enrollmentMapper.selectEnrollmentByUserIdAndCourseId(userId, courseId);
             course.setEnrolled(enrollment != null && !"CANCELLED".equals(enrollment.getStatus()));

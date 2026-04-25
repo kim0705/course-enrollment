@@ -5,34 +5,49 @@ import { createEnrollment } from '../api/enrollment';
 import { useAuth } from '../context/AuthContext';
 import { COURSE_STATUS_BADGE_STYLE, COURSE_STATUS_LABEL } from '../utils/statusConfig';
 
+/* 강의 상세 페이지 */
 const CourseDetailPage = () => {
+    /* URL 파라미터에서 courseId 추출 */
     const { courseId } = useParams();
+    /* 페이지 이동을 위한 navigate 함수 */
     const navigate = useNavigate();
+    /* 현재 페이지의 위치 정보 */
     const location = useLocation();
+    /* 강의 상세 정보 상태 */
     const [course, setCourse] = useState(null);
+    /* 인증 정보에서 현재 사용자 정보 추출 */
     const { user } = useAuth();
 
     /* 현재 로그인한 사용자가 강의 소유자인지 여부 */
     const isOwner = course?.creatorId === user?.id;
 
+    /* 컴포넌트가 마운트될 때 강의 상세 정보를 가져오는 useEffect */
     useEffect(() => {
-        /* 강의 상세 조회 */
+        let cancelled = false;
+
         const fetchCourseDetail = async () => {
             try {
                 const result = await getCourseDetail(courseId);
+                if (cancelled) return;
                 setCourse(result.data);
             } catch (err) {
-                console.error(err);
-                alert("강의 정보를 불러오는데 실패했습니다.");
-                navigate('/courses');
+                if (cancelled) return;
+                navigate('/courses', { replace: true });
             }
         };
 
         fetchCourseDetail();
+
+        return () => { cancelled = true; };
     }, [courseId, navigate]);
 
     /* 목록으로 돌아가기 */
     const handleBackToList = () => {
+        if (location.state?.from === 'my-page') {
+            navigate('/my-page', { state: { tab: 'my-courses' } });
+            return;
+        }
+        
         const previousSearch = location.state?.fromSearch || '';
         navigate(`/courses${previousSearch}`);
     };
@@ -87,7 +102,7 @@ const CourseDetailPage = () => {
             {/* 상단 헤더 섹션 */}
             <div className="flex justify-end gap-3 mb-8 border-b pb-6">
                 {isOwner && course.status === 'DRAFT' && (
-                    <button onClick={() => navigate(`/courses/${courseId}/edit`, { state: { fromSearch: location.state?.fromSearch } })}
+                    <button onClick={() => navigate(`/courses/${courseId}/edit`, { state: { fromSearch: location.state?.fromSearch, from: location.state?.from } })}
                         className="px-4 py-2 bg-blue-600 text-white rounded-md font-semibold hover:bg-blue-700 cursor-pointer transition-all shadow-sm text-sm">
                         수정하기
                     </button>

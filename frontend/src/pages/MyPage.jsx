@@ -1,18 +1,29 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { cancelEnrollment, confirmEnrollment, getMyEnrollments } from '../api/enrollment';
 import { getCourseEnrollments, getMyCourses } from '../api/course';
 import { useAuth } from '../context/AuthContext';
-import { ENROLLMENT_STATUS_BADGE_STYLE, ENROLLMENT_STATUS_LABEL } from '../utils/statusConfig';
+import { COURSE_STATUS_BADGE_STYLE, COURSE_STATUS_LABEL, ENROLLMENT_STATUS_BADGE_STYLE, ENROLLMENT_STATUS_LABEL } from '../utils/statusConfig';
 
+/* 마이페이지 */
 const MyPage = () => {
+    /* 페이지 이동을 위한 navigate 함수 */
     const navigate = useNavigate();
+    /* 현재 페이지의 위치 정보 */
+    const location = useLocation();
+    /* 인증 정보에서 현재 사용자 정보 추출 */
     const { user } = useAuth();
-    const [activeTab, setActiveTab] = useState('enrollments');
+    /* 현재 활성화된 탭 상태 */
+    const [activeTab, setActiveTab] = useState(location.state?.tab || 'enrollments');
+    /* 나의 수강목록 상태 */
     const [enrollmentData, setEnrollmentData] = useState({ content: [], totalCount: 0, totalPages: 0, last: false });
+    /* 수강목록 페이지 상태 */
     const [enrollmentPage, setEnrollmentPage] = useState(0);
+    /* 나의 강의 목록 상태 (CREATOR 전용) */
     const [myCourses, setMyCourses] = useState([]);
+    /* 선택한 강의 ID 상태 (강의별 수강생 목록 탭에서) */
     const [selectedCourseId, setSelectedCourseId] = useState('');
+    /* 선택한 강의의 수강생 목록 상태 */
     const [courseEnrollments, setCourseEnrollments] = useState([]);
 
     /* 나의 수강목록 조회 */
@@ -31,17 +42,19 @@ const MyPage = () => {
         fetchMyEnrollments(enrollmentPage);
     }, [enrollmentPage]);
 
-    /* 강의별 수강생 목록 탭 진입 시 나의 강의 목록 조회 */
+    /* 내 강의 / 강의별 수강생 목록 탭 진입 시 나의 강의 목록 조회 */
     useEffect(() => {
-        if (activeTab !== 'students') return;
+        if (activeTab !== 'my-courses' && activeTab !== 'students') return;
 
         const fetchMyCourses = async () => {
             try {
                 const result = await getMyCourses();
-                
                 setMyCourses(result.data);
-                setSelectedCourseId('');
-                setCourseEnrollments([]);
+                
+                if (activeTab === 'students') {
+                    setSelectedCourseId('');
+                    setCourseEnrollments([]);
+                }
             } catch (err) {
                 console.error(err);
                 alert('강의 목록을 불러오는데 실패했습니다.');
@@ -96,7 +109,10 @@ const MyPage = () => {
 
     const tabs = [
         { key: 'enrollments', label: '나의 수강목록' },
-        ...(user?.role === 'CREATOR' ? [{ key: 'students', label: '강의별 수강생 목록' }] : []),
+        ...(user?.role === 'CREATOR' ? [
+            { key: 'my-courses', label: '내 강의' },
+            { key: 'students', label: '강의별 수강생 목록' },
+        ] : []),
     ];
 
     return (
@@ -231,6 +247,41 @@ const MyPage = () => {
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7" />
                                 </svg>
                             </button>
+                        </div>
+                    )}
+                </>
+            )}
+
+            {/* 내 강의 목록 (CREATOR 전용) */}
+            {activeTab === 'my-courses' && (
+                <>
+                    {myCourses.length === 0 ? (
+                        <div className="text-center text-gray-400 py-32 border-2 border-dashed border-gray-100 rounded-2xl">
+                            등록한 강의가 없습니다.
+                        </div>
+                    ) : (
+                        <div className="flex flex-col gap-4">
+                            {myCourses.map(course => (
+                                <div key={course.id}
+                                    onClick={() => navigate(`/courses/${course.id}`, { state: { from: 'my-page' } })}
+                                    className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4 cursor-pointer hover:shadow-md transition-shadow">
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <span className="text-base font-bold text-gray-900 truncate">{course.title}</span>
+                                            <span className={`text-xs font-bold px-2 py-0.5 rounded border ${COURSE_STATUS_BADGE_STYLE[course.status]}`}>
+                                                {COURSE_STATUS_LABEL[course.status]}
+                                            </span>
+                                        </div>
+                                        <div className="flex flex-wrap items-center gap-3 text-xs text-gray-500 mt-1">
+                                            <span>{course.price === 0 ? '무료' : `${course.price.toLocaleString()}원`}</span>
+                                            <span className="text-gray-300">|</span>
+                                            <span>수강 {course.enrolledCount} / {course.capacity}명</span>
+                                            <span className="text-gray-300">|</span>
+                                            <span>{course.startDate} ~ {course.endDate}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
                         </div>
                     )}
                 </>

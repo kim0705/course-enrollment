@@ -68,6 +68,12 @@ const CourseRegisterPage = () => {
     /* 입력값 변경 핸들러 */
     const handleChange = (e) => {
         const { name, value } = e.target;
+
+        if (name === 'capacity') {
+            const num = parseInt(value, 10);
+            if (num > 9999) return;
+        }
+        
         setForm(prev => ({ ...prev, [name]: value }));
     };
 
@@ -85,7 +91,7 @@ const CourseRegisterPage = () => {
         }
 
         const numValue = parseInt(raw, 10);
-        if (numValue < 0) return;
+        if (numValue < 0 || numValue > 9_999_999) return;
 
         setForm(prev => ({
             ...prev,
@@ -137,11 +143,11 @@ const CourseRegisterPage = () => {
 
                 <div className="flex items-center gap-3">
                     <button type="button" onClick={handleCancel}
-                        className="px-5 py-2 border border-gray-300 text-gray-600 rounded-md font-semibold hover:bg-gray-50 cursor-pointer transition-all shadow-sm">
+                        className="px-4 py-2 border border-gray-300 text-gray-600 rounded-md font-semibold hover:bg-gray-50 cursor-pointer transition-all shadow-sm text-sm">
                         취소
                     </button>
                     <button form="course-form" type="submit"
-                        className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md font-semibold cursor-pointer shadow-sm transition-all active:scale-95">
+                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md font-semibold cursor-pointer shadow-sm transition-all active:scale-95 text-sm">
                         {isEdit ? '수정 사항 저장' : '강의 저장하기'}
                     </button>
                 </div>
@@ -186,8 +192,11 @@ const CourseRegisterPage = () => {
 
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">수강 정원</label>
-                                <input name="capacity" value={form.capacity} type="number" required min="1" onChange={handleChange}
-                                    className="w-full border-gray-300 border py-3 px-4 rounded-lg" />
+                                <div className="relative">
+                                    <input name="capacity" value={form.capacity} type="number" required min="1" max="9999" onChange={handleChange}
+                                        className="w-full border-gray-300 border py-3 px-4 rounded-lg text-right pr-10 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
+                                    <span className="absolute right-3 top-3.5 text-gray-500">명</span>
+                                </div>
                             </div>
                         </div>
                     </div>

@@ -94,7 +94,7 @@ const CourseListPage = () => {
                 <h1 className="text-3xl font-extrabold text-gray-900">전체 강의</h1>
                 {user?.role === 'CREATOR' && (
                     <button onClick={() => navigate('/courses/new', { state: { fromSearch: location.search } })}
-                        className="px-5 py-2 bg-blue-600 text-white rounded-md font-semibold hover:bg-blue-700 transition-all cursor-pointer shadow-sm">
+                        className="px-4 py-2 bg-blue-600 text-white rounded-md font-semibold hover:bg-blue-700 transition-all cursor-pointer shadow-sm text-sm">
                         강의 등록
                     </button>
                 )}

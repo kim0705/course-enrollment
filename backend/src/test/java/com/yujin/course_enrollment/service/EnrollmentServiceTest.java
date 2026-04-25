@@ -24,6 +24,7 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.BDDMockito.*;
+import static org.mockito.Mockito.times;
 
 /**
  * 수강 신청 서비스 단위 테스트
@@ -69,8 +70,8 @@ class EnrollmentServiceTest {
         given(userMapper.selectUserById(userId)).willReturn(student);
         given(courseMapper.selectCourseById(courseId)).willReturn(openCourse);
         given(enrollmentMapper.selectEnrollmentByUserIdAndCourseId(userId, courseId)).willReturn(null).willReturn(saved);
-        willDoNothing().given(enrollmentMapper).insertEnrollment(any());
         given(courseMapper.updateCourseEnrolledCountPlus(courseId)).willReturn(1);
+        willDoNothing().given(enrollmentMapper).insertEnrollment(any());
 
         // when
         RespEnrollmentDto result = enrollmentService.registerEnrollment(userId, new ReqEnrollmentCreateDto(courseId));
@@ -237,7 +238,7 @@ class EnrollmentServiceTest {
     }
 
     @Test
-    @DisplayName("동시 신청으로 정원 초과 - 수강 신청 실패")
+    @DisplayName("동시 신청으로 정원 초과 - 대기열 등록")
     void registerEnrollment_capacityExceeded_concurrent() {
         // given
         Long userId = 4L;
@@ -246,26 +247,37 @@ class EnrollmentServiceTest {
         Course openCourse = Course.builder()
                 .id(courseId)
                 .creatorId(1L)
+                .title("Spring Boot 강의")
                 .status("OPEN")
                 .capacity(10)
                 .enrolledCount(9)
+                .build();
+        Enrollment waitlisted = Enrollment.builder()
+                .id(1L)
+                .userId(userId)
+                .courseId(courseId)
+                .status("WAITLIST")
+                .createdAt(LocalDateTime.now())
                 .build();
         ReqEnrollmentCreateDto req = new ReqEnrollmentCreateDto(courseId);
 
         given(userMapper.selectUserById(userId)).willReturn(student);
         given(courseMapper.selectCourseById(courseId)).willReturn(openCourse);
-        given(enrollmentMapper.selectEnrollmentByUserIdAndCourseId(userId, courseId)).willReturn(null);
+        given(enrollmentMapper.selectEnrollmentByUserIdAndCourseId(userId, courseId)).willReturn(null).willReturn(waitlisted);
         willDoNothing().given(enrollmentMapper).insertEnrollment(any());
         given(courseMapper.updateCourseEnrolledCountPlus(courseId)).willReturn(0);
 
-        // when & then
-        assertThatThrownBy(() -> enrollmentService.registerEnrollment(userId, req))
-                .isInstanceOf(BusinessException.class)
-                .hasMessage("수강 정원이 초과되었습니다.");
+        // when
+        RespEnrollmentDto result = enrollmentService.registerEnrollment(userId, req);
+
+        // then
+        assertThat(result.getStatus()).isEqualTo("WAITLIST");
+        then(enrollmentMapper).should(times(1)).insertEnrollment(any());
+        then(courseMapper).should().updateCourseEnrolledCountPlus(courseId);
     }
 
     @Test
-    @DisplayName("정원 초과 - 수강 신청 실패")
+    @DisplayName("정원 초과 - 대기열 등록")
     void registerEnrollment_capacityExceeded() {
         // given
         Long userId = 4L;
@@ -274,20 +286,32 @@ class EnrollmentServiceTest {
         Course fullCourse = Course.builder()
                 .id(courseId)
                 .creatorId(1L)
+                .title("Spring Boot 강의")
                 .status("OPEN")
                 .capacity(10)
                 .enrolledCount(10)
+                .build();
+        Enrollment waitlisted = Enrollment.builder()
+                .id(1L)
+                .userId(userId)
+                .courseId(courseId)
+                .status("WAITLIST")
+                .createdAt(LocalDateTime.now())
                 .build();
         ReqEnrollmentCreateDto req = new ReqEnrollmentCreateDto(courseId);
 
         given(userMapper.selectUserById(userId)).willReturn(student);
         given(courseMapper.selectCourseById(courseId)).willReturn(fullCourse);
-        given(enrollmentMapper.selectEnrollmentByUserIdAndCourseId(userId, courseId)).willReturn(null);
+        given(enrollmentMapper.selectEnrollmentByUserIdAndCourseId(userId, courseId)).willReturn(null).willReturn(waitlisted);
+        willDoNothing().given(enrollmentMapper).insertEnrollment(any());
 
-        // when & then
-        assertThatThrownBy(() -> enrollmentService.registerEnrollment(userId, req))
-                .isInstanceOf(BusinessException.class)
-                .hasMessage("수강 정원이 초과되었습니다.");
+        // when
+        RespEnrollmentDto result = enrollmentService.registerEnrollment(userId, req);
+
+        // then
+        assertThat(result.getStatus()).isEqualTo("WAITLIST");
+        then(enrollmentMapper).should().insertEnrollment(any());
+        then(courseMapper).should(never()).updateCourseEnrolledCountPlus(courseId);
     }
 
     @Test

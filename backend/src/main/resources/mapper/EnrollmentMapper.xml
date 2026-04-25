@@ -86,6 +86,14 @@
              , e.confirmed_at
              , e.cancelled_at
              , e.created_at
+             , CASE WHEN e.status = 'WAITLIST'
+                    THEN (SELECT COUNT(*) + 1
+                            FROM enrollments e2
+                           WHERE e2.course_id = e.course_id
+                             AND e2.status = 'WAITLIST'
+                             AND e2.created_at <![CDATA[ < ]]> e.created_at)
+                    ELSE NULL
+               END AS waitlistPosition
           FROM enrollments e
           JOIN courses c ON e.course_id = c.id
          WHERE e.user_id = #{userId}
@@ -98,6 +106,23 @@
         SELECT COUNT(*)
           FROM enrollments
          WHERE user_id = #{userId}
+    </select>
+
+    <!-- 대기열 첫 번째 조회 (자동 승격용) -->
+    <select id="selectNextWaitlist" parameterType="Long" resultType="Enrollment">
+        SELECT id
+             , user_id
+             , course_id
+             , status
+             , confirmed_at
+             , cancelled_at
+             , created_at
+             , updated_at
+          FROM enrollments
+         WHERE course_id = #{courseId}
+           AND status = 'WAITLIST'
+        ORDER BY created_at ASC
+        LIMIT 1
     </select>
 
 </mapper>

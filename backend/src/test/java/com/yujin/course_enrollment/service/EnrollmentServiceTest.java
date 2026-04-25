@@ -1,8 +1,10 @@
 package com.yujin.course_enrollment.service;
 
 import com.yujin.course_enrollment.dto.req.ReqEnrollmentCreateDto;
+import com.yujin.course_enrollment.dto.req.ReqEnrollmentPageDto;
 import com.yujin.course_enrollment.dto.resp.RespEnrollmentDto;
 import com.yujin.course_enrollment.dto.resp.RespEnrollmentStudentDto;
+import com.yujin.course_enrollment.dto.resp.RespPageDto;
 import com.yujin.course_enrollment.entity.Course;
 import com.yujin.course_enrollment.entity.Enrollment;
 import com.yujin.course_enrollment.entity.User;
@@ -293,15 +295,19 @@ class EnrollmentServiceTest {
     void findMyEnrollments_success() {
         // given
         Long userId = 4L;
+        ReqEnrollmentPageDto pageDto = new ReqEnrollmentPageDto();
         List<RespEnrollmentStudentDto> list = List.of(new RespEnrollmentStudentDto(), new RespEnrollmentStudentDto());
-        given(enrollmentMapper.selectEnrollmentListByUserId(userId)).willReturn(list);
+        given(enrollmentMapper.selectEnrollmentListByUserId(pageDto)).willReturn(list);
+        given(enrollmentMapper.selectEnrollmentListByUserIdCount(userId)).willReturn(2);
 
         // when
-        List<RespEnrollmentStudentDto> result = enrollmentService.findMyEnrollments(userId);
+        RespPageDto<RespEnrollmentStudentDto> result = enrollmentService.findMyEnrollments(userId, pageDto);
 
         // then
-        assertThat(result).hasSize(2);
-        then(enrollmentMapper).should().selectEnrollmentListByUserId(userId);
+        assertThat(result.getContent()).hasSize(2);
+        assertThat(result.getTotalCount()).isEqualTo(2);
+        then(enrollmentMapper).should().selectEnrollmentListByUserId(pageDto);
+        then(enrollmentMapper).should().selectEnrollmentListByUserIdCount(userId);
     }
 
     @Test

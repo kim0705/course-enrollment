@@ -74,7 +74,7 @@
     </select>
 
     <!-- 나의 수강 신청 목록 조회 -->
-    <select id="selectEnrollmentListByUserId" parameterType="long" resultType="RespEnrollmentStudentDto">
+    <select id="selectEnrollmentListByUserId" parameterType="ReqEnrollmentPageDto" resultType="RespEnrollmentStudentDto">
         SELECT e.id
              , e.course_id
              , c.title AS courseTitle
@@ -90,6 +90,14 @@
           JOIN courses c ON e.course_id = c.id
          WHERE e.user_id = #{userId}
         ORDER BY e.created_at DESC
+        LIMIT #{size} OFFSET #{offset}
+    </select>
+
+    <!-- 나의 수강 신청 목록 전체 수 조회 -->
+    <select id="selectEnrollmentListByUserIdCount" parameterType="Long" resultType="int">
+        SELECT COUNT(*)
+          FROM enrollments
+         WHERE user_id = #{userId}
     </select>
 
 </mapper>

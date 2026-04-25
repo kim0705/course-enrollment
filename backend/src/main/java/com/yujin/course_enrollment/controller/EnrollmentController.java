@@ -1,8 +1,10 @@
 package com.yujin.course_enrollment.controller;
 
 import com.yujin.course_enrollment.dto.req.ReqEnrollmentCreateDto;
+import com.yujin.course_enrollment.dto.req.ReqEnrollmentPageDto;
 import com.yujin.course_enrollment.dto.resp.RespEnrollmentDto;
 import com.yujin.course_enrollment.dto.resp.RespEnrollmentStudentDto;
+import com.yujin.course_enrollment.dto.resp.RespPageDto;
 import com.yujin.course_enrollment.global.response.ApiResponse;
 import com.yujin.course_enrollment.service.EnrollmentService;
 import jakarta.validation.Valid;
@@ -10,8 +12,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 /**
  * 수강 신청 컨트롤러
@@ -42,14 +42,15 @@ public class EnrollmentController {
 
     /**
      * 나의 수강 신청 목록 조회
-     * GET /api/enrollments/me
+     * GET /api/enrollments/me?page=0&size=5
      * @param userId 사용자 ID (헤더로 전달)
+     * @param reqEnrollmentPageDto 페이징 조건 (page, size)
      */
     @GetMapping("/me")
-    public ResponseEntity<ApiResponse<List<RespEnrollmentStudentDto>>> getMyEnrollments(@RequestHeader("X-User-Id") Long userId) {
+    public ResponseEntity<ApiResponse<RespPageDto<RespEnrollmentStudentDto>>> getMyEnrollments(@RequestHeader("X-User-Id") Long userId, ReqEnrollmentPageDto reqEnrollmentPageDto) {
         log.debug("[EnrollmentController] 나의 수강 신청 목록 조회 요청 - userId: {}", userId);
 
-        List<RespEnrollmentStudentDto> result = enrollmentService.findMyEnrollments(userId);
+        RespPageDto<RespEnrollmentStudentDto> result = enrollmentService.findMyEnrollments(userId, reqEnrollmentPageDto);
 
         return ResponseEntity.ok(ApiResponse.success(result));
     }

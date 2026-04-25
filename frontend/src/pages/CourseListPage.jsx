@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { getCourseList } from '../api/course';
 import { useAuth } from '../context/AuthContext';
+import { COURSE_STATUS_CARD_STYLE, COURSE_STATUS_LABEL } from '../utils/statusConfig';
 
 const CourseListPage = () => {
     const navigate = useNavigate();
@@ -162,9 +163,8 @@ const CourseListPage = () => {
                                 </span>
                                 {/* 상태 배지 */}
                                 <div className="absolute top-2 left-2">
-                                    <span className={`text-[10px] font-bold px-2 py-1 rounded-sm shadow-sm ${course.status === 'OPEN' ? 'bg-green-500 text-white' : 'bg-gray-500 text-white'
-                                        }`}>
-                                        {course.status === 'OPEN' ? '모집 중' : '준비 중'}
+                                    <span className={`text-[10px] font-bold px-2 py-1 rounded-sm shadow-sm ${COURSE_STATUS_CARD_STYLE[course.status]}`}>
+                                        {COURSE_STATUS_LABEL[course.status]}
                                     </span>
                                 </div>
                             </div>

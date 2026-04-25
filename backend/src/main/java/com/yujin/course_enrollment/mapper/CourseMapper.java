@@ -34,4 +34,13 @@ public interface CourseMapper {
 
     /* 강의 상태 변경 */
     void updateCourseStatus(Course course);
+
+    /* 수강 인원 증가 (정원 미만일 때만, 반환값: 업데이트된 행 수) */
+    int updateCourseEnrolledCountPlus(Long courseId);
+
+    /* 수강 인원 감소 */
+    void updateCourseEnrolledCountMinus(Long courseId);
+
+    /* 나의 강의 목록 조회 (CREATOR 전용) */
+    List<RespCourseListDto> selectCourseListByCreatorId(Long creatorId);
 }

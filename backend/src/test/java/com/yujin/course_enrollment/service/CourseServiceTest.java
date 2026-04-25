@@ -8,6 +8,7 @@ import com.yujin.course_enrollment.dto.resp.RespCourseDetailDto;
 import com.yujin.course_enrollment.entity.Course;
 import com.yujin.course_enrollment.entity.User;
 import com.yujin.course_enrollment.mapper.CourseMapper;
+import com.yujin.course_enrollment.mapper.EnrollmentMapper;
 import com.yujin.course_enrollment.mapper.UserMapper;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -36,6 +37,9 @@ class CourseServiceTest {
 
     @Mock
     private UserMapper userMapper;
+
+    @Mock
+    private EnrollmentMapper enrollmentMapper;
 
     @Test
     @DisplayName("강의 등록 성공")

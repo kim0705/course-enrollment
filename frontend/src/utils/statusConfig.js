@@ -1,0 +1,34 @@
+/* 강의 상태 레이블 */
+export const COURSE_STATUS_LABEL = {
+    DRAFT: '준비 중',
+    OPEN: '모집 중',
+    CLOSED: '마감',
+};
+
+/* 강의 상태 뱃지 스타일 - 카드 썸네일용 (채워진 스타일) */
+export const COURSE_STATUS_CARD_STYLE = {
+    DRAFT: 'bg-gray-500 text-white',
+    OPEN: 'bg-green-500 text-white',
+    CLOSED: 'bg-gray-500 text-white',
+};
+
+/* 강의 상태 뱃지 스타일 - 인라인 뱃지용 (테두리 스타일) */
+export const COURSE_STATUS_BADGE_STYLE = {
+    DRAFT: 'bg-gray-50 text-gray-500 border-gray-200',
+    OPEN: 'bg-blue-50 text-blue-600 border-blue-100',
+    CLOSED: 'bg-gray-50 text-gray-500 border-gray-200',
+};
+
+/* 수강 신청 상태 레이블 */
+export const ENROLLMENT_STATUS_LABEL = {
+    PENDING: '결제 대기',
+    CONFIRMED: '수강 확정',
+    CANCELLED: '취소됨',
+};
+
+/* 수강 신청 상태 뱃지 스타일 */
+export const ENROLLMENT_STATUS_BADGE_STYLE = {
+    PENDING: 'bg-amber-50 text-amber-600 border-amber-100',
+    CONFIRMED: 'bg-green-50 text-green-600 border-green-100',
+    CANCELLED: 'bg-gray-50 text-gray-400 border-gray-200',
+};

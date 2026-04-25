@@ -67,7 +67,7 @@ public class CourseController {
      * @param courseId 강의 ID
      */
     @GetMapping("/{courseId}")
-    public ResponseEntity<ApiResponse<RespCourseDetailDto>> getCourseDetail(@RequestHeader("X-User-Id") Long userId, @PathVariable Long courseId) {
+    public ResponseEntity<ApiResponse<RespCourseDetailDto>> getCourseDetail(@RequestHeader(value = "X-User-Id", required = false) Long userId, @PathVariable Long courseId) {
         log.debug("[CourseController] 강의 상세 조회 요청 - courseId: {}", courseId);
 
         RespCourseDetailDto result = courseService.findCourseById(courseId, userId);

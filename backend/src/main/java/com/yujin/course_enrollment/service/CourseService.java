@@ -123,8 +123,10 @@ public class CourseService {
             throw new BusinessException(HttpStatus.BAD_REQUEST, "존재하지 않는 강의입니다.");
         }
 
-        Enrollment enrollment = enrollmentMapper.selectEnrollmentByUserIdAndCourseId(userId, courseId);
-        course.setEnrolled(enrollment != null && !"CANCELLED".equals(enrollment.getStatus()));
+        if (userId != null) {
+            Enrollment enrollment = enrollmentMapper.selectEnrollmentByUserIdAndCourseId(userId, courseId);
+            course.setEnrolled(enrollment != null && !"CANCELLED".equals(enrollment.getStatus()));
+        }
 
         log.info("[CourseService] 강의 상세 조회 완료 - courseId: {}", courseId);
 

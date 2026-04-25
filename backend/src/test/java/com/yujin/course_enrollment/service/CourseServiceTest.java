@@ -8,6 +8,7 @@ import com.yujin.course_enrollment.dto.resp.RespCourseDetailDto;
 import com.yujin.course_enrollment.entity.Course;
 import com.yujin.course_enrollment.entity.User;
 import com.yujin.course_enrollment.mapper.CourseMapper;
+import com.yujin.course_enrollment.entity.Enrollment;
 import com.yujin.course_enrollment.mapper.EnrollmentMapper;
 import com.yujin.course_enrollment.mapper.UserMapper;
 import org.junit.jupiter.api.DisplayName;
@@ -436,5 +437,49 @@ class CourseServiceTest {
         assertThatThrownBy(() -> courseService.closeCourse(creatorId, courseId))
                 .isInstanceOf(BusinessException.class)
                 .hasMessage("OPEN 상태의 강의만 마감할 수 있습니다.");
+    }
+
+    @Test
+    @DisplayName("강의 상세 조회 성공 - 로그인 사용자 (수강 여부 반영)")
+    void findCourseById_success_loggedIn() {
+        // given
+        Long courseId = 1L;
+        Long userId = 4L;
+        RespCourseDetailDto respDto = new RespCourseDetailDto();
+        respDto.setId(courseId);
+        Enrollment enrollment = Enrollment.builder()
+                .id(1L)
+                .userId(userId)
+                .courseId(courseId)
+                .status("CONFIRMED")
+                .build();
+
+        given(courseMapper.selectCourseDetailById(courseId)).willReturn(respDto);
+        given(enrollmentMapper.selectEnrollmentByUserIdAndCourseId(userId, courseId)).willReturn(enrollment);
+
+        // when
+        RespCourseDetailDto result = courseService.findCourseById(courseId, userId);
+
+        // then
+        assertThat(result.isEnrolled()).isTrue();
+        then(enrollmentMapper).should().selectEnrollmentByUserIdAndCourseId(userId, courseId);
+    }
+
+    @Test
+    @DisplayName("강의 상세 조회 성공 - 비회원 (수강 여부 조회 없음)")
+    void findCourseById_success_guest() {
+        // given
+        Long courseId = 1L;
+        RespCourseDetailDto respDto = new RespCourseDetailDto();
+        respDto.setId(courseId);
+
+        given(courseMapper.selectCourseDetailById(courseId)).willReturn(respDto);
+
+        // when
+        RespCourseDetailDto result = courseService.findCourseById(courseId, null);
+
+        // then
+        assertThat(result.isEnrolled()).isFalse();
+        then(enrollmentMapper).should(never()).selectEnrollmentByUserIdAndCourseId(any(), any());
     }
 }

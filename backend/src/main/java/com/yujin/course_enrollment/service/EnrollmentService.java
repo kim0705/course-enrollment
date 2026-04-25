@@ -1,8 +1,10 @@
 package com.yujin.course_enrollment.service;
 
 import com.yujin.course_enrollment.dto.req.ReqEnrollmentCreateDto;
+import com.yujin.course_enrollment.dto.req.ReqEnrollmentPageDto;
 import com.yujin.course_enrollment.dto.resp.RespEnrollmentDto;
 import com.yujin.course_enrollment.dto.resp.RespEnrollmentStudentDto;
+import com.yujin.course_enrollment.dto.resp.RespPageDto;
 import com.yujin.course_enrollment.entity.Course;
 import com.yujin.course_enrollment.entity.Enrollment;
 import com.yujin.course_enrollment.entity.User;
@@ -104,11 +106,17 @@ public class EnrollmentService {
     /**
      * 나의 수강 신청 목록 조회
      * @param userId 사용자 ID
+     * @param reqEnrollmentPageDto 페이징 조건 DTO
      */
-    public List<RespEnrollmentStudentDto> findMyEnrollments(Long userId) {
-        log.info("[EnrollmentService] 나의 수강 신청 목록 조회 - userId: {}", userId);
+    public RespPageDto<RespEnrollmentStudentDto> findMyEnrollments(Long userId, ReqEnrollmentPageDto reqEnrollmentPageDto) {
+        log.info("[EnrollmentService] 나의 수강 신청 목록 조회 - userId: {}, page: {}, size: {}", userId, reqEnrollmentPageDto.getPage(), reqEnrollmentPageDto.getSize());
 
-        return enrollmentMapper.selectEnrollmentListByUserId(userId);
+        reqEnrollmentPageDto.setUserId(userId);
+
+        List<RespEnrollmentStudentDto> content = enrollmentMapper.selectEnrollmentListByUserId(reqEnrollmentPageDto);
+        int totalCount = enrollmentMapper.selectEnrollmentListByUserIdCount(userId);
+
+        return RespPageDto.of(content, reqEnrollmentPageDto.getPage(), reqEnrollmentPageDto.getSize(), totalCount);
     }
 
     /**

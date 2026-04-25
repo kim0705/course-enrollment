@@ -9,24 +9,25 @@ const MyPage = () => {
     const navigate = useNavigate();
     const { user } = useAuth();
     const [activeTab, setActiveTab] = useState('enrollments');
-    const [enrollments, setEnrollments] = useState([]);
+    const [enrollmentData, setEnrollmentData] = useState({ content: [], totalCount: 0, totalPages: 0, last: false });
+    const [enrollmentPage, setEnrollmentPage] = useState(0);
     const [myCourses, setMyCourses] = useState([]);
     const [selectedCourseId, setSelectedCourseId] = useState('');
     const [courseEnrollments, setCourseEnrollments] = useState([]);
 
-    useEffect(() => {
-        const fetchMyEnrollments = async () => {
-            try {
-                const result = await getMyEnrollments();
-                setEnrollments(result.data);
-            } catch (err) {
-                console.error(err);
-                alert('수강 신청 목록을 불러오는데 실패했습니다.');
-            }
-        };
+    const fetchMyEnrollments = async (page = 0) => {
+        try {
+            const result = await getMyEnrollments(page);
+            setEnrollmentData(result.data);
+        } catch (err) {
+            console.error(err);
+            alert('수강 신청 목록을 불러오는데 실패했습니다.');
+        }
+    };
 
-        fetchMyEnrollments();
-    }, []);
+    useEffect(() => {
+        fetchMyEnrollments(enrollmentPage);
+    }, [enrollmentPage]);
 
     /* 강의별 수강생 목록 탭 진입 시 나의 강의 목록 조회 */
     useEffect(() => {
@@ -70,8 +71,7 @@ const MyPage = () => {
         try {
             await confirmEnrollment(enrollmentId);
             alert('결제가 완료되었습니다.');
-            const result = await getMyEnrollments();
-            setEnrollments(result.data);
+            fetchMyEnrollments(enrollmentPage);
         } catch (err) {
             alert(err.response?.data?.message || '결제에 실패했습니다.');
         }
@@ -84,8 +84,7 @@ const MyPage = () => {
         try {
             await cancelEnrollment(enrollmentId);
             alert('수강이 취소되었습니다.');
-            const result = await getMyEnrollments();
-            setEnrollments(result.data);
+            fetchMyEnrollments(enrollmentPage);
         } catch (err) {
             alert(err.response?.data?.message || '수강 취소에 실패했습니다.');
         }
@@ -120,13 +119,13 @@ const MyPage = () => {
             {/* 나의 수강목록 */}
             {activeTab === 'enrollments' && (
                 <>
-                    {enrollments.length === 0 ? (
+                    {enrollmentData.content.length === 0 ? (
                         <div className="text-center text-gray-400 py-32 border-2 border-dashed border-gray-100 rounded-2xl">
                             수강 신청 내역이 없습니다.
                         </div>
                     ) : (
                         <div className="flex flex-col gap-4">
-                            {enrollments.map(enrollment => (
+                            {enrollmentData.content.map(enrollment => (
                                 <div key={enrollment.id}
                                     className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
 
@@ -196,6 +195,28 @@ const MyPage = () => {
                         </div>
                     )}
 
+                    {/* 페이징 섹션 */}
+                    {(enrollmentData?.totalPages ?? 0) > 1 && (
+                        <div className="flex justify-center items-center gap-4 mt-8">
+                            <button disabled={enrollmentPage === 0}
+                                onClick={() => setEnrollmentPage(prev => prev - 1)}
+                                className="p-2 border rounded-full hover:bg-gray-50 disabled:opacity-30 cursor-pointer transition-colors">
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 19l-7-7 7-7" />
+                                </svg>
+                            </button>
+                            <span className="text-sm font-medium text-gray-700">
+                                <span className="text-blue-600">{enrollmentPage + 1}</span> / {enrollmentData.totalPages}
+                            </span>
+                            <button disabled={enrollmentData.last}
+                                onClick={() => setEnrollmentPage(prev => prev + 1)}
+                                className="p-2 border rounded-full hover:bg-gray-50 disabled:opacity-30 cursor-pointer transition-colors">
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7" />
+                                </svg>
+                            </button>
+                        </div>
+                    )}
                 </>
             )}
 

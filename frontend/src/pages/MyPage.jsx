@@ -15,6 +15,7 @@ const MyPage = () => {
     const [selectedCourseId, setSelectedCourseId] = useState('');
     const [courseEnrollments, setCourseEnrollments] = useState([]);
 
+    /* 나의 수강목록 조회 */
     const fetchMyEnrollments = async (page = 0) => {
         try {
             const result = await getMyEnrollments(page);
@@ -25,6 +26,7 @@ const MyPage = () => {
         }
     };
 
+    /* 페이지 진입 시 나의 수강목록 조회 */
     useEffect(() => {
         fetchMyEnrollments(enrollmentPage);
     }, [enrollmentPage]);

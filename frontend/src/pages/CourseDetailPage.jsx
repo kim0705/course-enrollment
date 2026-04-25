@@ -9,7 +9,6 @@ const CourseDetailPage = () => {
     const { courseId } = useParams();
     const navigate = useNavigate();
     const location = useLocation();
-
     const [course, setCourse] = useState(null);
     const { user } = useAuth();
 
@@ -198,21 +197,29 @@ const CourseDetailPage = () => {
                                     </>
                                 ) : (
                                     <>
-                                        {course.enrolled ? (
+                                        {course.status !== 'OPEN' ? (
+                                            <button disabled
+                                                className="w-full mt-8 py-4 font-bold rounded-md transition-all shadow-md cursor-not-allowed bg-gray-200 text-gray-500">
+                                                지금은 신청할 수 없습니다
+                                            </button>
+                                        ) : !user ? (
+                                            <button
+                                                onClick={() => navigate('/login', { state: { redirect: `/courses/${courseId}` } })}
+                                                className="w-full mt-8 py-4 font-bold rounded-md transition-all shadow-md cursor-pointer bg-blue-600 text-white hover:bg-blue-700"
+                                            >
+                                                로그인 후 신청하기
+                                            </button>
+                                        ) : course.enrolled ? (
                                             <button disabled
                                                 className="w-full mt-8 py-4 font-bold rounded-md transition-all shadow-md cursor-not-allowed bg-gray-200 text-gray-500">
                                                 이미 신청한 강의입니다
                                             </button>
                                         ) : (
                                             <button
-                                                onClick={course.status === 'OPEN' ? handleEnroll : undefined}
-                                                className={`w-full mt-8 py-4 font-bold rounded-md transition-all shadow-md active:scale-95 cursor-pointer ${course.status === 'OPEN'
-                                                        ? 'bg-blue-600 text-white hover:bg-blue-700'
-                                                        : 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                                                    }`}
-                                                disabled={course.status !== 'OPEN'}
+                                                onClick={handleEnroll}
+                                                className="w-full mt-8 py-4 font-bold rounded-md transition-all shadow-md active:scale-95 cursor-pointer bg-blue-600 text-white hover:bg-blue-700"
                                             >
-                                                {course.status === 'OPEN' ? '수강 신청하기' : '지금은 신청할 수 없습니다'}
+                                                수강 신청하기
                                             </button>
                                         )}
                                     </>

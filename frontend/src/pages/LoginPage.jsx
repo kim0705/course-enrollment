@@ -1,14 +1,21 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { getUserList } from '../api/user';
 import { useAuth } from '../context/AuthContext';
 
 const LoginPage = () => {
     const navigate = useNavigate();
+    const location = useLocation();
     const { login } = useAuth();
-
     /* 유저 목록 상태 */
     const [users, setUsers] = useState([]);
+    
+    /* 로그인 후 리다이렉트할 경로 */
+    const redirect = location.state?.redirect || '/courses';
+    /* 역할에 따른 라벨 */
+    const roleLabel = (role) => role === 'CREATOR' ? '강사' : '수강생';
+    /* 역할에 따른 스타일 */
+    const roleStyle = (role) => role === 'CREATOR' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700';
 
     /* 유저 목록 조회 */
     useEffect(() => {
@@ -27,13 +34,8 @@ const LoginPage = () => {
     /* 유저 선택 시 로그인 처리 */
     const handleSelectUser = (user) => {
         login(user);
-        navigate('/courses');
+        navigate(redirect, { replace: true });
     };
-
-    const roleLabel = (role) => role === 'CREATOR' ? '강사' : '수강생';
-    const roleStyle = (role) => role === 'CREATOR'
-        ? 'bg-blue-100 text-blue-700'
-        : 'bg-green-100 text-green-700';
 
     return (
         <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
@@ -62,6 +64,13 @@ const LoginPage = () => {
                         </button>
                     ))}
                 </div>
+
+                <button
+                    onClick={() => navigate('/courses')}
+                    className="w-full mt-4 text-sm text-gray-400 hover:text-gray-600 transition-colors cursor-pointer py-2"
+                >
+                    비회원으로 계속 보기
+                </button>
             </div>
         </div>
     );

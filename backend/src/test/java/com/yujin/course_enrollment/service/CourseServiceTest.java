@@ -1,12 +1,15 @@
 package com.yujin.course_enrollment.service;
 
 import com.yujin.course_enrollment.dto.req.ReqCourseCreateDto;
-import com.yujin.course_enrollment.global.exception.BusinessException;
+import com.yujin.course_enrollment.dto.req.ReqCourseEnrollmentPageDto;
 import com.yujin.course_enrollment.dto.req.ReqCourseUpdateDto;
 import com.yujin.course_enrollment.dto.resp.RespCourseCreateDto;
 import com.yujin.course_enrollment.dto.resp.RespCourseDetailDto;
+import com.yujin.course_enrollment.dto.resp.RespEnrollmentCreatorDto;
+import com.yujin.course_enrollment.dto.resp.RespPageDto;
 import com.yujin.course_enrollment.entity.Course;
 import com.yujin.course_enrollment.entity.User;
+import com.yujin.course_enrollment.global.exception.BusinessException;
 import com.yujin.course_enrollment.mapper.CourseMapper;
 import com.yujin.course_enrollment.entity.Enrollment;
 import com.yujin.course_enrollment.mapper.EnrollmentMapper;
@@ -20,6 +23,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.BDDMockito.*;
@@ -537,5 +541,60 @@ class CourseServiceTest {
         assertThatThrownBy(() -> courseService.findCourseById(courseId, 4L))
                 .isInstanceOf(BusinessException.class)
                 .hasMessage("접근할 수 없는 강의입니다.");
+    }
+
+    @Test
+    @DisplayName("강의별 수강생 목록 조회 성공")
+    void findCourseEnrollments_success() {
+        // given
+        Long creatorId = 1L;
+        Long courseId = 1L;
+        Course course = Course.builder().id(courseId).creatorId(creatorId).build();
+        ReqCourseEnrollmentPageDto pageDto = new ReqCourseEnrollmentPageDto();
+
+        RespEnrollmentCreatorDto student = new RespEnrollmentCreatorDto();
+        student.setUserName("수강생A");
+        student.setStatus("CONFIRMED");
+
+        given(courseMapper.selectCourseById(courseId)).willReturn(course);
+        given(enrollmentMapper.selectEnrollmentListByCourseId(any())).willReturn(List.of(student));
+        given(enrollmentMapper.selectEnrollmentListByCourseIdCount(courseId)).willReturn(1);
+
+        // when
+        RespPageDto<RespEnrollmentCreatorDto> result = courseService.findCourseEnrollments(creatorId, courseId, pageDto);
+
+        // then
+        assertThat(result.getContent()).hasSize(1);
+        assertThat(result.getContent().get(0).getUserName()).isEqualTo("수강생A");
+        assertThat(result.getTotalCount()).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("강의별 수강생 목록 조회 실패 - 강의 없음")
+    void findCourseEnrollments_fail_courseNotFound() {
+        // given
+        Long creatorId = 1L;
+        Long courseId = 999L;
+        given(courseMapper.selectCourseById(courseId)).willReturn(null);
+
+        // when & then
+        assertThatThrownBy(() -> courseService.findCourseEnrollments(creatorId, courseId, new ReqCourseEnrollmentPageDto()))
+                .isInstanceOf(BusinessException.class)
+                .hasMessage("존재하지 않는 강의입니다.");
+    }
+
+    @Test
+    @DisplayName("강의별 수강생 목록 조회 실패 - 본인 강의 아님")
+    void findCourseEnrollments_fail_forbidden() {
+        // given
+        Long creatorId = 99L;
+        Long courseId = 1L;
+        Course course = Course.builder().id(courseId).creatorId(1L).build();
+        given(courseMapper.selectCourseById(courseId)).willReturn(course);
+
+        // when & then
+        assertThatThrownBy(() -> courseService.findCourseEnrollments(creatorId, courseId, new ReqCourseEnrollmentPageDto()))
+                .isInstanceOf(BusinessException.class)
+                .hasMessage("본인의 강의만 조회할 수 있습니다.");
     }
 }

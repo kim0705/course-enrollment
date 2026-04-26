@@ -107,6 +107,7 @@ const MyPage = () => {
         }
     };
 
+    /* 탭 구성 - CREATOR 권한이 있는 경우 내 강의와 강의별 수강생 목록 탭 추가 */
     const tabs = [
         { key: 'enrollments', label: '나의 수강목록' },
         ...(user?.role === 'CREATOR' ? [
@@ -152,7 +153,7 @@ const MyPage = () => {
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-center gap-2 mb-1">
                                             <span
-                                                onClick={() => navigate(`/courses/${enrollment.courseId}`)}
+                                                onClick={() => navigate(`/courses/${enrollment.courseId}`, { state: { from: 'my-page', tab: 'enrollments' } })}
                                                 className="text-base font-bold text-gray-900 truncate cursor-pointer hover:text-blue-600 transition-colors"
                                             >
                                                 {enrollment.courseTitle}

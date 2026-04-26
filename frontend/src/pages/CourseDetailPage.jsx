@@ -44,7 +44,7 @@ const CourseDetailPage = () => {
     /* 목록으로 돌아가기 */
     const handleBackToList = () => {
         if (location.state?.from === 'my-page') {
-            navigate('/my-page', { state: { tab: 'my-courses' } });
+            navigate('/my-page', { state: { tab: location.state?.tab || 'my-courses' } });
             return;
         }
         

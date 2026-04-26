@@ -56,6 +56,8 @@ const CourseRegisterPage = () => {
 
                 setForm({
                     ...data,
+                    title: data.title ?? '',
+                    description: data.description ?? '',
                     priceDisplay: data.price.toLocaleString()
                 });
                 setReady(true);

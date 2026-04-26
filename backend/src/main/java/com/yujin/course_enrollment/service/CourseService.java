@@ -1,6 +1,7 @@
 package com.yujin.course_enrollment.service;
 
 import com.yujin.course_enrollment.dto.req.ReqCourseCreateDto;
+import com.yujin.course_enrollment.dto.req.ReqCourseEnrollmentPageDto;
 import com.yujin.course_enrollment.dto.req.ReqCourseSearchDto;
 import com.yujin.course_enrollment.dto.req.ReqCourseUpdateDto;
 import com.yujin.course_enrollment.dto.resp.RespCourseCreateDto;
@@ -263,9 +264,10 @@ public class CourseService {
      * 강의별 수강생 목록 조회 (CREATOR 전용)
      * @param creatorId 크리에이터 ID
      * @param courseId 강의 ID
+     * @param reqCourseEnrollmentPageDto 페이징 조건 DTO
      * @throws BusinessException 강의 없음(400), 조회 권한 없음(403)
      */
-    public List<RespEnrollmentCreatorDto> findCourseEnrollments(Long creatorId, Long courseId) {
+    public RespPageDto<RespEnrollmentCreatorDto> findCourseEnrollments(Long creatorId, Long courseId, ReqCourseEnrollmentPageDto reqCourseEnrollmentPageDto) {
         log.info("[CourseService] 강의별 수강생 목록 조회 - creatorId: {}, courseId: {}", creatorId, courseId);
 
         Course course = courseMapper.selectCourseById(courseId);
@@ -279,6 +281,11 @@ public class CourseService {
             throw new BusinessException(HttpStatus.FORBIDDEN, "본인의 강의만 조회할 수 있습니다.");
         }
 
-        return enrollmentMapper.selectEnrollmentListByCourseId(courseId);
+        reqCourseEnrollmentPageDto.setCourseId(courseId);
+
+        List<RespEnrollmentCreatorDto> content = enrollmentMapper.selectEnrollmentListByCourseId(reqCourseEnrollmentPageDto);
+        int totalCount = enrollmentMapper.selectEnrollmentListByCourseIdCount(courseId);
+
+        return RespPageDto.of(content, reqCourseEnrollmentPageDto.getPage(), reqCourseEnrollmentPageDto.getSize(), totalCount);
     }
 }

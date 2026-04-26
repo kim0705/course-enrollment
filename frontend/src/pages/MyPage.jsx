@@ -24,7 +24,9 @@ const MyPage = () => {
     /* 선택한 강의 ID 상태 (강의별 수강생 목록 탭에서) */
     const [selectedCourseId, setSelectedCourseId] = useState('');
     /* 선택한 강의의 수강생 목록 상태 */
-    const [courseEnrollments, setCourseEnrollments] = useState([]);
+    const [courseEnrollmentData, setCourseEnrollmentData] = useState({ content: [], totalCount: 0, totalPages: 0, last: false });
+    /* 수강생 목록 페이지 상태 */
+    const [studentPage, setStudentPage] = useState(0);
 
     /* 나의 수강목록 조회 */
     const fetchMyEnrollments = async (page = 0) => {
@@ -42,6 +44,12 @@ const MyPage = () => {
         fetchMyEnrollments(enrollmentPage);
     }, [enrollmentPage]);
 
+    /* 수강생 목록 페이지 변경 시 재조회 */
+    useEffect(() => {
+        if (!selectedCourseId) return;
+        fetchCourseEnrollments(selectedCourseId, studentPage);
+    }, [studentPage]);
+
     /* 내 강의 / 강의별 수강생 목록 탭 진입 시 나의 강의 목록 조회 */
     useEffect(() => {
         if (activeTab !== 'my-courses' && activeTab !== 'students') return;
@@ -53,7 +61,7 @@ const MyPage = () => {
                 
                 if (activeTab === 'students') {
                     setSelectedCourseId('');
-                    setCourseEnrollments([]);
+                    setCourseEnrollmentData({ content: [], totalCount: 0, totalPages: 0, last: false });
                 }
             } catch (err) {
                 console.error(err);
@@ -64,21 +72,27 @@ const MyPage = () => {
         fetchMyCourses();
     }, [activeTab]);
 
-    /* 강의 선택 시 수강생 목록 조회 */
-    const handleCourseSelect = async (courseId) => {
-        setSelectedCourseId(courseId);
-        
-        if (!courseId) {
-            setCourseEnrollments([]);
-            return;
-        }
-
+    /* 수강생 목록 조회 */
+    const fetchCourseEnrollments = async (courseId, page = 0) => {
         try {
-            const result = await getCourseEnrollments(courseId);
-            setCourseEnrollments(result.data);
+            const result = await getCourseEnrollments(courseId, page);
+            setCourseEnrollmentData(result.data);
         } catch (err) {
             alert(err.response?.data?.message || '수강생 목록을 불러오는데 실패했습니다.');
         }
+    };
+
+    /* 강의 선택 시 수강생 목록 조회 */
+    const handleCourseSelect = (courseId) => {
+        setSelectedCourseId(courseId);
+        setStudentPage(0);
+
+        if (!courseId) {
+            setCourseEnrollmentData({ content: [], totalCount: 0, totalPages: 0, last: false });
+            return;
+        }
+
+        fetchCourseEnrollments(courseId, 0);
     };
 
     /* 결제 요청 */
@@ -206,7 +220,9 @@ const MyPage = () => {
                                                 </button>
                                             </>
                                         )}
-                                        {enrollment.status === 'CONFIRMED' && (
+                                        {enrollment.status === 'CONFIRMED' &&
+                                            enrollment.confirmedAt &&
+                                            new Date(enrollment.confirmedAt) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) && (
                                             <button
                                                 onClick={() => handleCancel(enrollment.id)}
                                                 className="px-4 py-2 border border-gray-300 text-gray-600 text-sm font-semibold rounded-md hover:bg-gray-50 transition-colors cursor-pointer"
@@ -312,7 +328,7 @@ const MyPage = () => {
                         <div className="text-center text-gray-400 py-32 border-2 border-dashed border-gray-100 rounded-2xl">
                             강의를 선택하면 수강생 목록이 표시됩니다.
                         </div>
-                    ) : courseEnrollments.length === 0 ? (
+                    ) : courseEnrollmentData.content.length === 0 ? (
                         <div className="text-center text-gray-400 py-32 border-2 border-dashed border-gray-100 rounded-2xl">
                             수강생이 없습니다.
                         </div>
@@ -328,7 +344,7 @@ const MyPage = () => {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-100">
-                                    {courseEnrollments.map(enrollment => (
+                                    {courseEnrollmentData.content.map(enrollment => (
                                         <tr key={enrollment.id} className="hover:bg-gray-50">
                                             <td className="py-4 pr-6 font-medium text-gray-900">{enrollment.userName}</td>
                                             <td className="py-4 pr-6">
@@ -348,6 +364,29 @@ const MyPage = () => {
                                     ))}
                                 </tbody>
                             </table>
+                        </div>
+                    )}
+
+                    {/* 페이징 섹션 */}
+                    {(courseEnrollmentData?.totalPages ?? 0) > 1 && (
+                        <div className="flex justify-center items-center gap-4 mt-8">
+                            <button disabled={studentPage === 0}
+                                onClick={() => setStudentPage(prev => prev - 1)}
+                                className="p-2 border rounded-full hover:bg-gray-50 disabled:opacity-30 cursor-pointer transition-colors">
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 19l-7-7 7-7" />
+                                </svg>
+                            </button>
+                            <span className="text-sm font-medium text-gray-700">
+                                <span className="text-blue-600">{studentPage + 1}</span> / {courseEnrollmentData.totalPages}
+                            </span>
+                            <button disabled={courseEnrollmentData.last}
+                                onClick={() => setStudentPage(prev => prev + 1)}
+                                className="p-2 border rounded-full hover:bg-gray-50 disabled:opacity-30 cursor-pointer transition-colors">
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7" />
+                                </svg>
+                            </button>
                         </div>
                     )}
                 </>

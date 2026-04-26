@@ -44,6 +44,6 @@ export const getMyCourses = () => {
 };
 
 /* 강의별 수강생 목록 조회 (CREATOR 전용) */
-export const getCourseEnrollments = (courseId) => {
-    return instance.get(`/api/courses/${courseId}/enrollments`).then(res => res.data);
+export const getCourseEnrollments = (courseId, page = 0, size = 10) => {
+    return instance.get(`/api/courses/${courseId}/enrollments`, { params: { page, size } }).then(res => res.data);
 };

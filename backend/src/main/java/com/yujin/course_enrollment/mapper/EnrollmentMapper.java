@@ -1,5 +1,6 @@
 package com.yujin.course_enrollment.mapper;
 
+import com.yujin.course_enrollment.dto.req.ReqCourseEnrollmentPageDto;
 import com.yujin.course_enrollment.dto.req.ReqEnrollmentPageDto;
 import com.yujin.course_enrollment.dto.resp.RespEnrollmentCreatorDto;
 import com.yujin.course_enrollment.dto.resp.RespEnrollmentStudentDto;
@@ -34,7 +35,10 @@ public interface EnrollmentMapper {
     int selectEnrollmentListByUserIdCount(Long userId);
 
     /* 강의별 수강생 목록 조회 (CREATOR 전용) */
-    List<RespEnrollmentCreatorDto> selectEnrollmentListByCourseId(Long courseId);
+    List<RespEnrollmentCreatorDto> selectEnrollmentListByCourseId(ReqCourseEnrollmentPageDto reqCourseEnrollmentPageDto);
+
+    /* 강의별 수강생 수 조회 (페이징용) */
+    int selectEnrollmentListByCourseIdCount(Long courseId);
 
     /* 대기열 첫 번째 조회 (자동 승격용) */
     Enrollment selectNextWaitlist(Long courseId);

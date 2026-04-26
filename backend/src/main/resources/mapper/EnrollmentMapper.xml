@@ -59,7 +59,7 @@
     </update>
 
     <!-- 강의별 수강생 목록 조회 (CREATOR 전용) -->
-    <select id="selectEnrollmentListByCourseId" parameterType="Long" resultType="RespEnrollmentCreatorDto">
+    <select id="selectEnrollmentListByCourseId" parameterType="ReqCourseEnrollmentPageDto" resultType="RespEnrollmentCreatorDto">
         SELECT e.id
              , e.user_id
              , u.name AS userName
@@ -71,6 +71,14 @@
           JOIN users u ON e.user_id = u.id
          WHERE e.course_id = #{courseId}
         ORDER BY e.created_at DESC
+        LIMIT #{size} OFFSET #{offset}
+    </select>
+
+    <!-- 강의별 수강생 수 조회 (페이징용) -->
+    <select id="selectEnrollmentListByCourseIdCount" parameterType="Long" resultType="int">
+        SELECT COUNT(*)
+          FROM enrollments
+         WHERE course_id = #{courseId}
     </select>
 
     <!-- 나의 수강 신청 목록 조회 -->

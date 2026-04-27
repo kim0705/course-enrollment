@@ -221,6 +221,7 @@ npm run dev
 ## 🗂 데이터 모델 설명
 
 ### 1. ERD (Entity Relationship Diagram)
+<img width="1063" height="536" alt="course_enrollment-db" src="https://github.com/user-attachments/assets/b46d01e5-df09-4856-9297-1c7266f1c33c" />
 
 
 ### 2. 테이블 상세 설명

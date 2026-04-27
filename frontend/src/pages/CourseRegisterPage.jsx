@@ -5,16 +5,23 @@ import { useAuth } from '../context/AuthContext';
 
 /* 강의 등록/수정 페이지 */
 const CourseRegisterPage = () => {
+    /* URL 파라미터에서 courseId 추출 */
     const { courseId } = useParams();
-    const isEdit = !!courseId;
+    /* 페이지 이동을 위한 navigate 함수 */
     const navigate = useNavigate();
+    /* 현재 페이지의 위치 정보 */
     const location = useLocation();
+    /* 인증 정보에서 현재 사용자 정보 추출 */
     const { user } = useAuth();
-    const previousSearch = location.state?.fromSearch || '';
 
+    /* 수정 모드 여부 */
+    const isEdit = !!courseId;
+    /* 이전 검색어 유지 */
+    const previousSearch = location.state?.fromSearch || '';
+    /* 이전 페이지 정보 (수정 후 돌아갈 때 활용) */
+    const from = location.state?.from || null;
     /* 오늘 날짜 */
     const today = new Date().toISOString().split('T')[0];
-
     /* 폼 상태 */
     const [form, setForm] = useState({
         title: '',
@@ -24,33 +31,57 @@ const CourseRegisterPage = () => {
         startDate: '',
         endDate: '',
     });
+    /* 데이터 로딩 상태 */
+    const [ready, setReady] = useState(!isEdit);
 
     /* 수정 모드일 때 기존 데이터 불러오기 */
     useEffect(() => {
+        if (!isEdit) return;
 
-        if (isEdit) {
-            const fetchCourseData = async () => {
-                try {
-                    const response = await getCourseDetail(courseId);
-                    const data = response.data;
+        let cancelled = false;
 
-                    setForm({
-                        ...data,
-                        priceDisplay: data.price.toLocaleString()
-                    });
-                } catch (err) {
-                    alert('강의 정보를 불러오는데 실패했습니다.');
-                    navigate(`/courses${previousSearch}`);
+        const fetchCourseData = async () => {
+            try {
+                const response = await getCourseDetail(courseId);
+                
+                if (cancelled) return;
+
+                const data = response.data;
+
+                if (data.creatorId !== user?.id) {
+                    alert('수정 권한이 없습니다.');
+                    navigate(`/courses${previousSearch}`, { replace: true });
+                    return;
                 }
-            };
 
-            fetchCourseData();
-        }
+                setForm({
+                    ...data,
+                    title: data.title ?? '',
+                    description: data.description ?? '',
+                    priceDisplay: data.price.toLocaleString()
+                });
+                setReady(true);
+            } catch (err) {
+                if (cancelled) return;
+                alert('강의 정보를 불러오는데 실패했습니다.');
+                navigate(`/courses${previousSearch}`);
+            }
+        };
+
+        fetchCourseData();
+
+        return () => { cancelled = true; };
     }, [courseId, isEdit]);
 
     /* 입력값 변경 핸들러 */
     const handleChange = (e) => {
         const { name, value } = e.target;
+
+        if (name === 'capacity') {
+            const num = parseInt(value, 10);
+            if (num > 9999) return;
+        }
+        
         setForm(prev => ({ ...prev, [name]: value }));
     };
 
@@ -68,7 +99,7 @@ const CourseRegisterPage = () => {
         }
 
         const numValue = parseInt(raw, 10);
-        if (numValue < 0) return;
+        if (numValue < 0 || numValue > 9_999_999) return;
 
         setForm(prev => ({
             ...prev,
@@ -85,7 +116,7 @@ const CourseRegisterPage = () => {
             if (isEdit) {
                 await updateCourse(courseId, user?.id, form);
                 alert('강의 정보가 수정되었습니다!');
-                navigate(`/courses/${courseId}`, { state: { fromSearch: previousSearch } });
+                navigate(`/courses/${courseId}`, { state: { fromSearch: previousSearch, from } });
             } else {
                 const result = await registerCourse(user?.id, form);
                 alert('강의가 등록되었습니다!');
@@ -105,6 +136,8 @@ const CourseRegisterPage = () => {
         }
     };
 
+    if (!ready) return null;
+
     return (
         <div className="max-w-7xl mx-auto mt-10 p-6">
             {/* 헤더 섹션 */}
@@ -118,11 +151,11 @@ const CourseRegisterPage = () => {
 
                 <div className="flex items-center gap-3">
                     <button type="button" onClick={handleCancel}
-                        className="px-5 py-2 border border-gray-300 text-gray-600 rounded-md font-semibold hover:bg-gray-50 cursor-pointer transition-all shadow-sm">
+                        className="px-4 py-2 border border-gray-300 text-gray-600 rounded-md font-semibold hover:bg-gray-50 cursor-pointer transition-all shadow-sm text-sm">
                         취소
                     </button>
                     <button form="course-form" type="submit"
-                        className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md font-semibold cursor-pointer shadow-sm transition-all active:scale-95">
+                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md font-semibold cursor-pointer shadow-sm transition-all active:scale-95 text-sm">
                         {isEdit ? '수정 사항 저장' : '강의 저장하기'}
                     </button>
                 </div>
@@ -167,8 +200,11 @@ const CourseRegisterPage = () => {
 
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">수강 정원</label>
-                                <input name="capacity" value={form.capacity} type="number" required min="1" onChange={handleChange}
-                                    className="w-full border-gray-300 border py-3 px-4 rounded-lg" />
+                                <div className="relative">
+                                    <input name="capacity" value={form.capacity} type="number" required min="1" max="9999" onChange={handleChange}
+                                        className="w-full border-gray-300 border py-3 px-4 rounded-lg text-right pr-10 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
+                                    <span className="absolute right-3 top-3.5 text-gray-500">명</span>
+                                </div>
                             </div>
                         </div>
                     </div>

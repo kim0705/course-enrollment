@@ -1,6 +1,7 @@
 package com.yujin.course_enrollment.controller;
 
 import com.yujin.course_enrollment.dto.req.ReqCourseCreateDto;
+import com.yujin.course_enrollment.dto.req.ReqCourseEnrollmentPageDto;
 import com.yujin.course_enrollment.dto.req.ReqCourseSearchDto;
 import com.yujin.course_enrollment.dto.req.ReqCourseUpdateDto;
 import com.yujin.course_enrollment.dto.resp.RespCourseCreateDto;
@@ -67,7 +68,7 @@ public class CourseController {
      * @param courseId 강의 ID
      */
     @GetMapping("/{courseId}")
-    public ResponseEntity<ApiResponse<RespCourseDetailDto>> getCourseDetail(@RequestHeader("X-User-Id") Long userId, @PathVariable Long courseId) {
+    public ResponseEntity<ApiResponse<RespCourseDetailDto>> getCourseDetail(@RequestHeader(value = "X-User-Id", required = false) Long userId, @PathVariable Long courseId) {
         log.debug("[CourseController] 강의 상세 조회 요청 - courseId: {}", courseId);
 
         RespCourseDetailDto result = courseService.findCourseById(courseId, userId);
@@ -140,12 +141,13 @@ public class CourseController {
      * GET /api/courses/{courseId}/enrollments
      * @param creatorId 크리에이터 ID (헤더로 전달)
      * @param courseId 강의 ID
+     * @param reqCourseEnrollmentPageDto 페이징 조건 DTO
      */
     @GetMapping("/{courseId}/enrollments")
-    public ResponseEntity<ApiResponse<List<RespEnrollmentCreatorDto>>> getCourseEnrollments(@RequestHeader("X-User-Id") Long creatorId, @PathVariable Long courseId) {
+    public ResponseEntity<ApiResponse<RespPageDto<RespEnrollmentCreatorDto>>> getCourseEnrollments(@RequestHeader("X-User-Id") Long creatorId, @PathVariable Long courseId, ReqCourseEnrollmentPageDto reqCourseEnrollmentPageDto) {
         log.debug("[CourseController] 강의별 수강생 목록 조회 요청 - creatorId: {}, courseId: {}", creatorId, courseId);
 
-        List<RespEnrollmentCreatorDto> result = courseService.findCourseEnrollments(creatorId, courseId);
+        RespPageDto<RespEnrollmentCreatorDto> result = courseService.findCourseEnrollments(creatorId, courseId, reqCourseEnrollmentPageDto);
 
         return ResponseEntity.ok(ApiResponse.success(result));
     }

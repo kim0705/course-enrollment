@@ -62,6 +62,7 @@
           FROM courses c
           JOIN users u ON c.creator_id = u.id
           <where>
+              AND c.status != 'DRAFT'
               <if test="status != null and status != ''">
                   AND c.status = #{status}
               </if>
@@ -93,6 +94,7 @@
           FROM courses c
           JOIN users u ON c.creator_id = u.id
           <where>
+              AND c.status != 'DRAFT'
               <if test="status != null and status != ''">
                   AND c.status = #{status}
               </if>

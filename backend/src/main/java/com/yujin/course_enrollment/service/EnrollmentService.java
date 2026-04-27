@@ -8,6 +8,8 @@ import com.yujin.course_enrollment.dto.resp.RespPageDto;
 import com.yujin.course_enrollment.entity.Course;
 import com.yujin.course_enrollment.entity.Enrollment;
 import com.yujin.course_enrollment.entity.User;
+import com.yujin.course_enrollment.global.CourseStatus;
+import com.yujin.course_enrollment.global.EnrollmentStatus;
 import com.yujin.course_enrollment.global.exception.BusinessException;
 import com.yujin.course_enrollment.mapper.CourseMapper;
 import com.yujin.course_enrollment.mapper.EnrollmentMapper;
@@ -69,18 +71,19 @@ public class EnrollmentService {
         }
 
         // 강의 모집 중 확인
-        if (!"OPEN".equals(course.getStatus())) {
+        if (!CourseStatus.OPEN.equals(course.getStatus())) {
             log.warn("[EnrollmentService] 모집 중이 아님 - courseId: {}, status: {}", courseId, course.getStatus());
             throw new BusinessException(HttpStatus.BAD_REQUEST, "모집 중인 강의만 신청할 수 있습니다.");
         }
 
         // 중복 신청 확인 (CANCELLED 상태만 재신청 허용)
         Enrollment existing = enrollmentMapper.selectEnrollmentByUserIdAndCourseId(userId, courseId);
-        if (existing != null && !"CANCELLED".equals(existing.getStatus())) {
-            if ("WAITLIST".equals(existing.getStatus())) {
+        if (existing != null && !EnrollmentStatus.CANCELLED.equals(existing.getStatus())) {
+            if (EnrollmentStatus.WAITLIST.equals(existing.getStatus())) {
                 log.warn("[EnrollmentService] 이미 대기 중 - userId: {}, courseId: {}", userId, courseId);
                 throw new BusinessException(HttpStatus.BAD_REQUEST, "이미 대기 중인 강의입니다.");
             }
+
             log.warn("[EnrollmentService] 중복 신청 - userId: {}, courseId: {}", userId, courseId);
             throw new BusinessException(HttpStatus.BAD_REQUEST, "이미 신청한 강의입니다.");
         }
@@ -103,6 +106,7 @@ public class EnrollmentService {
         }
 
         enrollmentMapper.insertEnrollment(reqEnrollmentCreateDto.toEntity(userId));
+
         log.info("[EnrollmentService] 수강 신청 완료 - userId: {}, courseId: {}", userId, courseId);
 
         Enrollment saved = enrollmentMapper.selectEnrollmentByUserIdAndCourseId(userId, courseId);
@@ -121,6 +125,7 @@ public class EnrollmentService {
         reqEnrollmentPageDto.setUserId(userId);
 
         List<RespEnrollmentStudentDto> content = enrollmentMapper.selectEnrollmentListByUserId(reqEnrollmentPageDto);
+
         int totalCount = enrollmentMapper.selectEnrollmentListByUserIdCount(userId);
 
         return RespPageDto.of(content, reqEnrollmentPageDto.getPage(), reqEnrollmentPageDto.getSize(), totalCount);
@@ -150,7 +155,7 @@ public class EnrollmentService {
         }
 
         // PENDING 상태 확인
-        if (!"PENDING".equals(enrollment.getStatus())) {
+        if (!EnrollmentStatus.PENDING.equals(enrollment.getStatus())) {
             log.warn("[EnrollmentService] PENDING 상태 아님 - enrollmentId: {}, status: {}", enrollmentId, enrollment.getStatus());
             throw new BusinessException(HttpStatus.BAD_REQUEST, "PENDING 상태의 수강 신청만 결제할 수 있습니다.");
         }
@@ -191,13 +196,13 @@ public class EnrollmentService {
         }
 
         // 이미 취소됨 확인
-        if ("CANCELLED".equals(enrollment.getStatus())) {
+        if (EnrollmentStatus.CANCELLED.equals(enrollment.getStatus())) {
             log.warn("[EnrollmentService] 이미 취소됨 - enrollmentId: {}", enrollmentId);
             throw new BusinessException(HttpStatus.BAD_REQUEST, "이미 취소된 수강 신청입니다.");
         }
 
         // CONFIRMED 상태 취소 기간 확인 (확정 후 7일 이내)
-        if ("CONFIRMED".equals(enrollment.getStatus())) {
+        if (EnrollmentStatus.CONFIRMED.equals(enrollment.getStatus())) {
             if (enrollment.getConfirmedAt().plusDays(7).isBefore(LocalDateTime.now())) {
                 log.warn("[EnrollmentService] 취소 기간 초과 - enrollmentId: {}, confirmedAt: {}", enrollmentId, enrollment.getConfirmedAt());
                 throw new BusinessException(HttpStatus.BAD_REQUEST, "수강 확정 후 7일이 지나 취소할 수 없습니다.");
@@ -207,7 +212,7 @@ public class EnrollmentService {
         enrollmentMapper.updateEnrollmentStatus(Enrollment.ofCancel(enrollmentId));
 
         // WAITLIST 취소는 enrolled_count 변경 및 승격 없음
-        if ("WAITLIST".equals(enrollment.getStatus())) {
+        if (EnrollmentStatus.WAITLIST.equals(enrollment.getStatus())) {
             log.info("[EnrollmentService] 대기 취소 완료 - enrollmentId: {}", enrollmentId);
 
             Course course = courseMapper.selectCourseById(enrollment.getCourseId());

@@ -1,5 +1,6 @@
 package com.yujin.course_enrollment.entity;
 
+import com.yujin.course_enrollment.global.EnrollmentStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -31,7 +32,7 @@ public class Enrollment {
     public static Enrollment ofConfirm(Long id) {
         return Enrollment.builder()
                 .id(id)
-                .status("CONFIRMED")
+                .status(EnrollmentStatus.CONFIRMED)
                 .confirmedAt(LocalDateTime.now())
                 .build();
     }
@@ -40,7 +41,7 @@ public class Enrollment {
     public static Enrollment ofCancel(Long id) {
         return Enrollment.builder()
                 .id(id)
-                .status("CANCELLED")
+                .status(EnrollmentStatus.CANCELLED)
                 .cancelledAt(LocalDateTime.now())
                 .build();
     }
@@ -50,7 +51,7 @@ public class Enrollment {
         return Enrollment.builder()
                 .userId(userId)
                 .courseId(courseId)
-                .status("WAITLIST")
+                .status(EnrollmentStatus.WAITLIST)
                 .build();
     }
 
@@ -58,7 +59,7 @@ public class Enrollment {
     public static Enrollment ofPromote(Long id) {
         return Enrollment.builder()
                 .id(id)
-                .status("PENDING")
+                .status(EnrollmentStatus.PENDING)
                 .build();
     }
 }

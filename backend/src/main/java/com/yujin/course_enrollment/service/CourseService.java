@@ -1,6 +1,7 @@
 package com.yujin.course_enrollment.service;
 
 import com.yujin.course_enrollment.dto.req.ReqCourseCreateDto;
+import com.yujin.course_enrollment.dto.req.ReqCourseEnrollmentPageDto;
 import com.yujin.course_enrollment.dto.req.ReqCourseSearchDto;
 import com.yujin.course_enrollment.dto.req.ReqCourseUpdateDto;
 import com.yujin.course_enrollment.dto.resp.RespCourseCreateDto;
@@ -10,6 +11,8 @@ import com.yujin.course_enrollment.dto.resp.RespEnrollmentCreatorDto;
 import com.yujin.course_enrollment.dto.resp.RespPageDto;
 import com.yujin.course_enrollment.entity.Course;
 import com.yujin.course_enrollment.entity.User;
+import com.yujin.course_enrollment.global.CourseStatus;
+import com.yujin.course_enrollment.global.EnrollmentStatus;
 import com.yujin.course_enrollment.global.exception.BusinessException;
 import com.yujin.course_enrollment.entity.Enrollment;
 import com.yujin.course_enrollment.mapper.CourseMapper;
@@ -123,8 +126,15 @@ public class CourseService {
             throw new BusinessException(HttpStatus.BAD_REQUEST, "존재하지 않는 강의입니다.");
         }
 
-        Enrollment enrollment = enrollmentMapper.selectEnrollmentByUserIdAndCourseId(userId, courseId);
-        course.setEnrolled(enrollment != null && !"CANCELLED".equals(enrollment.getStatus()));
+        if (CourseStatus.DRAFT.equals(course.getStatus()) && !course.getCreatorId().equals(userId)) {
+            log.warn("[CourseService] DRAFT 강의 접근 차단 - courseId: {}, userId: {}", courseId, userId);
+            throw new BusinessException(HttpStatus.FORBIDDEN, "접근할 수 없는 강의입니다.");
+        }
+
+        if (userId != null) {
+            Enrollment enrollment = enrollmentMapper.selectEnrollmentByUserIdAndCourseId(userId, courseId);
+            course.setEnrolled(enrollment != null && !EnrollmentStatus.CANCELLED.equals(enrollment.getStatus()));
+        }
 
         log.info("[CourseService] 강의 상세 조회 완료 - courseId: {}", courseId);
 
@@ -156,7 +166,7 @@ public class CourseService {
         }
 
         // DRAFT 상태에서만 수정 가능
-        if (!"DRAFT".equals(course.getStatus())) {
+        if (!CourseStatus.DRAFT.equals(course.getStatus())) {
             log.warn("[CourseService] DRAFT 상태가 아님 - courseId: {}, status: {}", courseId, course.getStatus());
             throw new BusinessException(HttpStatus.BAD_REQUEST, "DRAFT 상태의 강의만 수정할 수 있습니다.");
         }
@@ -195,12 +205,12 @@ public class CourseService {
             throw new BusinessException(HttpStatus.FORBIDDEN, "강의 공개 권한이 없습니다.");
         }
 
-        if (!"DRAFT".equals(course.getStatus())) {
+        if (!CourseStatus.DRAFT.equals(course.getStatus())) {
             log.warn("[CourseService] DRAFT 상태 아님 - courseId: {}, status: {}", courseId, course.getStatus());
             throw new BusinessException(HttpStatus.BAD_REQUEST, "DRAFT 상태의 강의만 공개할 수 있습니다.");
         }
 
-        courseMapper.updateCourseStatus(Course.builder().id(courseId).status("OPEN").build());
+        courseMapper.updateCourseStatus(Course.builder().id(courseId).status(CourseStatus.OPEN).build());
 
         log.info("[CourseService] 강의 공개 완료 - courseId: {}", courseId);
 
@@ -228,12 +238,12 @@ public class CourseService {
             throw new BusinessException(HttpStatus.FORBIDDEN, "강의 마감 권한이 없습니다.");
         }
 
-        if (!"OPEN".equals(course.getStatus())) {
+        if (!CourseStatus.OPEN.equals(course.getStatus())) {
             log.warn("[CourseService] OPEN 상태 아님 - courseId: {}, status: {}", courseId, course.getStatus());
             throw new BusinessException(HttpStatus.BAD_REQUEST, "OPEN 상태의 강의만 마감할 수 있습니다.");
         }
 
-        courseMapper.updateCourseStatus(Course.builder().id(courseId).status("CLOSED").build());
+        courseMapper.updateCourseStatus(Course.builder().id(courseId).status(CourseStatus.CLOSED).build());
 
         log.info("[CourseService] 강의 마감 완료 - courseId: {}", courseId);
 
@@ -254,9 +264,10 @@ public class CourseService {
      * 강의별 수강생 목록 조회 (CREATOR 전용)
      * @param creatorId 크리에이터 ID
      * @param courseId 강의 ID
+     * @param reqCourseEnrollmentPageDto 페이징 조건 DTO
      * @throws BusinessException 강의 없음(400), 조회 권한 없음(403)
      */
-    public List<RespEnrollmentCreatorDto> findCourseEnrollments(Long creatorId, Long courseId) {
+    public RespPageDto<RespEnrollmentCreatorDto> findCourseEnrollments(Long creatorId, Long courseId, ReqCourseEnrollmentPageDto reqCourseEnrollmentPageDto) {
         log.info("[CourseService] 강의별 수강생 목록 조회 - creatorId: {}, courseId: {}", creatorId, courseId);
 
         Course course = courseMapper.selectCourseById(courseId);
@@ -270,6 +281,11 @@ public class CourseService {
             throw new BusinessException(HttpStatus.FORBIDDEN, "본인의 강의만 조회할 수 있습니다.");
         }
 
-        return enrollmentMapper.selectEnrollmentListByCourseId(courseId);
+        reqCourseEnrollmentPageDto.setCourseId(courseId);
+
+        List<RespEnrollmentCreatorDto> content = enrollmentMapper.selectEnrollmentListByCourseId(reqCourseEnrollmentPageDto);
+        int totalCount = enrollmentMapper.selectEnrollmentListByCourseIdCount(courseId);
+
+        return RespPageDto.of(content, reqCourseEnrollmentPageDto.getPage(), reqCourseEnrollmentPageDto.getSize(), totalCount);
     }
 }

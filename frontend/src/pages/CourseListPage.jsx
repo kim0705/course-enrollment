@@ -4,35 +4,31 @@ import { getCourseList } from '../api/course';
 import { useAuth } from '../context/AuthContext';
 import { COURSE_STATUS_CARD_STYLE, COURSE_STATUS_LABEL } from '../utils/statusConfig';
 
+/* 강의 목록 페이지 */
 const CourseListPage = () => {
+    /* 페이지 이동을 위한 navigate 함수 */
     const navigate = useNavigate();
+    /* 현재 페이지의 위치 정보 */
     const location = useLocation();
+    /* 인증 정보에서 현재 사용자 정보 추출 */
     const { user } = useAuth();
+    /* URL 검색 파라미터 상태 */
     const [searchParams, setSearchParams] = useSearchParams();
+    /* 검색어 입력값 상태 (URL 파라미터와 별도로 관리) */
     const [tempKeyword, setTempKeyword] = useState(searchParams.get('keyword') || '');
 
-    /* 검색 조건 상태 */
-    const [search, setSearch] = useState({
+    /* searchParams에서 직접 파생 (별도 state 없음) */
+    const search = {
         status: searchParams.get('status') || '',
         searchType: searchParams.get('searchType') || '',
         keyword: searchParams.get('keyword') || '',
         page: parseInt(searchParams.get('page')) || 0,
         size: parseInt(searchParams.get('size')) || 12,
-    });
+    };
 
-    /* URL 파라미터가 변경될 때 상태 동기화 */
+    /* URL 파라미터가 변경될 때 tempKeyword 동기화 */
     useEffect(() => {
-        const currentKeyword = searchParams.get('keyword') || '';
-
-        setSearch({
-            status: searchParams.get('status') || '',
-            searchType: searchParams.get('searchType') || '',
-            keyword: currentKeyword,
-            page: parseInt(searchParams.get('page')) || 0,
-            size: parseInt(searchParams.get('size')) || 12,
-        });
-
-        setTempKeyword(currentKeyword);
+        setTempKeyword(searchParams.get('keyword') || '');
     }, [searchParams]);
 
     /* 목록 데이터 상태 */
@@ -43,7 +39,7 @@ const CourseListPage = () => {
         last: false,
     });
 
-    /* API 호출 (search 상태가 바뀔 때마다 실행) */
+    /* API 호출 (searchParams가 바뀔 때마다 실행) */
     useEffect(() => {
         const fetchCourseList = async () => {
             try {
@@ -55,7 +51,7 @@ const CourseListPage = () => {
         };
 
         fetchCourseList();
-    }, [search]);
+    }, [searchParams]);
 
     /* 검색 실행 */
     const handleSearch = (e) => {
@@ -94,7 +90,7 @@ const CourseListPage = () => {
                 <h1 className="text-3xl font-extrabold text-gray-900">전체 강의</h1>
                 {user?.role === 'CREATOR' && (
                     <button onClick={() => navigate('/courses/new', { state: { fromSearch: location.search } })}
-                        className="px-5 py-2 bg-blue-600 text-white rounded-md font-semibold hover:bg-blue-700 transition-all cursor-pointer shadow-sm">
+                        className="px-4 py-2 bg-blue-600 text-white rounded-md font-semibold hover:bg-blue-700 transition-all cursor-pointer shadow-sm text-sm">
                         강의 등록
                     </button>
                 )}
@@ -105,7 +101,6 @@ const CourseListPage = () => {
                 <select name="status" value={search.status} onChange={handleSearchChange}
                     className="bg-white border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
                     <option value="">전체 상태</option>
-                    <option value="DRAFT">초안</option>
                     <option value="OPEN">모집 중</option>
                     <option value="CLOSED">마감</option>
                 </select>
@@ -206,10 +201,7 @@ const CourseListPage = () => {
             {(data?.totalPages ?? 0) > 1 && (
                 <div className="flex justify-center items-center gap-4 mt-12">
                     <button disabled={search.page === 0}
-                        onClick={() => {
-                            setSearchParams({ ...Object.fromEntries(searchParams), page: search.page - 1 });
-                            setSearch(prev => ({ ...prev, page: prev.page - 1 }));
-                        }}
+                        onClick={() => setSearchParams({ ...Object.fromEntries(searchParams), page: search.page - 1 })}
                         className="p-2 border rounded-full hover:bg-gray-50 disabled:opacity-30 cursor-pointer transition-colors">
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 19l-7-7 7-7" />
@@ -221,10 +213,7 @@ const CourseListPage = () => {
                     </span>
 
                     <button disabled={data.last}
-                        onClick={() => {
-                            setSearchParams({ ...Object.fromEntries(searchParams), page: search.page + 1 });
-                            setSearch(prev => ({ ...prev, page: prev.page + 1 }));
-                        }}
+                        onClick={() => setSearchParams({ ...Object.fromEntries(searchParams), page: search.page + 1 })}
                         className="p-2 border rounded-full hover:bg-gray-50 disabled:opacity-30 cursor-pointer transition-colors">
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7" />

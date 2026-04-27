@@ -1,6 +1,7 @@
 package com.yujin.course_enrollment.dto.req;
 
 import com.yujin.course_enrollment.entity.Enrollment;
+import com.yujin.course_enrollment.global.EnrollmentStatus;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -21,7 +22,7 @@ public class ReqEnrollmentCreateDto {
         return Enrollment.builder()
                 .userId(userId)
                 .courseId(this.courseId)
-                .status("PENDING")
+                .status(EnrollmentStatus.PENDING)
                 .build();
     }
 }

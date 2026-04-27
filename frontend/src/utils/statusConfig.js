@@ -15,8 +15,8 @@ export const COURSE_STATUS_CARD_STYLE = {
 /* 강의 상태 뱃지 스타일 - 인라인 뱃지용 (테두리 스타일) */
 export const COURSE_STATUS_BADGE_STYLE = {
     DRAFT: 'bg-gray-50 text-gray-500 border-gray-200',
-    OPEN: 'bg-blue-50 text-blue-600 border-blue-100',
-    CLOSED: 'bg-gray-50 text-gray-500 border-gray-200',
+    OPEN: 'bg-green-50 text-green-600 border-green-200',
+    CLOSED: 'bg-red-50 text-red-500 border-red-200',
 };
 
 /* 수강 신청 상태 레이블 */

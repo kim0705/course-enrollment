@@ -1,6 +1,7 @@
 package com.yujin.course_enrollment.dto.req;
 
 import com.yujin.course_enrollment.entity.Course;
+import com.yujin.course_enrollment.global.CourseStatus;
 import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -23,9 +24,11 @@ public class ReqCourseCreateDto {
     private String description;
 
     @Min(value = 0, message = "가격은 0원 이상이어야 합니다.")
+    @Max(value = 9_999_999, message = "가격은 9,999,999원 이하여야 합니다.")
     private int price;
 
     @Min(value = 1, message = "정원은 1명 이상이어야 합니다.")
+    @Max(value = 9_999, message = "정원은 9,999명 이하여야 합니다.")
     private int capacity;
 
     @NotNull(message = "수강 시작일은 필수입니다.")
@@ -46,7 +49,7 @@ public class ReqCourseCreateDto {
                 .capacity(this.capacity)
                 .startDate(this.startDate)
                 .endDate(this.endDate)
-                .status("DRAFT")
+                .status(CourseStatus.DRAFT)
                 .build();
     }
 }

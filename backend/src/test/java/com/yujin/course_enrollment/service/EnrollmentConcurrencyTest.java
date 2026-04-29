@@ -134,11 +134,15 @@ class EnrollmentConcurrencyTest {
         long waitlistCount = statuses.stream().filter(EnrollmentStatus.WAITLIST::equals).count();
         long errorCount    = statuses.stream().filter(s -> s.startsWith("ERROR")).count();
 
+        System.out.println("[결과] PENDING: " + pendingCount + " / WAITLIST: " + waitlistCount + " / ERROR: " + errorCount);
+
         assertThat(errorCount).isEqualTo(0);
         assertThat(pendingCount).isEqualTo(1);
         assertThat(waitlistCount).isEqualTo(19);
 
         Course updated = courseMapper.selectCourseById(courseId);
+        System.out.println("[enrolled_count] " + updated.getEnrolledCount() + " / capacity: " + updated.getCapacity());
+
         assertThat(updated.getEnrolledCount()).isEqualTo(1);
         assertThat(updated.getEnrolledCount()).isLessThanOrEqualTo(updated.getCapacity());
     }
@@ -158,11 +162,15 @@ class EnrollmentConcurrencyTest {
         long waitlistCount = statuses.stream().filter(EnrollmentStatus.WAITLIST::equals).count();
         long errorCount    = statuses.stream().filter(s -> s.startsWith("ERROR")).count();
 
+        System.out.println("[결과] PENDING: " + pendingCount + " / WAITLIST: " + waitlistCount + " / ERROR: " + errorCount);
+
         assertThat(errorCount).isEqualTo(0);
         assertThat(pendingCount).isEqualTo(5);
         assertThat(waitlistCount).isEqualTo(25);
 
         Course updated = courseMapper.selectCourseById(courseId);
+        System.out.println("[enrolled_count] " + updated.getEnrolledCount() + " / capacity: " + updated.getCapacity());
+
         assertThat(updated.getEnrolledCount()).isEqualTo(5);
         assertThat(updated.getEnrolledCount()).isLessThanOrEqualTo(updated.getCapacity());
     }
@@ -175,8 +183,8 @@ class EnrollmentConcurrencyTest {
      *   → 대기자 3명이 모두 PENDING으로 승격되어야 함
      *   → enrolled_count = 3 (승격 인원수, cap 초과 없음)
      *
-     * 예외 가능 상황: 모든 스레드가 selectNextWaitlist에서 동일 대기자를 발견
-     *   → updateCourseEnrolledCountPlus가 중복 실행되면 enrolled_count 불일치
+     * updateEnrollmentStatusPromote가 AND status = 'WAITLIST' 조건으로 실행되어
+     * 동일 대기자에 대한 중복 승격을 방지함
      */
     @Test
     @DisplayName("5명 동시 취소 - WAITLIST 3명 전원 PENDING 승격, enrolled_count 정합성 유지")
@@ -237,8 +245,138 @@ class EnrollmentConcurrencyTest {
 
         Course updated = courseMapper.selectCourseById(courseId);
 
+        System.out.println("[승격 결과] PENDING 승격: " + promotedCount + " / enrolled_count: " + updated.getEnrolledCount() + " / capacity: " + updated.getCapacity());
+
         assertThat(promotedCount).isEqualTo(3); // WAITLIST 3명 모두 PENDING 승격
         assertThat(updated.getEnrolledCount()).isEqualTo(3); // enrolled_count = 승격 인원수
         assertThat(updated.getEnrolledCount()).isLessThanOrEqualTo(updated.getCapacity()); // cap 초과 없음
+    }
+
+    /**
+     * 동시 취소 시 WAITLIST 승격 정확성 테스트 (취소 수 < 대기자 수)
+     *
+     * 시나리오: cap=5, 수강생 5명(PENDING) + 대기자 5명(WAITLIST)
+     *   → 수강생 2명만 동시 취소
+     *   → 대기자 2명만 PENDING으로 승격되어야 함
+     *   → enrolled_count = 5 유지 (2명 취소 + 2명 승격)
+     */
+    @Test
+    @DisplayName("2명 동시 취소 - WAITLIST 5명 중 2명만 PENDING 승격, enrolled_count 불변")
+    void cancelEnrollment_concurrent_cancelLessThanWaitlist() throws InterruptedException {
+        // given - cap=5 강의에 수강생 5명 + 대기자 5명 세팅
+        List<Long> enrolledUsers = insertStudents(5);
+        List<Long> waitlistUsers = insertStudents(5);
+        Long courseId = createOpenCourse(1L, 5).getId();
+
+        for (Long userId : enrolledUsers) {
+            enrollmentService.registerEnrollment(userId, new ReqEnrollmentCreateDto(courseId));
+        }
+        for (Long userId : waitlistUsers) {
+            enrollmentService.registerEnrollment(userId, new ReqEnrollmentCreateDto(courseId));
+        }
+
+        // 수강 중인 5명 중 2명만 취소 대상으로 선정
+        List<Long[]> cancelTargets = new ArrayList<>();
+        for (Long userId : enrolledUsers.subList(0, 2)) {
+            Long enrollmentId = enrollmentMapper.selectEnrollmentByUserIdAndCourseId(userId, courseId).getId();
+            cancelTargets.add(new Long[]{userId, enrollmentId});
+        }
+
+        // when - 2명 동시 취소
+        int count = cancelTargets.size();
+        ExecutorService executor = Executors.newFixedThreadPool(count);
+        CountDownLatch readyLatch = new CountDownLatch(count);
+        CountDownLatch startLatch = new CountDownLatch(1);
+        CountDownLatch doneLatch  = new CountDownLatch(count);
+
+        for (Long[] target : cancelTargets) {
+            executor.submit(() -> {
+                try {
+                    readyLatch.countDown();
+                    startLatch.await();
+                    enrollmentService.cancelEnrollment(target[0], target[1]);
+                } catch (Exception ignored) {
+                } finally {
+                    doneLatch.countDown();
+                }
+            });
+        }
+
+        readyLatch.await();
+        startLatch.countDown();
+        doneLatch.await(10, TimeUnit.SECONDS);
+        executor.shutdown();
+
+        // then
+        long promotedCount = waitlistUsers.stream()
+                .map(uid -> enrollmentMapper.selectEnrollmentByUserIdAndCourseId(uid, courseId))
+                .filter(e -> EnrollmentStatus.PENDING.equals(e.getStatus()))
+                .count();
+
+        Course updated = courseMapper.selectCourseById(courseId);
+
+        System.out.println("[승격 결과] PENDING 승격: " + promotedCount + " / enrolled_count: " + updated.getEnrolledCount() + " / capacity: " + updated.getCapacity());
+
+        assertThat(promotedCount).isEqualTo(2); // 취소 2명 → 승격 2명
+        assertThat(updated.getEnrolledCount()).isEqualTo(5); // 2명 취소 + 2명 승격 = enrolled_count 불변
+        assertThat(updated.getEnrolledCount()).isLessThanOrEqualTo(updated.getCapacity());
+    }
+
+    /**
+     * 동시 취소 시 WAITLIST 없는 경우 enrolled_count 정합성 테스트
+     *
+     * 시나리오: cap=5, 수강생 3명(PENDING), WAITLIST 없음
+     *   → 수강생 3명 동시 취소
+     *   → enrolled_count = 0
+     */
+    @Test
+    @DisplayName("3명 동시 취소 - WAITLIST 없음, enrolled_count 정확히 감소")
+    void cancelEnrollment_concurrent_noWaitlist() throws InterruptedException {
+        // given - cap=5 강의에 수강생 3명만 세팅
+        List<Long> enrolledUsers = insertStudents(3);
+        Long courseId = createOpenCourse(1L, 5).getId();
+
+        for (Long userId : enrolledUsers) {
+            enrollmentService.registerEnrollment(userId, new ReqEnrollmentCreateDto(courseId));
+        }
+
+        List<Long[]> cancelTargets = new ArrayList<>();
+        for (Long userId : enrolledUsers) {
+            Long enrollmentId = enrollmentMapper.selectEnrollmentByUserIdAndCourseId(userId, courseId).getId();
+            cancelTargets.add(new Long[]{userId, enrollmentId});
+        }
+
+        // when - 3명 동시 취소
+        int count = cancelTargets.size();
+        ExecutorService executor = Executors.newFixedThreadPool(count);
+        CountDownLatch readyLatch = new CountDownLatch(count);
+        CountDownLatch startLatch = new CountDownLatch(1);
+        CountDownLatch doneLatch  = new CountDownLatch(count);
+
+        for (Long[] target : cancelTargets) {
+            executor.submit(() -> {
+                try {
+                    readyLatch.countDown();
+                    startLatch.await();
+                    enrollmentService.cancelEnrollment(target[0], target[1]);
+                } catch (Exception ignored) {
+                } finally {
+                    doneLatch.countDown();
+                }
+            });
+        }
+
+        readyLatch.await();
+        startLatch.countDown();
+        doneLatch.await(10, TimeUnit.SECONDS);
+        executor.shutdown();
+
+        // then
+        Course updated = courseMapper.selectCourseById(courseId);
+
+        System.out.println("[취소 결과] enrolled_count: " + updated.getEnrolledCount() + " / capacity: " + updated.getCapacity());
+
+        assertThat(updated.getEnrolledCount()).isEqualTo(0);
+        assertThat(updated.getEnrolledCount()).isLessThanOrEqualTo(updated.getCapacity());
     }
 }

@@ -42,4 +42,7 @@ public interface EnrollmentMapper {
 
     /* 대기열 첫 번째 조회 (자동 승격용) */
     Enrollment selectNextWaitlist(Long courseId);
+
+    /* 대기열 승격 (WAITLIST 상태일 때만 PENDING으로 변경) */
+    int updateEnrollmentStatusPromote(Long id);
 }

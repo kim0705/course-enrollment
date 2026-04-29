@@ -79,7 +79,6 @@ public class EnrollmentService {
         // 중복 신청 확인 (CANCELLED 상태만 재신청 허용)
         Enrollment existing = enrollmentMapper.selectEnrollmentByUserIdAndCourseId(userId, courseId);
         if (existing != null && !EnrollmentStatus.CANCELLED.equals(existing.getStatus())) {
-
             if (EnrollmentStatus.WAITLIST.equals(existing.getStatus())) {
                 log.warn("[EnrollmentService] 이미 대기 중 - userId: {}, courseId: {}", userId, courseId);
                 throw new BusinessException(HttpStatus.BAD_REQUEST, "이미 대기 중인 강의입니다.");
@@ -92,10 +91,8 @@ public class EnrollmentService {
         // 정원 초과 시 WAITLIST 등록
         if (course.getEnrolledCount() >= course.getCapacity()) {
             log.info("[EnrollmentService] 정원 초과 - 대기열 등록 - userId: {}, courseId: {}", userId, courseId);
-
             enrollmentMapper.insertEnrollment(Enrollment.ofWaitlist(userId, courseId));
             Enrollment saved = enrollmentMapper.selectEnrollmentByUserIdAndCourseId(userId, courseId);
-
             return RespEnrollmentDto.of(saved, course.getTitle());
         }
 
@@ -103,10 +100,8 @@ public class EnrollmentService {
         int updated = courseMapper.updateCourseEnrolledCountPlus(courseId);
         if (updated == 0) {
             log.info("[EnrollmentService] 동시 신청으로 정원 초과 - 대기열 등록 - userId: {}, courseId: {}", userId, courseId);
-
             enrollmentMapper.insertEnrollment(Enrollment.ofWaitlist(userId, courseId));
             Enrollment saved = enrollmentMapper.selectEnrollmentByUserIdAndCourseId(userId, courseId);
-
             return RespEnrollmentDto.of(saved, course.getTitle());
         }
 
@@ -228,15 +223,14 @@ public class EnrollmentService {
 
         courseMapper.updateCourseEnrolledCountMinus(enrollment.getCourseId());
 
-        // 대기열 승격 시도 (동시 경쟁 실패 시 다음 대기자로 재시도)
-        Enrollment nextWaitlist;
-        while ((nextWaitlist = enrollmentMapper.selectNextWaitlist(enrollment.getCourseId())) != null) {
-            int promoted = enrollmentMapper.updateEnrollmentStatusPromote(nextWaitlist.getId());
+        // 대기열 첫 번째 사람 자동 PENDING 승격
+        Enrollment nextWaitlist = enrollmentMapper.selectNextWaitlist(enrollment.getCourseId());
+        if (nextWaitlist != null) {
+            int updated = courseMapper.updateCourseEnrolledCountPlus(enrollment.getCourseId());
 
-            if (promoted > 0) {
-                courseMapper.updateCourseEnrolledCountPlus(enrollment.getCourseId());
+            if (updated > 0) {
+                enrollmentMapper.updateEnrollmentStatus(Enrollment.ofPromote(nextWaitlist.getId()));
                 log.info("[EnrollmentService] 대기열 승격 - enrollmentId: {}", nextWaitlist.getId());
-                break;
             }
         }
 

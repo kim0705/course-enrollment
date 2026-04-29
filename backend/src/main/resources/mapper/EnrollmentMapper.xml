@@ -85,8 +85,8 @@
     <select id="selectEnrollmentListByUserId" parameterType="ReqEnrollmentPageDto" resultType="RespEnrollmentStudentDto">
         SELECT e.id
              , e.course_id
-             , c.title AS courseTitle
-             , c.status AS courseStatus
+             , c.title        AS courseTitle
+             , c.status       AS courseStatus
              , c.price
              , c.start_date
              , c.end_date
@@ -94,16 +94,15 @@
              , e.confirmed_at
              , e.cancelled_at
              , e.created_at
-             , CASE WHEN e.status = 'WAITLIST'
-                    THEN (SELECT COUNT(*) + 1
-                            FROM enrollments e2
-                           WHERE e2.course_id = e.course_id
-                             AND e2.status = 'WAITLIST'
-                             AND e2.created_at <![CDATA[ < ]]> e.created_at)
-                    ELSE NULL
-               END AS waitlistPosition
+             , wr.waitlist_rank AS waitlistPosition
           FROM enrollments e
           JOIN courses c ON e.course_id = c.id
+          LEFT JOIN (
+              SELECT id
+                   , RANK() OVER (PARTITION BY course_id ORDER BY created_at) AS waitlist_rank
+                FROM enrollments
+               WHERE status = 'WAITLIST'
+          ) wr ON wr.id = e.id
          WHERE e.user_id = #{userId}
         ORDER BY CASE WHEN e.status != 'CANCELLED' THEN 0 ELSE 1 END ASC
                , e.updated_at DESC
@@ -116,6 +115,14 @@
           FROM enrollments
          WHERE user_id = #{userId}
     </select>
+
+    <!-- 대기열 승격 (WAITLIST 상태일 때만 PENDING으로 변경) -->
+    <update id="updateEnrollmentStatusPromote" parameterType="Long">
+        UPDATE enrollments
+           SET status = 'PENDING'
+         WHERE id = #{id}
+           AND status = 'WAITLIST'
+    </update>
 
     <!-- 대기열 첫 번째 조회 (자동 승격용) -->
     <select id="selectNextWaitlist" parameterType="Long" resultType="Enrollment">

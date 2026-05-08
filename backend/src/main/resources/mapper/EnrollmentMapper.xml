@@ -85,8 +85,8 @@
     <select id="selectEnrollmentListByUserId" parameterType="ReqEnrollmentPageDto" resultType="RespEnrollmentStudentDto">
         SELECT e.id
              , e.course_id
-             , c.title        AS courseTitle
-             , c.status       AS courseStatus
+             , c.title AS courseTitle
+             , c.status AS courseStatus
              , c.price
              , c.start_date
              , c.end_date

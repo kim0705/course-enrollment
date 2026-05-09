@@ -2,9 +2,11 @@ package com.yujin.course_enrollment.service;
 
 import com.yujin.course_enrollment.dto.req.ReqPaymentConfirmDto;
 import com.yujin.course_enrollment.dto.resp.RespPaymentDto;
+import com.yujin.course_enrollment.entity.Course;
 import com.yujin.course_enrollment.entity.Enrollment;
 import com.yujin.course_enrollment.entity.Payment;
 import com.yujin.course_enrollment.global.EnrollmentStatus;
+import com.yujin.course_enrollment.global.PaymentStatus;
 import com.yujin.course_enrollment.global.exception.BusinessException;
 import com.yujin.course_enrollment.mapper.CourseMapper;
 import com.yujin.course_enrollment.mapper.EnrollmentMapper;
@@ -63,23 +65,35 @@ public class PaymentService {
         }
 
         // 결제 금액 검증 (프론트 조작 방지)
-        int coursePrice = courseMapper.selectCourseById(enrollment.getCourseId()).getPrice();
+        Course course = courseMapper.selectCourseById(enrollment.getCourseId());
+        if (course == null) {
+            log.warn("[PaymentService] 강의 없음 - courseId: {}", enrollment.getCourseId());
+            throw new BusinessException(HttpStatus.BAD_REQUEST, "존재하지 않는 강의입니다.");
+        }
+
+        int coursePrice = course.getPrice();
         if (coursePrice != reqPaymentConfirmDto.getAmount()) {
             log.warn("[PaymentService] 금액 불일치 - enrollmentId: {}, coursePrice: {}, reqAmount: {}", reqPaymentConfirmDto.getEnrollmentId(), coursePrice, reqPaymentConfirmDto.getAmount());
             throw new BusinessException(HttpStatus.BAD_REQUEST, "결제 금액이 강의 가격과 일치하지 않습니다.");
         }
 
-        // 중복 결제 방지
-        if (paymentMapper.selectPaymentByOrderId(reqPaymentConfirmDto.getOrderId()) != null) {
-            log.warn("[PaymentService] 중복 결제 - orderId: {}", reqPaymentConfirmDto.getOrderId());
-            throw new BusinessException(HttpStatus.BAD_REQUEST, "이미 처리된 결제입니다.");
-        }
-
-        // PENDING 선저장 (토스 API 호출 전 DB에 기록)
+        // PENDING 선저장 (INSERT IGNORE: 중복 orderId는 무시하고 기존 레코드 유지)
         Payment pending = Payment.ofPending(reqPaymentConfirmDto.getEnrollmentId(), reqPaymentConfirmDto.getOrderId(), reqPaymentConfirmDto.getOrderName(), reqPaymentConfirmDto.getAmount());
         paymentMapper.insertPayment(pending);
 
         Payment inserted = paymentMapper.selectPaymentByOrderId(reqPaymentConfirmDto.getOrderId());
+
+        // 이미 완료된 결제 (페이지 새로고침 등 재요청) → 기존 결과 반환
+        if (PaymentStatus.DONE.equals(inserted.getStatus())) {
+            log.info("[PaymentService] 이미 완료된 결제 재요청 - orderId: {}", reqPaymentConfirmDto.getOrderId());
+            return RespPaymentDto.of(inserted);
+        }
+
+        // PENDING 이외 상태 (FAILED 등) → 재시도 불가
+        if (!PaymentStatus.PENDING.equals(inserted.getStatus())) {
+            log.warn("[PaymentService] 처리 불가 상태 - orderId: {}, status: {}", reqPaymentConfirmDto.getOrderId(), inserted.getStatus());
+            throw new BusinessException(HttpStatus.BAD_REQUEST, "처리할 수 없는 결제 상태입니다.");
+        }
 
         // 토스 API 결제 승인
         try {

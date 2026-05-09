@@ -5,7 +5,7 @@
 
     <!-- 결제 저장 -->
     <insert id="insertPayment" parameterType="Payment" useGeneratedKeys="true" keyProperty="id">
-        INSERT INTO payments (
+        INSERT IGNORE INTO payments (
                 enrollment_id
               , payment_key
               , order_id

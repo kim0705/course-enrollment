@@ -80,7 +80,7 @@ class PaymentServiceTest {
 
         given(enrollmentMapper.selectEnrollmentById(1L)).willReturn(pending);
         given(courseMapper.selectCourseById(1L)).willReturn(course);
-        given(paymentMapper.selectPaymentByOrderId("order_001")).willReturn(null).willReturn(inserted).willReturn(done);
+        given(paymentMapper.selectPaymentByOrderId("order_001")).willReturn(inserted).willReturn(done);
         willDoNothing().given(paymentMapper).insertPayment(any());
         given(tossPaymentClient.confirm("tgen_abc123", "order_001", 50000)).willReturn(tossResponse);
         willDoNothing().given(paymentMapper).updatePaymentDone(any());
@@ -201,11 +201,15 @@ class PaymentServiceTest {
         given(enrollmentMapper.selectEnrollmentById(1L)).willReturn(pending);
         given(courseMapper.selectCourseById(1L)).willReturn(course);
         given(paymentMapper.selectPaymentByOrderId("order_001")).willReturn(existing);
+        willDoNothing().given(paymentMapper).insertPayment(any());
 
-        // when & then
-        assertThatThrownBy(() -> paymentService.confirmPayment(userId, req))
-                .isInstanceOf(BusinessException.class)
-                .hasMessage("이미 처리된 결제입니다.");
+        // when — 이미 DONE인 경우 멱등 처리: 기존 결과 반환
+        RespPaymentDto result = paymentService.confirmPayment(userId, req);
+
+        // then
+        assertThat(result.getOrderId()).isEqualTo("order_001");
+        assertThat(result.getStatus()).isEqualTo("DONE");
+        then(tossPaymentClient).should(never()).confirm(any(), any(), anyInt());
     }
 
     @Test
@@ -232,7 +236,7 @@ class PaymentServiceTest {
 
         given(enrollmentMapper.selectEnrollmentById(1L)).willReturn(pending);
         given(courseMapper.selectCourseById(1L)).willReturn(course);
-        given(paymentMapper.selectPaymentByOrderId("order_001")).willReturn(null).willReturn(inserted);
+        given(paymentMapper.selectPaymentByOrderId("order_001")).willReturn(inserted);
         willDoNothing().given(paymentMapper).insertPayment(any());
         given(tossPaymentClient.confirm("tgen_invalid", "order_001", 50000)).willThrow(new BusinessException(org.springframework.http.HttpStatus.BAD_REQUEST, "결제 승인에 실패했습니다."));
 

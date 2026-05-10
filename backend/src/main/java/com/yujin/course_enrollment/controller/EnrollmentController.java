@@ -1,5 +1,6 @@
 package com.yujin.course_enrollment.controller;
 
+import com.yujin.course_enrollment.dto.req.ReqEnrollmentCancelDto;
 import com.yujin.course_enrollment.dto.req.ReqEnrollmentCreateDto;
 import com.yujin.course_enrollment.dto.req.ReqEnrollmentPageDto;
 import com.yujin.course_enrollment.dto.resp.RespEnrollmentDto;
@@ -71,16 +72,18 @@ public class EnrollmentController {
     }
 
     /**
-     * 수강 취소 (PENDING, CONFIRMED → CANCELLED)
+     * 수강 취소 (PENDING, CONFIRMED, WAITLIST → CANCELLED)
      * PATCH /api/enrollments/{enrollmentId}/cancel
      * @param userId 사용자 ID (헤더로 전달)
      * @param enrollmentId 수강 신청 ID
+     * @param reqEnrollmentCancelDto 취소 요청 DTO (CONFIRMED 취소 시 cancelReason 필수)
      */
     @PatchMapping("/{enrollmentId}/cancel")
-    public ResponseEntity<ApiResponse<RespEnrollmentDto>> cancelEnrollment(@RequestHeader("X-User-Id") Long userId, @PathVariable Long enrollmentId) {
+    public ResponseEntity<ApiResponse<RespEnrollmentDto>> cancelEnrollment(@RequestHeader("X-User-Id") Long userId, @PathVariable Long enrollmentId, @RequestBody(required = false) ReqEnrollmentCancelDto reqEnrollmentCancelDto) {
         log.debug("[EnrollmentController] 수강 취소 요청 - userId: {}, enrollmentId: {}", userId, enrollmentId);
 
-        RespEnrollmentDto result = enrollmentService.cancelEnrollment(userId, enrollmentId);
+        String cancelReason = reqEnrollmentCancelDto != null ? reqEnrollmentCancelDto.getCancelReason() : null;
+        RespEnrollmentDto result = enrollmentService.cancelEnrollment(userId, enrollmentId, cancelReason);
 
         return ResponseEntity.ok(ApiResponse.success(result));
     }

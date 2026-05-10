@@ -17,6 +17,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.BDDMockito.*;
@@ -249,5 +250,88 @@ class PaymentServiceTest {
         then(paymentMapper).should().updatePaymentFailed(1L);
         then(paymentMapper).should(never()).updatePaymentDone(any());
         then(enrollmentMapper).should(never()).updateEnrollmentStatus(any());
+    }
+
+    @Test
+    @DisplayName("환불 성공 - 토스 취소 API 호출 후 CANCELLED 업데이트")
+    void refund_success() {
+        // given
+        Long enrollmentId = 1L;
+        String cancelReason = "단순 변심";
+        Payment done = Payment.builder()
+                .id(1L)
+                .enrollmentId(enrollmentId)
+                .paymentKey("tgen_abc123")
+                .orderId("order_001")
+                .status("DONE")
+                .build();
+
+        given(paymentMapper.selectPaymentByEnrollmentId(enrollmentId)).willReturn(done);
+        willDoNothing().given(tossPaymentClient).cancel("tgen_abc123", cancelReason);
+        willDoNothing().given(paymentMapper).updatePaymentCancelled(any());
+
+        // when
+        paymentService.refund(enrollmentId, cancelReason);
+
+        // then
+        then(tossPaymentClient).should().cancel("tgen_abc123", cancelReason);
+        then(paymentMapper).should().updatePaymentCancelled(any());
+    }
+
+    @Test
+    @DisplayName("환불 스킵 - 무료 강의(결제 내역 없음)")
+    void refund_skip_freeCourse() {
+        // given
+        Long enrollmentId = 2L;
+        given(paymentMapper.selectPaymentByEnrollmentId(enrollmentId)).willReturn(null);
+
+        // when
+        paymentService.refund(enrollmentId, "단순 변심");
+
+        // then
+        then(tossPaymentClient).should(never()).cancel(any(), any());
+        then(paymentMapper).should(never()).updatePaymentCancelled(any());
+    }
+
+    @Test
+    @DisplayName("결제 내역 조회 성공")
+    void findMyPayments_success() {
+        // given
+        Long userId = 4L;
+        Payment payment1 = Payment.builder()
+                .id(1L)
+                .enrollmentId(1L)
+                .orderId("order_001")
+                .orderName("Spring Boot 강의")
+                .amount(50000)
+                .method("카드")
+                .status("DONE")
+                .paidAt(LocalDateTime.now())
+                .createdAt(LocalDateTime.now())
+                .build();
+        Payment payment2 = Payment.builder()
+                .id(2L)
+                .enrollmentId(2L)
+                .orderId("order_002")
+                .orderName("React 강의")
+                .amount(30000)
+                .method("카드")
+                .status("CANCELLED")
+                .paidAt(LocalDateTime.now().minusDays(3))
+                .createdAt(LocalDateTime.now().minusDays(3))
+                .build();
+
+        given(paymentMapper.selectPaymentListByUserId(userId)).willReturn(java.util.List.of(payment1, payment2));
+
+        // when
+        List<RespPaymentDto> result = paymentService.findMyPayments(userId);
+
+        // then
+        assertThat(result).hasSize(2);
+        assertThat(result.get(0).getOrderId()).isEqualTo("order_001");
+        assertThat(result.get(0).getStatus()).isEqualTo("DONE");
+        assertThat(result.get(1).getOrderId()).isEqualTo("order_002");
+        assertThat(result.get(1).getStatus()).isEqualTo("CANCELLED");
+        then(paymentMapper).should().selectPaymentListByUserId(userId);
     }
 }

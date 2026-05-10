@@ -1,109 +1,24 @@
-import { useEffect, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
-import { useQueryClient } from '@tanstack/react-query';
-import { loadTossPayments } from '@tosspayments/tosspayments-sdk';
-import { cancelEnrollment, confirmEnrollment } from '../api/enrollment';
+import { useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { COURSE_STATUS_BADGE_STYLE, COURSE_STATUS_LABEL, ENROLLMENT_STATUS_BADGE_STYLE, ENROLLMENT_STATUS_LABEL } from '../utils/statusConfig';
-import { useMyEnrollments } from '../hooks/useMyEnrollments';
-import { useMyCourses } from '../hooks/useMyCourses';
-import { useCourseEnrollments } from '../hooks/useCourseEnrollments';
+import EnrollmentTab from './mypage/EnrollmentTab';
+import PaymentTab from './mypage/PaymentTab';
+import MyCourseTab from './mypage/MyCourseTab';
+import StudentTab from './mypage/StudentTab';
 
 /* 마이페이지 */
 const MyPage = () => {
-    /* 페이지 이동을 위한 navigate 함수 */
-    const navigate = useNavigate();
-    /* 현재 페이지의 위치 정보 */
+    /* 라우터 location에서 탭 정보 가져오기 */
     const location = useLocation();
-    /* 인증 정보에서 현재 사용자 정보 추출 */
+    /* 인증 정보 */
     const { user } = useAuth();
     /* 현재 활성화된 탭 상태 */
     const [activeTab, setActiveTab] = useState(location.state?.tab || 'enrollments');
-    /* 수강목록 페이지 상태 */
-    const [enrollmentPage, setEnrollmentPage] = useState(0);
-    /* 선택한 강의 ID 상태 (강의별 수강생 목록 탭에서) */
-    const [selectedCourseId, setSelectedCourseId] = useState('');
-    /* 수강생 목록 페이지 상태 */
-    const [studentPage, setStudentPage] = useState(0);
-    /* 결제 진행 중 상태 (이중 클릭 방지) */
-    const [isPaymentLoading, setIsPaymentLoading] = useState(false);
-    /* React Query의 queryClient 인스턴스 */
-    const queryClient = useQueryClient();
 
-    /* 나의 수강목록 조회 */
-    const { data: enrollmentData = { content: [], totalCount: 0, totalPages: 0, last: false } } = useMyEnrollments(enrollmentPage);
-    /* 내 강의 목록 조회 (CREATOR 권한이 있는 경우) */
-    const { data: myCourses = [] } = useMyCourses(activeTab === 'my-courses' || activeTab === 'students');
-    /* 강의별 수강생 목록 조회 (CREATOR 권한이 있는 경우) */
-    const { data: courseEnrollmentData = { content: [], totalCount: 0, totalPages: 0, last: false } } = useCourseEnrollments(selectedCourseId, studentPage);
-
-    /* students 탭 진입 시 강의 선택 초기화 */
-    useEffect(() => {
-        if (activeTab === 'students') setSelectedCourseId('');
-    }, [activeTab]);
-
-    /* 강의 선택 시 수강생 목록 조회 */
-    const handleCourseSelect = (courseId) => {
-        setSelectedCourseId(courseId);
-        setStudentPage(0);
-    };
-
-    /* 유료 강의 결제 (토스페이먼츠) */
-    const handlePayment = async (enrollment) => {
-        setIsPaymentLoading(true);
-        try {
-            const tossPayments = await loadTossPayments(import.meta.env.VITE_TOSS_CLIENT_KEY);
-            const payment = tossPayments.payment({ customerKey: `CUSTOMER-${user.id}` });
-
-            await payment.requestPayment({
-                method: 'CARD',
-                amount: { currency: 'KRW', value: enrollment.price },
-                orderId: `ORDER-${enrollment.id}-${Date.now()}`,
-                orderName: enrollment.courseTitle,
-                successUrl: `${window.location.origin}/payment/success?enrollmentId=${enrollment.id}&orderName=${encodeURIComponent(enrollment.courseTitle)}`,
-                failUrl: `${window.location.origin}/payment/fail`,
-                card: {
-                    useEscrow: false,
-                    flowMode: 'DEFAULT',
-                    useCardPoint: false,
-                    useAppCardOnly: false,
-                },
-            });
-        } catch (err) {
-            alert(err.message || '결제 요청에 실패했습니다.');
-            setIsPaymentLoading(false);
-        }
-    };
-
-    /* 무료 강의 수강 확정 */
-    const handleFreeConfirm = async (enrollmentId) => {
-        if (!window.confirm('수강을 확정하시겠습니까?')) return;
-
-        try {
-            await confirmEnrollment(enrollmentId);
-            alert('수강이 확정되었습니다.');
-            queryClient.invalidateQueries({ queryKey: ['myEnrollments', enrollmentPage] });
-        } catch (err) {
-            alert(err.response?.data?.message || '수강 확정에 실패했습니다.');
-        }
-    };
-
-    /* 수강 취소 */
-    const handleCancel = async (enrollmentId) => {
-        if (!window.confirm('수강을 취소하시겠습니까?')) return;
-
-        try {
-            await cancelEnrollment(enrollmentId);
-            alert('수강이 취소되었습니다.');
-            queryClient.invalidateQueries({ queryKey: ['myEnrollments', enrollmentPage] });
-        } catch (err) {
-            alert(err.response?.data?.message || '수강 취소에 실패했습니다.');
-        }
-    };
-
-    /* 탭 구성 - CREATOR 권한이 있는 경우 내 강의와 강의별 수강생 목록 탭 추가 */
+    /* 탭 목록 - CREATOR는 추가 탭 노출 */
     const tabs = [
         { key: 'enrollments', label: '나의 수강목록' },
+        { key: 'payments', label: '결제 내역' },
         ...(user?.role === 'CREATOR' ? [
             { key: 'my-courses', label: '내 강의' },
             { key: 'students', label: '강의별 수강생 목록' },
@@ -114,7 +29,7 @@ const MyPage = () => {
         <div className="max-w-4xl mx-auto mt-10 p-6">
             <h1 className="text-3xl font-extrabold text-gray-900 mb-8">마이페이지</h1>
 
-            {/* 탭 */}
+            {/* 탭 버튼들 */}
             <div className="flex gap-1 border-b border-gray-200 mb-8">
                 {tabs.map(tab => (
                     <button
@@ -130,248 +45,11 @@ const MyPage = () => {
                 ))}
             </div>
 
-            {/* 나의 수강목록 */}
-            {activeTab === 'enrollments' && (
-                <>
-                    {enrollmentData.content.length === 0 ? (
-                        <div className="text-center text-gray-400 py-32 border-2 border-dashed border-gray-100 rounded-2xl">
-                            수강 신청 내역이 없습니다.
-                        </div>
-                    ) : (
-                        <div className="flex flex-col gap-4">
-                            {enrollmentData.content.map(enrollment => (
-                                <div key={enrollment.id}
-                                    className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-
-                                    {/* 강의 정보 */}
-                                    <div className="flex-1 min-w-0">
-                                        <div className="flex items-center gap-2 mb-1">
-                                            <span
-                                                onClick={() => navigate(`/courses/${enrollment.courseId}`, { state: { from: 'my-page', tab: 'enrollments' } })}
-                                                className="text-base font-bold text-gray-900 truncate cursor-pointer hover:text-blue-600 transition-colors"
-                                            >
-                                                {enrollment.courseTitle}
-                                            </span>
-                                            <span className={`text-xs font-bold px-2 py-0.5 rounded border ${ENROLLMENT_STATUS_BADGE_STYLE[enrollment.status]}`}>
-                                                {ENROLLMENT_STATUS_LABEL[enrollment.status]}
-                                            </span>
-                                        </div>
-
-                                        <div className="flex flex-wrap items-center gap-3 text-xs text-gray-500 mt-1">
-                                            <span>{enrollment.price === 0 ? '무료' : `${enrollment.price.toLocaleString()}원`}</span>
-                                            <span className="text-gray-300">|</span>
-                                            <span>{enrollment.startDate} ~ {enrollment.endDate}</span>
-                                            <span className="text-gray-300">|</span>
-                                            <span>신청일 {enrollment.createdAt?.substring(0, 10)}</span>
-                                        </div>
-
-                                        {enrollment.status === 'CONFIRMED' && enrollment.confirmedAt && (
-                                            <p className="text-xs text-green-600 mt-1">
-                                                결제일 {enrollment.confirmedAt.substring(0, 10)}
-                                            </p>
-                                        )}
-                                        {enrollment.status === 'CANCELLED' && enrollment.cancelledAt && (
-                                            <p className="text-xs text-gray-400 mt-1">
-                                                취소일 {enrollment.cancelledAt.substring(0, 10)}
-                                            </p>
-                                        )}
-                                        {enrollment.status === 'WAITLIST' && enrollment.waitlistPosition && (
-                                            <p className="text-xs text-purple-600 mt-1">
-                                                대기 순번 {enrollment.waitlistPosition}번
-                                            </p>
-                                        )}
-                                    </div>
-
-                                    {/* 액션 버튼 */}
-                                    <div className="flex gap-2 shrink-0">
-                                        {enrollment.status === 'PENDING' && (
-                                            <>
-                                                <button
-                                                    onClick={() => enrollment.price > 0 ? handlePayment(enrollment) : handleFreeConfirm(enrollment.id)}
-                                                    disabled={isPaymentLoading}
-                                                    className="px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-md hover:bg-blue-700 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                                                >
-                                                    {enrollment.price > 0 ? '결제하기' : '수강 확정하기'}
-                                                </button>
-                                                <button
-                                                    onClick={() => handleCancel(enrollment.id)}
-                                                    className="px-4 py-2 border border-gray-300 text-gray-600 text-sm font-semibold rounded-md hover:bg-gray-50 transition-colors cursor-pointer"
-                                                >
-                                                    취소하기
-                                                </button>
-                                            </>
-                                        )}
-                                        {enrollment.status === 'CONFIRMED' &&
-                                            enrollment.confirmedAt &&
-                                            new Date(enrollment.confirmedAt) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) && (
-                                            <button
-                                                onClick={() => handleCancel(enrollment.id)}
-                                                className="px-4 py-2 border border-gray-300 text-gray-600 text-sm font-semibold rounded-md hover:bg-gray-50 transition-colors cursor-pointer"
-                                            >
-                                                취소하기
-                                            </button>
-                                        )}
-                                        {enrollment.status === 'WAITLIST' && (
-                                            <button
-                                                onClick={() => handleCancel(enrollment.id)}
-                                                className="px-4 py-2 border border-gray-300 text-gray-600 text-sm font-semibold rounded-md hover:bg-gray-50 transition-colors cursor-pointer"
-                                            >
-                                                대기 취소
-                                            </button>
-                                        )}
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-
-                    {/* 페이징 섹션 */}
-                    {(enrollmentData.totalPages ?? 0) > 1 && (
-                        <div className="flex justify-center items-center gap-4 mt-8">
-                            <button disabled={enrollmentPage === 0}
-                                onClick={() => setEnrollmentPage(prev => prev - 1)}
-                                className="p-2 border rounded-full hover:bg-gray-50 disabled:opacity-30 cursor-pointer transition-colors">
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 19l-7-7 7-7" />
-                                </svg>
-                            </button>
-                            <span className="text-sm font-medium text-gray-700">
-                                <span className="text-blue-600">{enrollmentPage + 1}</span> / {enrollmentData.totalPages}
-                            </span>
-                            <button disabled={enrollmentData.last}
-                                onClick={() => setEnrollmentPage(prev => prev + 1)}
-                                className="p-2 border rounded-full hover:bg-gray-50 disabled:opacity-30 cursor-pointer transition-colors">
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7" />
-                                </svg>
-                            </button>
-                        </div>
-                    )}
-                </>
-            )}
-
-            {/* 내 강의 목록 (CREATOR 전용) */}
-            {activeTab === 'my-courses' && (
-                <>
-                    {myCourses.length === 0 ? (
-                        <div className="text-center text-gray-400 py-32 border-2 border-dashed border-gray-100 rounded-2xl">
-                            등록한 강의가 없습니다.
-                        </div>
-                    ) : (
-                        <div className="flex flex-col gap-4">
-                            {myCourses.map(course => (
-                                <div key={course.id}
-                                    onClick={() => navigate(`/courses/${course.id}`, { state: { from: 'my-page' } })}
-                                    className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4 cursor-pointer hover:shadow-md transition-shadow">
-                                    <div className="flex-1 min-w-0">
-                                        <div className="flex items-center gap-2 mb-1">
-                                            <span className="text-base font-bold text-gray-900 truncate">{course.title}</span>
-                                            <span className={`text-xs font-bold px-2 py-0.5 rounded border ${COURSE_STATUS_BADGE_STYLE[course.status]}`}>
-                                                {COURSE_STATUS_LABEL[course.status]}
-                                            </span>
-                                        </div>
-                                        <div className="flex flex-wrap items-center gap-3 text-xs text-gray-500 mt-1">
-                                            <span>{course.price === 0 ? '무료' : `${course.price.toLocaleString()}원`}</span>
-                                            <span className="text-gray-300">|</span>
-                                            <span>수강 {course.enrolledCount} / {course.capacity}명</span>
-                                            <span className="text-gray-300">|</span>
-                                            <span>{course.startDate} ~ {course.endDate}</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                </>
-            )}
-
-            {/* 강의별 수강생 목록 (CREATOR 전용) */}
-            {activeTab === 'students' && (
-                <>
-                    {/* 강의 선택 */}
-                    <div className="mb-6">
-                        <select
-                            value={selectedCourseId}
-                            onChange={(e) => handleCourseSelect(e.target.value)}
-                            className="w-full sm:w-80 border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        >
-                            <option value="">강의를 선택하세요</option>
-                            {myCourses.map(course => (
-                                <option key={course.id} value={course.id}>
-                                    {course.title}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-
-                    {/* 수강생 목록 */}
-                    {!selectedCourseId ? (
-                        <div className="text-center text-gray-400 py-32 border-2 border-dashed border-gray-100 rounded-2xl">
-                            강의를 선택하면 수강생 목록이 표시됩니다.
-                        </div>
-                    ) : courseEnrollmentData.content.length === 0 ? (
-                        <div className="text-center text-gray-400 py-32 border-2 border-dashed border-gray-100 rounded-2xl">
-                            수강생이 없습니다.
-                        </div>
-                    ) : (
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-sm text-left">
-                                <thead>
-                                    <tr className="border-b border-gray-200 text-gray-500 text-xs uppercase">
-                                        <th className="pb-3 pr-6 font-semibold">수강생</th>
-                                        <th className="pb-3 pr-6 font-semibold">상태</th>
-                                        <th className="pb-3 pr-6 font-semibold">신청일</th>
-                                        <th className="pb-3 font-semibold">결제일 / 취소일</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-gray-100">
-                                    {courseEnrollmentData.content.map(enrollment => (
-                                        <tr key={enrollment.id} className="hover:bg-gray-50">
-                                            <td className="py-4 pr-6 font-medium text-gray-900">{enrollment.userName}</td>
-                                            <td className="py-4 pr-6">
-                                                <span className={`text-xs font-bold px-2 py-0.5 rounded border ${ENROLLMENT_STATUS_BADGE_STYLE[enrollment.status]}`}>
-                                                    {ENROLLMENT_STATUS_LABEL[enrollment.status]}
-                                                </span>
-                                            </td>
-                                            <td className="py-4 pr-6 text-gray-500">{enrollment.createdAt?.substring(0, 10)}</td>
-                                            <td className="py-4 text-gray-500">
-                                                {enrollment.status === 'CONFIRMED' && enrollment.confirmedAt
-                                                    ? enrollment.confirmedAt.substring(0, 10)
-                                                    : enrollment.status === 'CANCELLED' && enrollment.cancelledAt
-                                                        ? enrollment.cancelledAt.substring(0, 10)
-                                                        : '-'}
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    )}
-
-                    {/* 페이징 섹션 */}
-                    {(courseEnrollmentData.totalPages ?? 0) > 1 && (
-                        <div className="flex justify-center items-center gap-4 mt-8">
-                            <button disabled={studentPage === 0}
-                                onClick={() => setStudentPage(prev => prev - 1)}
-                                className="p-2 border rounded-full hover:bg-gray-50 disabled:opacity-30 cursor-pointer transition-colors">
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 19l-7-7 7-7" />
-                                </svg>
-                            </button>
-                            <span className="text-sm font-medium text-gray-700">
-                                <span className="text-blue-600">{studentPage + 1}</span> / {courseEnrollmentData.totalPages}
-                            </span>
-                            <button disabled={courseEnrollmentData.last}
-                                onClick={() => setStudentPage(prev => prev + 1)}
-                                className="p-2 border rounded-full hover:bg-gray-50 disabled:opacity-30 cursor-pointer transition-colors">
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7" />
-                                </svg>
-                            </button>
-                        </div>
-                    )}
-                </>
-            )}
+            {/* 탭 콘텐츠 */}
+            {activeTab === 'enrollments' && <EnrollmentTab />}
+            {activeTab === 'payments' && <PaymentTab />}
+            {activeTab === 'my-courses' && <MyCourseTab />}
+            {activeTab === 'students' && <StudentTab />}
         </div>
     );
 };

@@ -17,6 +17,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
 /**
  * 결제 서비스
  * 토스페이먼츠 결제 승인 및 수강 신청 상태 변경을 처리
@@ -113,5 +116,42 @@ public class PaymentService {
         log.info("[PaymentService] 결제 승인 완료 - enrollmentId: {}, orderId: {}", reqPaymentConfirmDto.getEnrollmentId(), reqPaymentConfirmDto.getOrderId());
 
         return RespPaymentDto.of(paymentMapper.selectPaymentByOrderId(reqPaymentConfirmDto.getOrderId()));
+    }
+
+    /**
+     * 결제 환불
+     * DONE 상태 결제를 찾아 토스 환불 API 호출 후 CANCELLED 업데이트
+     * 무료 강의(결제 내역 없음)는 환불 없이 통과
+     * @param enrollmentId 수강 신청 ID
+     * @param cancelReason 취소 사유
+     */
+    @Transactional
+    public void refund(Long enrollmentId, String cancelReason) {
+        Payment payment = paymentMapper.selectPaymentByEnrollmentId(enrollmentId);
+
+        if (payment == null) {
+            log.info("[PaymentService] 결제 내역 없음 (무료 강의) - enrollmentId: {}", enrollmentId);
+            return;
+        }
+
+        log.info("[PaymentService] 환불 요청 - enrollmentId: {}, paymentKey: {}", enrollmentId, payment.getPaymentKey());
+
+        tossPaymentClient.cancel(payment.getPaymentKey(), cancelReason);
+        paymentMapper.updatePaymentCancelled(Payment.ofCancelled(payment.getId(), cancelReason));
+
+        log.info("[PaymentService] 환불 완료 - enrollmentId: {}, paymentKey: {}", enrollmentId, payment.getPaymentKey());
+    }
+
+    /**
+     * 사용자 결제 내역 조회
+     * @param userId 사용자 ID
+     * @return 결제 내역 목록 (DONE, CANCELLED)
+     */
+    public List<RespPaymentDto> findMyPayments(Long userId) {
+        log.info("[PaymentService] 결제 내역 조회 - userId: {}", userId);
+
+        return paymentMapper.selectPaymentListByUserId(userId).stream()
+                .map(RespPaymentDto::of)
+                .collect(Collectors.toList());
     }
 }

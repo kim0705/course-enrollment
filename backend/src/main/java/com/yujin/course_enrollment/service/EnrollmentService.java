@@ -36,6 +36,7 @@ public class EnrollmentService {
     private final EnrollmentMapper enrollmentMapper;
     private final CourseMapper courseMapper;
     private final UserMapper userMapper;
+    private final PaymentService paymentService;
 
     /**
      * 수강 신청
@@ -178,13 +179,15 @@ public class EnrollmentService {
 
     /**
      * 수강 취소 (PENDING, CONFIRMED, WAITLIST → CANCELLED)
+     * CONFIRMED 유료 강의 취소 시 토스 환불 API 호출 후 상태 변경
      * PENDING/CONFIRMED 취소 시 대기열 첫 번째 사람 자동 PENDING 승격
      * @param userId 사용자 ID
      * @param enrollmentId 수강 신청 ID
-     * @throws BusinessException 수강 신청 없음(400), 본인 신청 아님(403), 이미 취소됨(400), CONFIRMED 7일 초과(400)
+     * @param cancelReason 취소 사유 (CONFIRMED 취소 시 필수)
+     * @throws BusinessException 수강 신청 없음(400), 본인 신청 아님(403), 이미 취소됨(400), CONFIRMED 7일 초과(400), 취소 사유 없음(400)
      */
     @Transactional
-    public RespEnrollmentDto cancelEnrollment(Long userId, Long enrollmentId) {
+    public RespEnrollmentDto cancelEnrollment(Long userId, Long enrollmentId, String cancelReason) {
         log.info("[EnrollmentService] 수강 취소 - userId: {}, enrollmentId: {}", userId, enrollmentId);
 
         // 수강 신청 존재 여부 확인
@@ -206,12 +209,20 @@ public class EnrollmentService {
             throw new BusinessException(HttpStatus.BAD_REQUEST, "이미 취소된 수강 신청입니다.");
         }
 
-        // CONFIRMED 상태 취소 기간 확인 (확정 후 7일 이내)
+        // CONFIRMED 상태 취소 기간 확인 (확정 후 7일 이내) + 환불 처리
         if (EnrollmentStatus.CONFIRMED.equals(enrollment.getStatus())) {
             if (enrollment.getConfirmedAt().plusDays(7).isBefore(LocalDateTime.now())) {
                 log.warn("[EnrollmentService] 취소 기간 초과 - enrollmentId: {}, confirmedAt: {}", enrollmentId, enrollment.getConfirmedAt());
                 throw new BusinessException(HttpStatus.BAD_REQUEST, "수강 확정 후 7일이 지나 취소할 수 없습니다.");
             }
+
+            if (cancelReason == null || cancelReason.isBlank()) {
+                log.warn("[EnrollmentService] 취소 사유 없음 - enrollmentId: {}", enrollmentId);
+                throw new BusinessException(HttpStatus.BAD_REQUEST, "취소 사유를 입력해주세요.");
+            }
+
+            // 토스 환불 API 호출 후 payment CANCELLED 업데이트 (외부 API 먼저 호출)
+            paymentService.refund(enrollmentId, cancelReason);
         }
 
         enrollmentMapper.updateEnrollmentStatus(Enrollment.ofCancel(enrollmentId));
@@ -236,6 +247,7 @@ public class EnrollmentService {
             if (promoted > 0) {
                 courseMapper.updateCourseEnrolledCountPlus(enrollment.getCourseId());
                 log.info("[EnrollmentService] 대기열 승격 - enrollmentId: {}", nextWaitlist.getId());
+
                 break;
             }
         }

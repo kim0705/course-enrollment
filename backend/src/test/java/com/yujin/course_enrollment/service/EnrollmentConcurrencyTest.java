@@ -223,7 +223,7 @@ class EnrollmentConcurrencyTest {
                 try {
                     readyLatch.countDown();
                     startLatch.await();
-                    enrollmentService.cancelEnrollment(target[0], target[1]);
+                    enrollmentService.cancelEnrollment(target[0], target[1], null);
                 } catch (Exception ignored) {
                 } finally {
                     doneLatch.countDown();
@@ -294,7 +294,7 @@ class EnrollmentConcurrencyTest {
                 try {
                     readyLatch.countDown();
                     startLatch.await();
-                    enrollmentService.cancelEnrollment(target[0], target[1]);
+                    enrollmentService.cancelEnrollment(target[0], target[1], null);
                 } catch (Exception ignored) {
                 } finally {
                     doneLatch.countDown();
@@ -358,7 +358,7 @@ class EnrollmentConcurrencyTest {
                 try {
                     readyLatch.countDown();
                     startLatch.await();
-                    enrollmentService.cancelEnrollment(target[0], target[1]);
+                    enrollmentService.cancelEnrollment(target[0], target[1], null);
                 } catch (Exception ignored) {
                 } finally {
                     doneLatch.countDown();

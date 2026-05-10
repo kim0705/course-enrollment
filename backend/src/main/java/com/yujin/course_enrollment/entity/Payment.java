@@ -51,4 +51,14 @@ public class Payment {
                 .paidAt(paidAt)
                 .build();
     }
+
+    /* 환불 완료 후 CANCELLED 업데이트용 엔티티 생성 */
+    public static Payment ofCancelled(Long id, String cancelReason) {
+        return Payment.builder()
+                .id(id)
+                .status(PaymentStatus.CANCELLED)
+                .canceledAt(LocalDateTime.now())
+                .cancelReason(cancelReason)
+                .build();
+    }
 }

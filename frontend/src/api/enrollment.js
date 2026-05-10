@@ -16,6 +16,6 @@ export const confirmEnrollment = (enrollmentId) => {
 };
 
 /* 수강 취소 */
-export const cancelEnrollment = (enrollmentId) => {
-    return instance.patch(`/api/enrollments/${enrollmentId}/cancel`).then(res => res.data);
+export const cancelEnrollment = (enrollmentId, cancelReason = null) => {
+    return instance.patch(`/api/enrollments/${enrollmentId}/cancel`, cancelReason ? { cancelReason } : undefined).then(res => res.data);
 };

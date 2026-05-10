@@ -4,3 +4,8 @@ import instance from './axios';
 export const confirmPayment = ({ enrollmentId, paymentKey, orderId, orderName, amount }, signal) => {
     return instance.post('/api/payments/confirm', { enrollmentId, paymentKey, orderId, orderName, amount }, { signal }).then(res => res.data);
 };
+
+/* 나의 결제 내역 조회 */
+export const getMyPayments = () => {
+    return instance.get('/api/payments/my').then(res => res.data);
+};

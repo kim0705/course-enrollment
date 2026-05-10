@@ -44,6 +44,9 @@ class EnrollmentServiceTest {
     @Mock
     private UserMapper userMapper;
 
+    @Mock
+    private PaymentService paymentService;
+
     @Test
     @DisplayName("수강 신청 성공")
     void registerEnrollment_success() {
@@ -436,7 +439,7 @@ class EnrollmentServiceTest {
         given(courseMapper.selectCourseById(1L)).willReturn(course);
 
         // when
-        RespEnrollmentDto result = enrollmentService.cancelEnrollment(userId, enrollmentId);
+        RespEnrollmentDto result = enrollmentService.cancelEnrollment(userId, enrollmentId, null);
 
         // then
         assertThat(result.getStatus()).isEqualTo("CANCELLED");
@@ -460,7 +463,7 @@ class EnrollmentServiceTest {
         given(enrollmentMapper.selectEnrollmentById(enrollmentId)).willReturn(cancelled);
 
         // when & then
-        assertThatThrownBy(() -> enrollmentService.cancelEnrollment(userId, enrollmentId))
+        assertThatThrownBy(() -> enrollmentService.cancelEnrollment(userId, enrollmentId, null))
                 .isInstanceOf(BusinessException.class)
                 .hasMessage("이미 취소된 수강 신청입니다.");
     }
@@ -482,8 +485,72 @@ class EnrollmentServiceTest {
         given(enrollmentMapper.selectEnrollmentById(enrollmentId)).willReturn(confirmed);
 
         // when & then
-        assertThatThrownBy(() -> enrollmentService.cancelEnrollment(userId, enrollmentId))
+        assertThatThrownBy(() -> enrollmentService.cancelEnrollment(userId, enrollmentId, null))
                 .isInstanceOf(BusinessException.class)
                 .hasMessage("수강 확정 후 7일이 지나 취소할 수 없습니다.");
+    }
+
+    @Test
+    @DisplayName("CONFIRMED 수강 취소 성공 - 환불 처리 포함")
+    void cancelEnrollment_success_confirmed() {
+        // given
+        Long userId = 4L;
+        Long enrollmentId = 1L;
+        Long courseId = 1L;
+        String cancelReason = "단순 변심";
+        Enrollment confirmed = Enrollment.builder()
+                .id(enrollmentId)
+                .userId(userId)
+                .courseId(courseId)
+                .status("CONFIRMED")
+                .confirmedAt(LocalDateTime.now().minusDays(1))
+                .build();
+        Course course = Course.builder().id(courseId).title("Spring Boot 강의").build();
+        Enrollment cancelled = Enrollment.builder()
+                .id(enrollmentId)
+                .userId(userId)
+                .courseId(courseId)
+                .status("CANCELLED")
+                .cancelledAt(LocalDateTime.now())
+                .build();
+
+        given(enrollmentMapper.selectEnrollmentById(enrollmentId)).willReturn(confirmed).willReturn(cancelled);
+        willDoNothing().given(paymentService).refund(enrollmentId, cancelReason);
+        willDoNothing().given(enrollmentMapper).updateEnrollmentStatus(any());
+        willDoNothing().given(courseMapper).updateCourseEnrolledCountMinus(courseId);
+        given(enrollmentMapper.selectNextWaitlist(courseId)).willReturn(null);
+        given(courseMapper.selectCourseById(courseId)).willReturn(course);
+
+        // when
+        RespEnrollmentDto result = enrollmentService.cancelEnrollment(userId, enrollmentId, cancelReason);
+
+        // then
+        assertThat(result.getStatus()).isEqualTo("CANCELLED");
+        then(paymentService).should().refund(enrollmentId, cancelReason);
+        then(enrollmentMapper).should().updateEnrollmentStatus(any());
+        then(courseMapper).should().updateCourseEnrolledCountMinus(courseId);
+    }
+
+    @Test
+    @DisplayName("CONFIRMED 취소 사유 없음 - 수강 취소 실패")
+    void cancelEnrollment_fail_noReason() {
+        // given
+        Long userId = 4L;
+        Long enrollmentId = 1L;
+        Enrollment confirmed = Enrollment.builder()
+                .id(enrollmentId)
+                .userId(userId)
+                .courseId(1L)
+                .status("CONFIRMED")
+                .confirmedAt(LocalDateTime.now().minusDays(1))
+                .build();
+
+        given(enrollmentMapper.selectEnrollmentById(enrollmentId)).willReturn(confirmed);
+
+        // when & then
+        assertThatThrownBy(() -> enrollmentService.cancelEnrollment(userId, enrollmentId, null))
+                .isInstanceOf(BusinessException.class)
+                .hasMessage("취소 사유를 입력해주세요.");
+        then(paymentService).should(never()).refund(any(), any());
     }
 }

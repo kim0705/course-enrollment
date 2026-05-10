@@ -6,6 +6,8 @@ import CourseRegisterPage from './pages/CourseRegisterPage'
 import CourseListPage from './pages/CourseListPage'
 import CourseDetailPage from './pages/CourseDetailPage'
 import MyPage from './pages/MyPage'
+import PaymentSuccessPage from './pages/PaymentSuccessPage'
+import PaymentFailPage from './pages/PaymentFailPage'
 
 /* 비회원도 접근 가능한 공개 라우트 */
 const PublicRoute = ({ children }) => <Layout>{children}</Layout>;
@@ -37,6 +39,8 @@ function App() {
                 <Route path="/courses/new" element={<CreatorRoute><CourseRegisterPage /></CreatorRoute>} />
                 <Route path="/courses/:courseId/edit" element={<CreatorRoute><CourseRegisterPage /></CreatorRoute>} />
                 <Route path="/my-page" element={<PrivateRoute><MyPage /></PrivateRoute>} />
+                <Route path="/payment/success" element={<PrivateRoute><PaymentSuccessPage /></PrivateRoute>} />
+                <Route path="/payment/fail" element={<PrivateRoute><PaymentFailPage /></PrivateRoute>} />
                 <Route path="*" element={<Navigate to="/courses" replace />} />
             </Routes>
         </AuthProvider>

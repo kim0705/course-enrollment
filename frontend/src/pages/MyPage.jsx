@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { loadTossPayments } from '@tosspayments/tosspayments-sdk';
 import { cancelEnrollment, confirmEnrollment, getMyEnrollments } from '../api/enrollment';
 import { getCourseEnrollments, getMyCourses } from '../api/course';
 import { useAuth } from '../context/AuthContext';
@@ -27,6 +28,8 @@ const MyPage = () => {
     const [courseEnrollmentData, setCourseEnrollmentData] = useState({ content: [], totalCount: 0, totalPages: 0, last: false });
     /* 수강생 목록 페이지 상태 */
     const [studentPage, setStudentPage] = useState(0);
+    /* 결제 진행 중 상태 (이중 클릭 방지) */
+    const [isPaymentLoading, setIsPaymentLoading] = useState(false);
 
     /* 나의 수강목록 조회 */
     const fetchMyEnrollments = async (page = 0) => {
@@ -95,16 +98,43 @@ const MyPage = () => {
         fetchCourseEnrollments(courseId, 0);
     };
 
-    /* 결제 요청 */
-    const handleConfirm = async (enrollmentId) => {
-        if (!window.confirm('결제하시겠습니까?')) return;
+    /* 유료 강의 결제 (토스페이먼츠) */
+    const handlePayment = async (enrollment) => {
+        setIsPaymentLoading(true);
+        try {
+            const tossPayments = await loadTossPayments(import.meta.env.VITE_TOSS_CLIENT_KEY);
+            const payment = tossPayments.payment({ customerKey: `CUSTOMER-${user.id}` });
+
+            await payment.requestPayment({
+                method: 'CARD',
+                amount: { currency: 'KRW', value: enrollment.price },
+                orderId: `ORDER-${enrollment.id}-${Date.now()}`,
+                orderName: enrollment.courseTitle,
+                successUrl: `${window.location.origin}/payment/success?enrollmentId=${enrollment.id}&orderName=${encodeURIComponent(enrollment.courseTitle)}`,
+                failUrl: `${window.location.origin}/payment/fail`,
+                card: {
+                    useEscrow: false,
+                    flowMode: 'DEFAULT',
+                    useCardPoint: false,
+                    useAppCardOnly: false,
+                },
+            });
+        } catch (err) {
+            alert(err.message || '결제 요청에 실패했습니다.');
+            setIsPaymentLoading(false);
+        }
+    };
+
+    /* 무료 강의 수강 확정 */
+    const handleFreeConfirm = async (enrollmentId) => {
+        if (!window.confirm('수강을 확정하시겠습니까?')) return;
 
         try {
             await confirmEnrollment(enrollmentId);
-            alert('결제가 완료되었습니다.');
+            alert('수강이 확정되었습니다.');
             fetchMyEnrollments(enrollmentPage);
         } catch (err) {
-            alert(err.response?.data?.message || '결제에 실패했습니다.');
+            alert(err.response?.data?.message || '수강 확정에 실패했습니다.');
         }
     };
 
@@ -207,10 +237,11 @@ const MyPage = () => {
                                         {enrollment.status === 'PENDING' && (
                                             <>
                                                 <button
-                                                    onClick={() => handleConfirm(enrollment.id)}
-                                                    className="px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-md hover:bg-blue-700 transition-colors cursor-pointer"
+                                                    onClick={() => enrollment.price > 0 ? handlePayment(enrollment) : handleFreeConfirm(enrollment.id)}
+                                                    disabled={isPaymentLoading}
+                                                    className="px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-md hover:bg-blue-700 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                                                 >
-                                                    결제하기
+                                                    {enrollment.price > 0 ? '결제하기' : '수강 확정하기'}
                                                 </button>
                                                 <button
                                                     onClick={() => handleCancel(enrollment.id)}

@@ -32,3 +32,7 @@ mybatis:
 logging:
   level:
     com.yujin.course_enrollment: DEBUG
+
+toss:
+  secret-key: ${TOSS_SECRET_KEY:}
+  confirm-url: https://api.tosspayments.com/v1/payments/confirm

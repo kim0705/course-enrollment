@@ -3,6 +3,8 @@ package com.yujin.course_enrollment.mapper;
 import com.yujin.course_enrollment.entity.Payment;
 import org.apache.ibatis.annotations.Mapper;
 
+import java.util.List;
+
 /**
  * 결제 Mapper 인터페이스
  * PaymentMapper.xml과 매핑되어 결제 관련 DB 접근을 담당
@@ -20,4 +22,13 @@ public interface PaymentMapper {
 
     /* 주문 ID로 결제 조회 */
     Payment selectPaymentByOrderId(String orderId);
+
+    /* 수강 신청 ID로 DONE 상태 결제 조회 */
+    Payment selectPaymentByEnrollmentId(Long enrollmentId);
+
+    /* 결제 취소 상태 업데이트 */
+    void updatePaymentCancelled(Payment payment);
+
+    /* 사용자 결제 내역 조회 */
+    List<Payment> selectPaymentListByUserId(Long userId);
 }

@@ -35,6 +35,9 @@ public class TossPaymentClient {
     @Value("${toss.confirm-url}")
     private String confirmUrl;
 
+    @Value("${toss.cancel-url-template}")
+    private String cancelUrlTemplate;
+
     private final RestTemplate restTemplate;
 
     /**
@@ -73,6 +76,34 @@ public class TossPaymentClient {
         } catch (RestClientException e) {
             log.error("[TossPaymentClient] 토스 API 통신 오류 - orderId: {}, message: {}", orderId, e.getMessage());
             throw new BusinessException(HttpStatus.BAD_GATEWAY, "결제 처리 중 오류가 발생했습니다.");
+        }
+    }
+
+    /**
+     * 토스페이먼츠 결제 취소(환불) API 호출
+     * @param paymentKey 결제 키
+     * @param cancelReason 취소 사유
+     * @throws BusinessException 토스 API 취소 실패 시
+     */
+    public void cancel(String paymentKey, String cancelReason) {
+        String url = String.format(cancelUrlTemplate, paymentKey);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("Authorization", "Basic " + Base64.getEncoder().encodeToString((secretKey + ":").getBytes(StandardCharsets.UTF_8)));
+        headers.setContentType(MediaType.APPLICATION_JSON);
+
+        Map<String, Object> body = new HashMap<>();
+        body.put("cancelReason", cancelReason);
+
+        try {
+            restTemplate.exchange(url, HttpMethod.POST, new HttpEntity<>(body, headers), Void.class);
+            log.info("[TossPaymentClient] 결제 취소 성공 - paymentKey: {}", paymentKey);
+        } catch (HttpClientErrorException e) {
+            log.warn("[TossPaymentClient] 결제 취소 실패 - paymentKey: {}, status: {}, body: {}", paymentKey, e.getStatusCode(), e.getResponseBodyAsString());
+            throw new BusinessException(HttpStatus.BAD_REQUEST, "결제 취소에 실패했습니다.");
+        } catch (RestClientException e) {
+            log.error("[TossPaymentClient] 토스 API 통신 오류 (취소) - paymentKey: {}, message: {}", paymentKey, e.getMessage());
+            throw new BusinessException(HttpStatus.BAD_GATEWAY, "결제 취소 처리 중 오류가 발생했습니다.");
         }
     }
 

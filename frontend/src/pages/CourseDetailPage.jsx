@@ -1,9 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
-import { closeCourse, getCourseDetail, publishCourse } from '../api/course';
+import { useQueryClient } from '@tanstack/react-query';
+import { closeCourse, publishCourse } from '../api/course';
 import { createEnrollment } from '../api/enrollment';
 import { useAuth } from '../context/AuthContext';
 import { COURSE_STATUS_BADGE_STYLE, COURSE_STATUS_LABEL } from '../utils/statusConfig';
+import { useCourseDetail } from '../hooks/useCourseDetail';
 
 /* 강의 상세 페이지 */
 const CourseDetailPage = () => {
@@ -13,33 +15,20 @@ const CourseDetailPage = () => {
     const navigate = useNavigate();
     /* 현재 페이지의 위치 정보 */
     const location = useLocation();
-    /* 강의 상세 정보 상태 */
-    const [course, setCourse] = useState(null);
     /* 인증 정보에서 현재 사용자 정보 추출 */
     const { user } = useAuth();
+    /* React Query의 queryClient 인스턴스 */
+    const queryClient = useQueryClient();
+    /* 강의 상세 조회 */
+    const { data: course, isError } = useCourseDetail(courseId);
 
     /* 현재 로그인한 사용자가 강의 소유자인지 여부 */
     const isOwner = course?.creatorId === user?.id;
 
-    /* 컴포넌트가 마운트될 때 강의 상세 정보를 가져오는 useEffect */
+    /* 강의 조회 실패 시 목록으로 이동 */
     useEffect(() => {
-        let cancelled = false;
-
-        const fetchCourseDetail = async () => {
-            try {
-                const result = await getCourseDetail(courseId);
-                if (cancelled) return;
-                setCourse(result.data);
-            } catch (err) {
-                if (cancelled) return;
-                navigate('/courses', { replace: true });
-            }
-        };
-
-        fetchCourseDetail();
-
-        return () => { cancelled = true; };
-    }, [courseId, navigate]);
+        if (isError) navigate('/courses', { replace: true });
+    }, [isError, navigate]);
 
     /* 목록으로 돌아가기 */
     const handleBackToList = () => {
@@ -57,8 +46,8 @@ const CourseDetailPage = () => {
         if (!window.confirm('강의를 공개하시겠습니까?')) return;
 
         try {
-            const result = await publishCourse(courseId, user?.id);
-            setCourse(result.data);
+            await publishCourse(courseId, user?.id);
+            queryClient.invalidateQueries({ queryKey: ['courseDetail', courseId] });
         } catch (err) {
             alert(err.response?.data?.message || '강의 공개에 실패했습니다.');
         }
@@ -75,9 +64,7 @@ const CourseDetailPage = () => {
             const enrolled = await createEnrollment(Number(courseId));
 
             alert(enrolled.data?.status === 'WAITLIST' ? '정원이 초과되어 대기열에 등록되었습니다.\n마이페이지에서 대기 순번을 확인하세요.' : '수강 신청이 완료되었습니다.');
-            
-            const result = await getCourseDetail(courseId);
-            setCourse(result.data);
+            queryClient.invalidateQueries({ queryKey: ['courseDetail', courseId] });
         } catch (err) {
             alert(err.response?.data?.message || '수강 신청에 실패했습니다.');
         }
@@ -88,8 +75,8 @@ const CourseDetailPage = () => {
         if (!window.confirm('강의를 마감하시겠습니까?')) return;
 
         try {
-            const result = await closeCourse(courseId, user?.id);
-            setCourse(result.data);
+            await closeCourse(courseId, user?.id);
+            queryClient.invalidateQueries({ queryKey: ['courseDetail', courseId] });
         } catch (err) {
             alert(err.response?.data?.message || '강의 마감에 실패했습니다.');
         }
@@ -128,9 +115,9 @@ const CourseDetailPage = () => {
 
                 <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-blue-100 rounded-md flex items-center justify-center text-blue-600 font-bold">
-                        {course.creatorName?.charAt(0)}
+                        {course.creatorName.charAt(0)}
                     </div>
-                    <p className="text-sm font-bold text-gray-900">{course?.creatorName}</p>
+                    <p className="text-sm font-bold text-gray-900">{course.creatorName}</p>
                 </div>
             </div>
 

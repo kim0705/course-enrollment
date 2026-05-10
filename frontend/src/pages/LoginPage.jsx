@@ -1,35 +1,23 @@
-import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { getUserList } from '../api/user';
 import { useAuth } from '../context/AuthContext';
+import { useUserList } from '../hooks/useUserList';
 
 const LoginPage = () => {
+    /* 페이지 이동을 위한 네비게이트 함수 */
     const navigate = useNavigate();
+    /* 현재 위치 정보 */
     const location = useLocation();
+    /* 인증 관련 함수 */
     const { login } = useAuth();
-    /* 유저 목록 상태 */
-    const [users, setUsers] = useState([]);
-    
+    /* 유저 목록 조회 */
+    const { data: users = [] } = useUserList();
+
     /* 로그인 후 리다이렉트할 경로 */
     const redirect = location.state?.redirect || '/courses';
     /* 역할에 따른 라벨 */
     const roleLabel = (role) => role === 'CREATOR' ? '강사' : '수강생';
     /* 역할에 따른 스타일 */
     const roleStyle = (role) => role === 'CREATOR' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700';
-
-    /* 유저 목록 조회 */
-    useEffect(() => {
-        const fetchUserList = async () => {
-            try {
-                const result = await getUserList();
-                setUsers(result.data);
-            } catch (err) {
-                console.error(err);
-            }
-        };
-
-        fetchUserList();
-    }, []);
 
     /* 유저 선택 시 로그인 처리 */
     const handleSelectUser = (user) => {

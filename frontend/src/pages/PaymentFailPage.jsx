@@ -6,11 +6,11 @@ const PaymentFailPage = () => {
     const navigate = useNavigate();
     /* URL 검색 파라미터에서 결제 실패 정보 추출 */
     const [searchParams] = useSearchParams();
-    /* 결제 실패 정보 (code, message, orderId) */
+    /* 결제 실패 원인을 나타내는 코드 */
     const code = searchParams.get('code');
-    /* 결제 실패 메시지, 주문번호 등은 URL 파라미터로 전달받음 */
+    /* 결제 실패 메시지 */
     const message = searchParams.get('message');
-    /* 주문번호는 결제 실패 시에도 URL 파라미터로 전달될 수 있음 */
+    /* 주문 번호 */
     const orderId = searchParams.get('orderId');
 
     return (

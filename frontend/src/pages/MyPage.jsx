@@ -1,10 +1,13 @@
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { loadTossPayments } from '@tosspayments/tosspayments-sdk';
-import { cancelEnrollment, confirmEnrollment, getMyEnrollments } from '../api/enrollment';
-import { getCourseEnrollments, getMyCourses } from '../api/course';
+import { cancelEnrollment, confirmEnrollment } from '../api/enrollment';
 import { useAuth } from '../context/AuthContext';
 import { COURSE_STATUS_BADGE_STYLE, COURSE_STATUS_LABEL, ENROLLMENT_STATUS_BADGE_STYLE, ENROLLMENT_STATUS_LABEL } from '../utils/statusConfig';
+import { useMyEnrollments } from '../hooks/useMyEnrollments';
+import { useMyCourses } from '../hooks/useMyCourses';
+import { useCourseEnrollments } from '../hooks/useCourseEnrollments';
 
 /* 마이페이지 */
 const MyPage = () => {
@@ -16,86 +19,33 @@ const MyPage = () => {
     const { user } = useAuth();
     /* 현재 활성화된 탭 상태 */
     const [activeTab, setActiveTab] = useState(location.state?.tab || 'enrollments');
-    /* 나의 수강목록 상태 */
-    const [enrollmentData, setEnrollmentData] = useState({ content: [], totalCount: 0, totalPages: 0, last: false });
     /* 수강목록 페이지 상태 */
     const [enrollmentPage, setEnrollmentPage] = useState(0);
-    /* 나의 강의 목록 상태 (CREATOR 전용) */
-    const [myCourses, setMyCourses] = useState([]);
     /* 선택한 강의 ID 상태 (강의별 수강생 목록 탭에서) */
     const [selectedCourseId, setSelectedCourseId] = useState('');
-    /* 선택한 강의의 수강생 목록 상태 */
-    const [courseEnrollmentData, setCourseEnrollmentData] = useState({ content: [], totalCount: 0, totalPages: 0, last: false });
     /* 수강생 목록 페이지 상태 */
     const [studentPage, setStudentPage] = useState(0);
     /* 결제 진행 중 상태 (이중 클릭 방지) */
     const [isPaymentLoading, setIsPaymentLoading] = useState(false);
+    /* React Query의 queryClient 인스턴스 */
+    const queryClient = useQueryClient();
 
     /* 나의 수강목록 조회 */
-    const fetchMyEnrollments = async (page = 0) => {
-        try {
-            const result = await getMyEnrollments(page);
-            setEnrollmentData(result.data);
-        } catch (err) {
-            console.error(err);
-            alert('수강 신청 목록을 불러오는데 실패했습니다.');
-        }
-    };
+    const { data: enrollmentData = { content: [], totalCount: 0, totalPages: 0, last: false } } = useMyEnrollments(enrollmentPage);
+    /* 내 강의 목록 조회 (CREATOR 권한이 있는 경우) */
+    const { data: myCourses = [] } = useMyCourses(activeTab === 'my-courses' || activeTab === 'students');
+    /* 강의별 수강생 목록 조회 (CREATOR 권한이 있는 경우) */
+    const { data: courseEnrollmentData = { content: [], totalCount: 0, totalPages: 0, last: false } } = useCourseEnrollments(selectedCourseId, studentPage);
 
-    /* 페이지 진입 시 나의 수강목록 조회 */
+    /* students 탭 진입 시 강의 선택 초기화 */
     useEffect(() => {
-        fetchMyEnrollments(enrollmentPage);
-    }, [enrollmentPage]);
-
-    /* 수강생 목록 페이지 변경 시 재조회 */
-    useEffect(() => {
-        if (!selectedCourseId) return;
-        fetchCourseEnrollments(selectedCourseId, studentPage);
-    }, [studentPage]);
-
-    /* 내 강의 / 강의별 수강생 목록 탭 진입 시 나의 강의 목록 조회 */
-    useEffect(() => {
-        if (activeTab !== 'my-courses' && activeTab !== 'students') return;
-
-        const fetchMyCourses = async () => {
-            try {
-                const result = await getMyCourses();
-                setMyCourses(result.data);
-                
-                if (activeTab === 'students') {
-                    setSelectedCourseId('');
-                    setCourseEnrollmentData({ content: [], totalCount: 0, totalPages: 0, last: false });
-                }
-            } catch (err) {
-                console.error(err);
-                alert('강의 목록을 불러오는데 실패했습니다.');
-            }
-        };
-
-        fetchMyCourses();
+        if (activeTab === 'students') setSelectedCourseId('');
     }, [activeTab]);
-
-    /* 수강생 목록 조회 */
-    const fetchCourseEnrollments = async (courseId, page = 0) => {
-        try {
-            const result = await getCourseEnrollments(courseId, page);
-            setCourseEnrollmentData(result.data);
-        } catch (err) {
-            alert(err.response?.data?.message || '수강생 목록을 불러오는데 실패했습니다.');
-        }
-    };
 
     /* 강의 선택 시 수강생 목록 조회 */
     const handleCourseSelect = (courseId) => {
         setSelectedCourseId(courseId);
         setStudentPage(0);
-
-        if (!courseId) {
-            setCourseEnrollmentData({ content: [], totalCount: 0, totalPages: 0, last: false });
-            return;
-        }
-
-        fetchCourseEnrollments(courseId, 0);
     };
 
     /* 유료 강의 결제 (토스페이먼츠) */
@@ -132,7 +82,7 @@ const MyPage = () => {
         try {
             await confirmEnrollment(enrollmentId);
             alert('수강이 확정되었습니다.');
-            fetchMyEnrollments(enrollmentPage);
+            queryClient.invalidateQueries({ queryKey: ['myEnrollments', enrollmentPage] });
         } catch (err) {
             alert(err.response?.data?.message || '수강 확정에 실패했습니다.');
         }
@@ -145,7 +95,7 @@ const MyPage = () => {
         try {
             await cancelEnrollment(enrollmentId);
             alert('수강이 취소되었습니다.');
-            fetchMyEnrollments(enrollmentPage);
+            queryClient.invalidateQueries({ queryKey: ['myEnrollments', enrollmentPage] });
         } catch (err) {
             alert(err.response?.data?.message || '수강 취소에 실패했습니다.');
         }
@@ -276,7 +226,7 @@ const MyPage = () => {
                     )}
 
                     {/* 페이징 섹션 */}
-                    {(enrollmentData?.totalPages ?? 0) > 1 && (
+                    {(enrollmentData.totalPages ?? 0) > 1 && (
                         <div className="flex justify-center items-center gap-4 mt-8">
                             <button disabled={enrollmentPage === 0}
                                 onClick={() => setEnrollmentPage(prev => prev - 1)}
@@ -399,7 +349,7 @@ const MyPage = () => {
                     )}
 
                     {/* 페이징 섹션 */}
-                    {(courseEnrollmentData?.totalPages ?? 0) > 1 && (
+                    {(courseEnrollmentData.totalPages ?? 0) > 1 && (
                         <div className="flex justify-center items-center gap-4 mt-8">
                             <button disabled={studentPage === 0}
                                 onClick={() => setStudentPage(prev => prev - 1)}

@@ -5,13 +5,13 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 /**
- * 수강 신청 목록 페이징 조건 DTO
+ * 나의 강의 목록 페이징 조건 DTO
  */
 @Getter
 @Setter
 @NoArgsConstructor
-public class ReqEnrollmentPageDto {
-    private Long userId;
+public class ReqMyCoursePageDto {
+    private Long creatorId;
     private int page = 0;
     private int size = 10;
 

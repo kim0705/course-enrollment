@@ -1,5 +1,6 @@
 package com.yujin.course_enrollment.mapper;
 
+import com.yujin.course_enrollment.dto.req.ReqMyPaymentPageDto;
 import com.yujin.course_enrollment.entity.Payment;
 import org.apache.ibatis.annotations.Mapper;
 
@@ -30,5 +31,8 @@ public interface PaymentMapper {
     void updatePaymentCancelled(Payment payment);
 
     /* 사용자 결제 내역 조회 */
-    List<Payment> selectPaymentListByUserId(Long userId);
+    List<Payment> selectPaymentListByUserId(ReqMyPaymentPageDto reqMyPaymentPageDto);
+
+    /* 사용자 결제 내역 전체 수 조회 (페이징용) */
+    int selectPaymentListByUserIdCount(Long userId);
 }

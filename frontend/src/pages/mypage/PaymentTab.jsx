@@ -23,7 +23,7 @@ const isWithin7Days = (paidAt) =>
 /* 결제 내역 탭 */
 const PaymentTab = () => {
     /* 결제 데이터 */
-    const { data: myPayments = [] } = useMyPayments();
+    const { data: myPayments = [], isLoading } = useMyPayments();
     /* 결제 영수증 모달 상태 */
     const [receiptPayment, setReceiptPayment] = useState(null);
     /* CONFIRMED 취소 모달 상태 */
@@ -76,6 +76,8 @@ const PaymentTab = () => {
             alert(err.response?.data?.message || '결제 취소에 실패했습니다.');
         }
     };
+
+    if (isLoading) return <div className="text-center py-20 text-gray-400">로딩 중...</div>;
 
     /* 결제 내역이 없는 경우 */
     if (myPayments.length === 0) {

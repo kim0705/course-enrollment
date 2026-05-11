@@ -124,6 +124,7 @@ public class PaymentService {
      * 무료 강의(결제 내역 없음)는 환불 없이 통과
      * @param enrollmentId 수강 신청 ID
      * @param cancelReason 취소 사유
+     * @throws BusinessException 토스 환불 API 호출 실패(400)
      */
     @Transactional
     public void refund(Long enrollmentId, String cancelReason) {

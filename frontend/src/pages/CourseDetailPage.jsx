@@ -20,7 +20,7 @@ const CourseDetailPage = () => {
     /* React Query의 queryClient 인스턴스 */
     const queryClient = useQueryClient();
     /* 강의 상세 조회 */
-    const { data: course, isError } = useCourseDetail(courseId);
+    const { data: course, isLoading, isError } = useCourseDetail(courseId);
 
     /* 현재 로그인한 사용자가 강의 소유자인지 여부 */
     const isOwner = course?.creatorId === user?.id;
@@ -82,7 +82,7 @@ const CourseDetailPage = () => {
         }
     };
 
-    if (!course) return <div className="text-center py-20 text-gray-400">로딩 중...</div>;
+    if (isLoading) return <div className="text-center py-20 text-gray-400">로딩 중...</div>;
 
     return (
         <div className="max-w-7xl mx-auto mt-10 p-6">

@@ -27,16 +27,19 @@ const EnrollmentTab = () => {
     } = useEnrollmentActions();
     
     /* 수강목록 데이터 */
-    const { data: enrollmentData = { content: [], totalCount: 0, totalPages: 0, last: false } } = useMyEnrollments(enrollmentPage);
+    const { data: enrollmentData = { content: [], totalCount: 0, totalPages: 0, last: false }, isLoading } = useMyEnrollments(enrollmentPage);
+
+    if (isLoading) return <div className="text-center py-20 text-gray-400">로딩 중...</div>;
+
+    if (enrollmentData.content.length === 0) return (
+        <div className="text-center text-gray-400 py-32 border-2 border-dashed border-gray-100 rounded-2xl">
+            수강 신청 내역이 없습니다.
+        </div>
+    );
 
     return (
         <>
-            {enrollmentData.content.length === 0 ? (
-                <div className="text-center text-gray-400 py-32 border-2 border-dashed border-gray-100 rounded-2xl">
-                    수강 신청 내역이 없습니다.
-                </div>
-            ) : (
-                <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-4">
                     {enrollmentData.content.map(enrollment => (
                         <div key={enrollment.id}
                             className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -121,7 +124,6 @@ const EnrollmentTab = () => {
                         </div>
                     ))}
                 </div>
-            )}
 
             {/* 페이징 */}
             {(enrollmentData.totalPages ?? 0) > 1 && (

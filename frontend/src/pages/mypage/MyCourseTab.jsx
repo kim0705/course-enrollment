@@ -7,7 +7,9 @@ const MyCourseTab = () => {
     /* 페이지 이동 함수 */
     const navigate = useNavigate();
     /* 내 강의 데이터 */
-    const { data: myCourses = [] } = useMyCourses(true);
+    const { data: myCourses = [], isLoading } = useMyCourses(true);
+
+    if (isLoading) return <div className="text-center py-20 text-gray-400">로딩 중...</div>;
 
     /* 등록한 강의가 없는 경우 */
     if (myCourses.length === 0) {

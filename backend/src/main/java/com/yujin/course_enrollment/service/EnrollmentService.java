@@ -43,6 +43,7 @@ public class EnrollmentService {
      * 정원이 남아있으면 PENDING, 초과 시 WAITLIST로 등록
      * @param userId 신청하는 사용자 ID
      * @param reqEnrollmentCreateDto 수강 신청 요청 DTO
+     * @return 수강 신청 응답 DTO
      * @throws BusinessException 사용자 없음(400), 강의 없음(400), 본인 강의 신청(403), 모집 중 아님(400), 중복 신청(400)
      */
     @Transactional
@@ -124,6 +125,7 @@ public class EnrollmentService {
      * 나의 수강 신청 목록 조회
      * @param userId 사용자 ID
      * @param reqEnrollmentPageDto 페이징 조건 DTO
+     * @return 페이징된 수강 신청 목록
      */
     public RespPageDto<RespEnrollmentStudentDto> findMyEnrollments(Long userId, ReqEnrollmentPageDto reqEnrollmentPageDto) {
         log.info("[EnrollmentService] 나의 수강 신청 목록 조회 - userId: {}, page: {}, size: {}", userId, reqEnrollmentPageDto.getPage(), reqEnrollmentPageDto.getSize());
@@ -141,6 +143,7 @@ public class EnrollmentService {
      * 결제 요청 (PENDING → CONFIRMED)
      * @param userId 사용자 ID
      * @param enrollmentId 수강 신청 ID
+     * @return 수강 신청 응답 DTO
      * @throws BusinessException 수강 신청 없음(400), 본인 신청 아님(403), PENDING 상태 아님(400)
      */
     @Transactional
@@ -184,6 +187,7 @@ public class EnrollmentService {
      * @param userId 사용자 ID
      * @param enrollmentId 수강 신청 ID
      * @param cancelReason 취소 사유 (CONFIRMED 취소 시 필수)
+     * @return 취소된 수강 신청 응답 DTO
      * @throws BusinessException 수강 신청 없음(400), 본인 신청 아님(403), 이미 취소됨(400), CONFIRMED 7일 초과(400), 취소 사유 없음(400)
      */
     @Transactional

@@ -11,9 +11,9 @@ const StudentTab = () => {
     const [studentPage, setStudentPage] = useState(0);
 
     /* 내 강의 데이터 */
-    const { data: myCourses = [] } = useMyCourses(true);
+    const { data: myCourses = [], isLoading: isCoursesLoading } = useMyCourses(true);
     /* 선택한 강의의 수강 신청 데이터 */
-    const { data: courseEnrollmentData = { content: [], totalCount: 0, totalPages: 0, last: false } } = useCourseEnrollments(selectedCourseId, studentPage);
+    const { data: courseEnrollmentData = { content: [], totalCount: 0, totalPages: 0, last: false }, isLoading: isEnrollmentsLoading } = useCourseEnrollments(selectedCourseId, studentPage);
 
     /* 강의가 변경될 때마다 수강생 페이지 초기화 */
     useEffect(() => {
@@ -25,6 +25,8 @@ const StudentTab = () => {
         setSelectedCourseId(courseId);
         setStudentPage(0);
     };
+
+    if (isCoursesLoading || isEnrollmentsLoading) return <div className="text-center py-20 text-gray-400">로딩 중...</div>;
 
     return (
         <>

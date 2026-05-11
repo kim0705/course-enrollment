@@ -32,7 +32,7 @@ const CourseListPage = () => {
     }, [searchParams]);
 
     /* 강의 목록 조회 (searchParams가 바뀔 때마다 자동 실행) */
-    const { data = { content: [], totalCount: 0, totalPages: 0, last: false } } = useCourseList(search);
+    const { data = { content: [], totalCount: 0, totalPages: 0, last: false }, isLoading } = useCourseList(search);
 
     /* 검색 실행 */
     const handleSearch = (e) => {
@@ -64,6 +64,8 @@ const CourseListPage = () => {
             page: 0
         });
     };
+
+    if (isLoading) return <div className="text-center py-20 text-gray-400">로딩 중...</div>;
 
     return (
         <div className="max-w-7xl mx-auto mt-10 p-6">

@@ -4,6 +4,7 @@ import com.yujin.course_enrollment.dto.req.ReqCourseCreateDto;
 import com.yujin.course_enrollment.dto.req.ReqCourseEnrollmentPageDto;
 import com.yujin.course_enrollment.dto.req.ReqCourseSearchDto;
 import com.yujin.course_enrollment.dto.req.ReqCourseUpdateDto;
+import com.yujin.course_enrollment.dto.req.ReqMyCoursePageDto;
 import com.yujin.course_enrollment.dto.resp.RespCourseCreateDto;
 import com.yujin.course_enrollment.dto.resp.RespCourseDetailDto;
 import com.yujin.course_enrollment.dto.resp.RespCourseListDto;
@@ -259,12 +260,18 @@ public class CourseService {
     /**
      * 강의 목록 조회 (CREATOR 전용)
      * @param creatorId 크리에이터 ID
-     * @return 강의 목록
+     * @param reqMyCoursePageDto 페이징 조건 DTO
+     * @return 페이징된 강의 목록
      */
-    public List<RespCourseListDto> findMyCourses(Long creatorId) {
-        log.info("[CourseService] 나의 강의 목록 조회 - creatorId: {}", creatorId);
+    public RespPageDto<RespCourseListDto> findMyCourses(Long creatorId, ReqMyCoursePageDto reqMyCoursePageDto) {
+        log.info("[CourseService] 나의 강의 목록 조회 - creatorId: {}, page: {}, size: {}", creatorId, reqMyCoursePageDto.getPage(), reqMyCoursePageDto.getSize());
 
-        return courseMapper.selectCourseListByCreatorId(creatorId);
+        reqMyCoursePageDto.setCreatorId(creatorId);
+
+        List<RespCourseListDto> content = courseMapper.selectCourseListByCreatorId(reqMyCoursePageDto);
+        int totalCount = courseMapper.selectCourseListByCreatorIdCount(creatorId);
+
+        return RespPageDto.of(content, reqMyCoursePageDto.getPage(), reqMyCoursePageDto.getSize(), totalCount);
     }
 
     /**

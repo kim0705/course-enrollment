@@ -1,6 +1,8 @@
 package com.yujin.course_enrollment.service;
 
+import com.yujin.course_enrollment.dto.req.ReqMyPaymentPageDto;
 import com.yujin.course_enrollment.dto.req.ReqPaymentConfirmDto;
+import com.yujin.course_enrollment.dto.resp.RespPageDto;
 import com.yujin.course_enrollment.dto.resp.RespPaymentDto;
 import com.yujin.course_enrollment.entity.Course;
 import com.yujin.course_enrollment.entity.Enrollment;
@@ -321,17 +323,20 @@ class PaymentServiceTest {
                 .createdAt(LocalDateTime.now().minusDays(3))
                 .build();
 
-        given(paymentMapper.selectPaymentListByUserId(userId)).willReturn(java.util.List.of(payment1, payment2));
+        ReqMyPaymentPageDto reqMyPaymentPageDto = new ReqMyPaymentPageDto();
+        given(paymentMapper.selectPaymentListByUserId(reqMyPaymentPageDto)).willReturn(java.util.List.of(payment1, payment2));
+        given(paymentMapper.selectPaymentListByUserIdCount(userId)).willReturn(2);
 
         // when
-        List<RespPaymentDto> result = paymentService.findMyPayments(userId);
+        RespPageDto<RespPaymentDto> result = paymentService.findMyPayments(userId, reqMyPaymentPageDto);
 
         // then
-        assertThat(result).hasSize(2);
-        assertThat(result.get(0).getOrderId()).isEqualTo("order_001");
-        assertThat(result.get(0).getStatus()).isEqualTo("DONE");
-        assertThat(result.get(1).getOrderId()).isEqualTo("order_002");
-        assertThat(result.get(1).getStatus()).isEqualTo("CANCELLED");
-        then(paymentMapper).should().selectPaymentListByUserId(userId);
+        assertThat(result.getContent()).hasSize(2);
+        assertThat(result.getContent().get(0).getOrderId()).isEqualTo("order_001");
+        assertThat(result.getContent().get(0).getStatus()).isEqualTo("DONE");
+        assertThat(result.getContent().get(1).getOrderId()).isEqualTo("order_002");
+        assertThat(result.getContent().get(1).getStatus()).isEqualTo("CANCELLED");
+        then(paymentMapper).should().selectPaymentListByUserId(reqMyPaymentPageDto);
+        then(paymentMapper).should().selectPaymentListByUserIdCount(userId);
     }
 }

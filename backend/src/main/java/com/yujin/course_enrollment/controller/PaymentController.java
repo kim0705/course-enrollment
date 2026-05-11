@@ -1,6 +1,8 @@
 package com.yujin.course_enrollment.controller;
 
+import com.yujin.course_enrollment.dto.req.ReqMyPaymentPageDto;
 import com.yujin.course_enrollment.dto.req.ReqPaymentConfirmDto;
+import com.yujin.course_enrollment.dto.resp.RespPageDto;
 import com.yujin.course_enrollment.dto.resp.RespPaymentDto;
 import com.yujin.course_enrollment.global.response.ApiResponse;
 import com.yujin.course_enrollment.service.PaymentService;
@@ -9,8 +11,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 /**
  * 결제 컨트롤러
@@ -44,13 +44,14 @@ public class PaymentController {
      * 나의 결제 내역 조회
      * GET /api/payments/my
      * @param userId 사용자 ID (헤더로 전달)
-     * @return 결제 내역 목록 (DONE, CANCELLED)
+     * @param reqMyPaymentPageDto 페이징 조건 DTO
+     * @return 페이징된 결제 내역 목록 (DONE, CANCELLED)
      */
     @GetMapping("/my")
-    public ResponseEntity<ApiResponse<List<RespPaymentDto>>> getMyPayments(@RequestHeader("X-User-Id") Long userId) {
+    public ResponseEntity<ApiResponse<RespPageDto<RespPaymentDto>>> getMyPayments(@RequestHeader("X-User-Id") Long userId, ReqMyPaymentPageDto reqMyPaymentPageDto) {
         log.debug("[PaymentController] 결제 내역 조회 요청 - userId: {}", userId);
 
-        List<RespPaymentDto> result = paymentService.findMyPayments(userId);
+        RespPageDto<RespPaymentDto> result = paymentService.findMyPayments(userId, reqMyPaymentPageDto);
 
         return ResponseEntity.ok(ApiResponse.success(result));
     }

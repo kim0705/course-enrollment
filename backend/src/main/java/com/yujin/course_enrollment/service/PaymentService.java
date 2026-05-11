@@ -1,6 +1,8 @@
 package com.yujin.course_enrollment.service;
 
+import com.yujin.course_enrollment.dto.req.ReqMyPaymentPageDto;
 import com.yujin.course_enrollment.dto.req.ReqPaymentConfirmDto;
+import com.yujin.course_enrollment.dto.resp.RespPageDto;
 import com.yujin.course_enrollment.dto.resp.RespPaymentDto;
 import com.yujin.course_enrollment.entity.Course;
 import com.yujin.course_enrollment.entity.Enrollment;
@@ -146,13 +148,19 @@ public class PaymentService {
     /**
      * 사용자 결제 내역 조회
      * @param userId 사용자 ID
-     * @return 결제 내역 목록 (DONE, CANCELLED)
+     * @param reqMyPaymentPageDto 페이징 조건 DTO
+     * @return 페이징된 결제 내역 목록 (DONE, CANCELLED)
      */
-    public List<RespPaymentDto> findMyPayments(Long userId) {
-        log.info("[PaymentService] 결제 내역 조회 - userId: {}", userId);
+    public RespPageDto<RespPaymentDto> findMyPayments(Long userId, ReqMyPaymentPageDto reqMyPaymentPageDto) {
+        log.info("[PaymentService] 결제 내역 조회 - userId: {}, page: {}, size: {}", userId, reqMyPaymentPageDto.getPage(), reqMyPaymentPageDto.getSize());
 
-        return paymentMapper.selectPaymentListByUserId(userId).stream()
+        reqMyPaymentPageDto.setUserId(userId);
+
+        List<RespPaymentDto> content = paymentMapper.selectPaymentListByUserId(reqMyPaymentPageDto).stream()
                 .map(RespPaymentDto::of)
                 .collect(Collectors.toList());
+        int totalCount = paymentMapper.selectPaymentListByUserIdCount(userId);
+
+        return RespPageDto.of(content, reqMyPaymentPageDto.getPage(), reqMyPaymentPageDto.getSize(), totalCount);
     }
 }

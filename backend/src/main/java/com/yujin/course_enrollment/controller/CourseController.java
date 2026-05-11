@@ -4,6 +4,7 @@ import com.yujin.course_enrollment.dto.req.ReqCourseCreateDto;
 import com.yujin.course_enrollment.dto.req.ReqCourseEnrollmentPageDto;
 import com.yujin.course_enrollment.dto.req.ReqCourseSearchDto;
 import com.yujin.course_enrollment.dto.req.ReqCourseUpdateDto;
+import com.yujin.course_enrollment.dto.req.ReqMyCoursePageDto;
 import com.yujin.course_enrollment.dto.resp.RespCourseCreateDto;
 import com.yujin.course_enrollment.dto.resp.RespCourseDetailDto;
 import com.yujin.course_enrollment.dto.resp.RespCourseListDto;
@@ -16,8 +17,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 
 /**
@@ -126,12 +125,13 @@ public class CourseController {
      * 나의 강의 목록 조회 (CREATOR 전용)
      * GET /api/courses/my
      * @param creatorId 크리에이터 ID (헤더로 전달)
+     * @param reqMyCoursePageDto 페이징 조건 DTO
      */
     @GetMapping("/my")
-    public ResponseEntity<ApiResponse<List<RespCourseListDto>>> getMyCourses(@RequestHeader("X-User-Id") Long creatorId) {
+    public ResponseEntity<ApiResponse<RespPageDto<RespCourseListDto>>> getMyCourses(@RequestHeader("X-User-Id") Long creatorId, ReqMyCoursePageDto reqMyCoursePageDto) {
         log.debug("[CourseController] 나의 강의 목록 조회 요청 - creatorId: {}", creatorId);
 
-        List<RespCourseListDto> result = courseService.findMyCourses(creatorId);
+        RespPageDto<RespCourseListDto> result = courseService.findMyCourses(creatorId, reqMyCoursePageDto);
 
         return ResponseEntity.ok(ApiResponse.success(result));
     }

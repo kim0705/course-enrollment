@@ -92,7 +92,7 @@
     </update>
 
     <!-- 사용자 결제 내역 조회 (DONE, CANCELLED) -->
-    <select id="selectPaymentListByUserId" parameterType="Long" resultType="Payment">
+    <select id="selectPaymentListByUserId" parameterType="ReqMyPaymentPageDto" resultType="Payment">
         SELECT p.id
              , p.enrollment_id
              , p.payment_key
@@ -111,6 +111,16 @@
          WHERE e.user_id = #{userId}
            AND p.status IN ('DONE', 'CANCELLED')
         ORDER BY p.created_at DESC
+        LIMIT #{size} OFFSET #{offset}
+    </select>
+
+    <!-- 사용자 결제 내역 전체 수 조회 (페이징용) -->
+    <select id="selectPaymentListByUserIdCount" parameterType="Long" resultType="int">
+        SELECT COUNT(*)
+          FROM payments p
+          JOIN enrollments e ON p.enrollment_id = e.id
+         WHERE e.user_id = #{userId}
+           AND p.status IN ('DONE', 'CANCELLED')
     </select>
 
 </mapper>

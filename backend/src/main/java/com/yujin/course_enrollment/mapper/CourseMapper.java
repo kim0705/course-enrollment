@@ -1,6 +1,7 @@
 package com.yujin.course_enrollment.mapper;
 
 import com.yujin.course_enrollment.dto.req.ReqCourseSearchDto;
+import com.yujin.course_enrollment.dto.req.ReqMyCoursePageDto;
 import com.yujin.course_enrollment.dto.resp.RespCourseDetailDto;
 import com.yujin.course_enrollment.dto.resp.RespCourseListDto;
 import com.yujin.course_enrollment.entity.Course;
@@ -42,5 +43,8 @@ public interface CourseMapper {
     void updateCourseEnrolledCountMinus(Long courseId);
 
     /* 나의 강의 목록 조회 (CREATOR 전용) */
-    List<RespCourseListDto> selectCourseListByCreatorId(Long creatorId);
+    List<RespCourseListDto> selectCourseListByCreatorId(ReqMyCoursePageDto reqMyCoursePageDto);
+
+    /* 나의 강의 목록 전체 수 조회 (페이징용) */
+    int selectCourseListByCreatorIdCount(Long creatorId);
 }

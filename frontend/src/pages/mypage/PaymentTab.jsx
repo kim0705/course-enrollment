@@ -22,8 +22,10 @@ const isWithin7Days = (paidAt) =>
 
 /* 결제 내역 탭 */
 const PaymentTab = () => {
+    /* 페이지 상태 */
+    const [paymentPage, setPaymentPage] = useState(0);
     /* 결제 데이터 */
-    const { data: myPayments = [], isLoading } = useMyPayments();
+    const { data: paymentData = { content: [], totalCount: 0, totalPages: 0, last: false }, isLoading } = useMyPayments(paymentPage);
     /* 결제 영수증 모달 상태 */
     const [receiptPayment, setReceiptPayment] = useState(null);
     /* CONFIRMED 취소 모달 상태 */
@@ -80,7 +82,7 @@ const PaymentTab = () => {
     if (isLoading) return <div className="text-center py-20 text-gray-400">로딩 중...</div>;
 
     /* 결제 내역이 없는 경우 */
-    if (myPayments.length === 0) {
+    if (paymentData.content.length === 0) {
         return (
             <div className="text-center text-gray-400 py-32 border-2 border-dashed border-gray-100 rounded-2xl">
                 결제 내역이 없습니다.
@@ -91,7 +93,7 @@ const PaymentTab = () => {
     return (
         <>
             <div className="flex flex-col gap-4">
-                {myPayments.map(payment => (
+                {paymentData.content.map(payment => (
                     <div key={payment.id}
                         onClick={() => setReceiptPayment(payment)}
                         className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm cursor-pointer hover:shadow-md transition-shadow">
@@ -136,6 +138,29 @@ const PaymentTab = () => {
                     </div>
                 ))}
             </div>
+
+            {/* 페이징 */}
+            {(paymentData.totalPages ?? 0) > 1 && (
+                <div className="flex justify-center items-center gap-4 mt-8">
+                    <button disabled={paymentPage === 0}
+                        onClick={() => setPaymentPage(prev => prev - 1)}
+                        className="p-2 border rounded-full hover:bg-gray-50 disabled:opacity-30 cursor-pointer transition-colors">
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 19l-7-7 7-7" />
+                        </svg>
+                    </button>
+                    <span className="text-sm font-medium text-gray-700">
+                        <span className="text-blue-600">{paymentPage + 1}</span> / {paymentData.totalPages}
+                    </span>
+                    <button disabled={paymentData.last}
+                        onClick={() => setPaymentPage(prev => prev + 1)}
+                        className="p-2 border rounded-full hover:bg-gray-50 disabled:opacity-30 cursor-pointer transition-colors">
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7" />
+                        </svg>
+                    </button>
+                </div>
+            )}
 
             {/* 영수증 모달 */}
             <ReceiptModal

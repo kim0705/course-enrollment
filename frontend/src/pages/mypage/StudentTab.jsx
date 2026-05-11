@@ -10,8 +10,8 @@ const StudentTab = () => {
     /* 수강생 목록 페이지 */
     const [studentPage, setStudentPage] = useState(0);
 
-    /* 내 강의 데이터 */
-    const { data: myCourses = [], isLoading: isCoursesLoading } = useMyCourses(true);
+    /* 내 강의 데이터 (드롭다운용 전체 목록) */
+    const { data: myCourseData = { content: [] }, isLoading: isCoursesLoading } = useMyCourses(0, 100);
     /* 선택한 강의의 수강 신청 데이터 */
     const { data: courseEnrollmentData = { content: [], totalCount: 0, totalPages: 0, last: false }, isLoading: isEnrollmentsLoading } = useCourseEnrollments(selectedCourseId, studentPage);
 
@@ -38,7 +38,7 @@ const StudentTab = () => {
                     className="w-full sm:w-80 border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                     <option value="">강의를 선택하세요</option>
-                    {myCourses.map(course => (
+                    {myCourseData.content.map(course => (
                         <option key={course.id} value={course.id}>{course.title}</option>
                     ))}
                 </select>

@@ -6,7 +6,7 @@ export const createEnrollment = (courseId) => {
 };
 
 /* 나의 수강 신청 목록 조회 */
-export const getMyEnrollments = (page = 0, size = 5) => {
+export const getMyEnrollments = (page = 0, size = 10) => {
     return instance.get('/api/enrollments/me', { params: { page, size } }).then(res => res.data);
 };
 

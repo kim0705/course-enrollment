@@ -6,6 +6,6 @@ export const confirmPayment = ({ enrollmentId, paymentKey, orderId, orderName, a
 };
 
 /* 나의 결제 내역 조회 */
-export const getMyPayments = () => {
-    return instance.get('/api/payments/my').then(res => res.data);
+export const getMyPayments = (page = 0, size = 10) => {
+    return instance.get('/api/payments/my', { params: { page, size } }).then(res => res.data);
 };

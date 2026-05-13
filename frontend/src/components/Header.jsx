@@ -13,7 +13,7 @@ const Header = () => {
     /* 로그아웃 처리 */
     const handleLogout = () => {
         logout();
-        navigate('/login');
+        navigate('/signup');
     };
 
     return (
@@ -50,10 +50,10 @@ const Header = () => {
                         </>
                     ) : (
                         <button
-                            onClick={() => navigate('/login')}
+                            onClick={() => navigate('/signup')}
                             className="text-sm px-3 py-1.5 rounded-md bg-blue-600 text-white hover:bg-blue-700 transition-colors cursor-pointer"
                         >
-                            로그인
+                            회원가입
                         </button>
                     )}
                 </div>

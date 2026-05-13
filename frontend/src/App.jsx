@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import Layout from './components/Layout'
 import LoginPage from './pages/LoginPage'
+import SignupPage from './pages/SignupPage'
 import CourseRegisterPage from './pages/CourseRegisterPage'
 import CourseListPage from './pages/CourseListPage'
 import CourseDetailPage from './pages/CourseDetailPage'
@@ -34,6 +35,7 @@ function App() {
         <AuthProvider>
             <Routes>
                 <Route path="/login" element={<LoginPage />} />
+                <Route path="/signup" element={<SignupPage />} />
                 <Route path="/courses" element={<PublicRoute><CourseListPage /></PublicRoute>} />
                 <Route path="/courses/:courseId" element={<PublicRoute><CourseDetailPage /></PublicRoute>} />
                 <Route path="/courses/new" element={<CreatorRoute><CourseRegisterPage /></CreatorRoute>} />

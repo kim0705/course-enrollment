@@ -11,6 +11,7 @@ import com.yujin.course_enrollment.service.EnrollmentService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -38,7 +39,7 @@ public class EnrollmentController {
 
         RespEnrollmentDto result = enrollmentService.registerEnrollment(userId, reqEnrollmentCreateDto);
 
-        return ResponseEntity.ok(ApiResponse.success(result));
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.created(result));
     }
 
     /**

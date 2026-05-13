@@ -1,4 +1,4 @@
-import { useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useUserList } from '../hooks/useUserList';
 
@@ -59,6 +59,11 @@ const LoginPage = () => {
                 >
                     비회원으로 계속 보기
                 </button>
+
+                <p className="text-center mt-2 text-sm text-gray-500">
+                    계정이 없으신가요?{' '}
+                    <Link to="/signup" className="text-blue-600 font-medium hover:underline">회원가입</Link>
+                </p>
             </div>
         </div>
     );

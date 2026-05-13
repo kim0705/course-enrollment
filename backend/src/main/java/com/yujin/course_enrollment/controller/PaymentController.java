@@ -9,6 +9,7 @@ import com.yujin.course_enrollment.service.PaymentService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -37,7 +38,7 @@ public class PaymentController {
 
         RespPaymentDto result = paymentService.confirmPayment(userId, reqPaymentConfirmDto);
 
-        return ResponseEntity.ok(ApiResponse.success(result));
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.created(result));
     }
 
     /**

@@ -53,7 +53,11 @@ class EnrollmentServiceTest {
         // given
         Long userId = 4L;
         Long courseId = 1L;
-        User student = new User(userId, "수강생A", "STUDENT");
+        User student = User.builder()
+                .id(userId)
+                .name("수강생A")
+                .role("STUDENT")
+                .build();
         Course openCourse = Course.builder()
                 .id(courseId)
                 .creatorId(1L)
@@ -107,7 +111,11 @@ class EnrollmentServiceTest {
         // given
         Long userId = 4L;
         Long courseId = 999L;
-        User student = new User(userId, "수강생A", "STUDENT");
+        User student = User.builder()
+                .id(userId)
+                .name("수강생A")
+                .role("STUDENT")
+                .build();
         ReqEnrollmentCreateDto req = new ReqEnrollmentCreateDto(courseId);
 
         given(userMapper.selectUserById(userId)).willReturn(student);
@@ -125,7 +133,11 @@ class EnrollmentServiceTest {
         // given
         Long userId = 1L;
         Long courseId = 1L;
-        User creator = new User(userId, "강사A", "CREATOR");
+        User creator = User.builder()
+                .id(userId)
+                .name("강사A")
+                .role("CREATOR")
+                .build();
         Course ownCourse = Course.builder()
                 .id(courseId)
                 .creatorId(userId)
@@ -148,7 +160,11 @@ class EnrollmentServiceTest {
         // given
         Long userId = 4L;
         Long courseId = 1L;
-        User student = new User(userId, "수강생A", "STUDENT");
+        User student = User.builder()
+                .id(userId)
+                .name("수강생A")
+                .role("STUDENT")
+                .build();
         Course closedCourse = Course.builder()
                 .id(courseId)
                 .creatorId(1L)
@@ -171,7 +187,11 @@ class EnrollmentServiceTest {
         // given
         Long userId = 4L;
         Long courseId = 1L;
-        User student = new User(userId, "수강생A", "STUDENT");
+        User student = User.builder()
+                .id(userId)
+                .name("수강생A")
+                .role("STUDENT")
+                .build();
         Course openCourse = Course.builder()
                 .id(courseId)
                 .creatorId(1L)
@@ -201,7 +221,11 @@ class EnrollmentServiceTest {
         // given
         Long userId = 4L;
         Long courseId = 1L;
-        User student = new User(userId, "수강생A", "STUDENT");
+        User student = User.builder()
+                .id(userId)
+                .name("수강생A")
+                .role("STUDENT")
+                .build();
         Course openCourse = Course.builder()
                 .id(courseId)
                 .creatorId(1L)
@@ -246,7 +270,11 @@ class EnrollmentServiceTest {
         // given
         Long userId = 4L;
         Long courseId = 1L;
-        User student = new User(userId, "수강생A", "STUDENT");
+        User student = User.builder()
+                .id(userId)
+                .name("수강생A")
+                .role("STUDENT")
+                .build();
         Course openCourse = Course.builder()
                 .id(courseId)
                 .creatorId(1L)
@@ -285,7 +313,11 @@ class EnrollmentServiceTest {
         // given
         Long userId = 4L;
         Long courseId = 1L;
-        User student = new User(userId, "수강생A", "STUDENT");
+        User student = User.builder()
+                .id(userId)
+                .name("수강생A")
+                .role("STUDENT")
+                .build();
         Course fullCourse = Course.builder()
                 .id(courseId)
                 .creatorId(1L)

@@ -4,9 +4,14 @@ DROP TABLE IF EXISTS courses;
 DROP TABLE IF EXISTS users;
 
 CREATE TABLE users (
-                       id    BIGINT AUTO_INCREMENT PRIMARY KEY,
-                       name  VARCHAR(50)  NOT NULL,
-                       role  VARCHAR(20)  NOT NULL
+                       id         BIGINT AUTO_INCREMENT PRIMARY KEY,
+                       username   VARCHAR(50)  NOT NULL UNIQUE,
+                       name       VARCHAR(50)  NOT NULL,
+                       email      VARCHAR(100) NOT NULL UNIQUE,
+                       password   VARCHAR(200) NOT NULL,
+                       role       VARCHAR(20)  NOT NULL,
+                       created_at DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                       updated_at DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
 CREATE TABLE courses (

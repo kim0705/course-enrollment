@@ -51,7 +51,11 @@ class CourseServiceTest {
     void registerCourse_success() {
         // given
         Long creatorId = 1L;
-        User creator = new User(1L, "강사A", "CREATOR");
+        User creator = User.builder()
+                .id(1L)
+                .name("강사A")
+                .role("CREATOR")
+                .build();
         ReqCourseCreateDto req = new ReqCourseCreateDto(
                 "Spring Boot 강의", "설명", 50000, 30,
                 LocalDate.now().plusDays(1),
@@ -107,7 +111,11 @@ class CourseServiceTest {
     void registerCourse_notCreator() {
         // given
         Long creatorId = 3L;
-        User student = new User(3L, "수강생A", "STUDENT");
+        User student = User.builder()
+                .id(3L)
+                .name("수강생A")
+                .role("STUDENT")
+                .build();
         given(userMapper.selectUserById(creatorId)).willReturn(student);
 
         ReqCourseCreateDto req = new ReqCourseCreateDto(
@@ -127,7 +135,11 @@ class CourseServiceTest {
     void registerCourse_invalidDate() {
         // given
         Long creatorId = 1L;
-        User creator = new User(1L, "강사A", "CREATOR");
+        User creator = User.builder()
+                .id(1L)
+                .name("강사A")
+                .role("CREATOR")
+                .build();
         given(userMapper.selectUserById(creatorId)).willReturn(creator);
 
         ReqCourseCreateDto req = new ReqCourseCreateDto(
@@ -147,7 +159,11 @@ class CourseServiceTest {
     void registerCourse_sameDate_success() {
         // given
         Long creatorId = 1L;
-        User creator = new User(1L, "강사A", "CREATOR");
+        User creator = User.builder()
+                .id(1L)
+                .name("강사A")
+                .role("CREATOR")
+                .build();
         LocalDate futureDate = LocalDate.now().plusDays(10);
 
         ReqCourseCreateDto req = new ReqCourseCreateDto(
@@ -186,7 +202,11 @@ class CourseServiceTest {
     void registerCourse_pastStartDate() {
         // given
         Long creatorId = 1L;
-        User creator = new User(1L, "강사A", "CREATOR");
+        User creator = User.builder()
+                .id(1L)
+                .name("강사A")
+                .role("CREATOR")
+                .build();
         given(userMapper.selectUserById(creatorId)).willReturn(creator);
 
         ReqCourseCreateDto req = new ReqCourseCreateDto(
@@ -206,7 +226,11 @@ class CourseServiceTest {
     void registerCourse_pastEndDate() {
         // given
         Long creatorId = 1L;
-        User creator = new User(1L, "강사A", "CREATOR");
+        User creator = User.builder()
+                .id(1L)
+                .name("강사A")
+                .role("CREATOR")
+                .build();
         given(userMapper.selectUserById(creatorId)).willReturn(creator);
 
         ReqCourseCreateDto req = new ReqCourseCreateDto(

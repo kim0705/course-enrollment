@@ -48,16 +48,17 @@ class EnrollmentConcurrencyTest {
     /** 테스트용 STUDENT 유저 n명을 DB에 삽입하고 생성된 ID 목록 반환 */
     private List<Long> insertStudents(int count) {
         List<Long> ids = new ArrayList<>();
+        String prefix = java.util.UUID.randomUUID().toString().replace("-", "").substring(0, 8);
 
         for (int i = 0; i < count; i++) {
             final int idx = i;
             KeyHolder holder = new GeneratedKeyHolder();
 
             jdbcTemplate.update(con -> {
-                PreparedStatement ps = con.prepareStatement(
-                        "INSERT INTO users (name, role) VALUES (?, 'STUDENT')",
-                        Statement.RETURN_GENERATED_KEYS);
-                ps.setString(1, "동시성테스트유저" + idx);
+                PreparedStatement ps = con.prepareStatement("INSERT INTO users (username, name, email, password, role) VALUES (?, ?, ?, '$2a$10$N/1FjmE1Nxvz24gnJ4A.I.3zw7QlQdAgKn8TVvuUfkCRJq0gMUioK', 'STUDENT')", new String[]{"id"});
+                ps.setString(1, prefix + "_" + idx);
+                ps.setString(2, "동시성테스트유저" + idx);
+                ps.setString(3, prefix + "_" + idx + "@test.com");
 
                 return ps;
             }, holder);

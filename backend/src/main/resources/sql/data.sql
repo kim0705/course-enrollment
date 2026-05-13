@@ -1,12 +1,12 @@
--- 사용자
-INSERT INTO users (name, role)
+-- 사용자 (password: Test1234!)
+INSERT INTO users (username, name, email, password, role)
 VALUES
-    ('강사A',  'CREATOR'),
-    ('강사B',  'CREATOR'),
-    ('강사C',  'CREATOR'),
-    ('수강생A', 'STUDENT'),
-    ('수강생B', 'STUDENT'),
-    ('수강생C', 'STUDENT');
+    ('creator_a', '강사A',  'creator_a@test.com', '$2a$10$N/1FjmE1Nxvz24gnJ4A.I.3zw7QlQdAgKn8TVvuUfkCRJq0gMUioK', 'CREATOR'),
+    ('creator_b', '강사B',  'creator_b@test.com', '$2a$10$N/1FjmE1Nxvz24gnJ4A.I.3zw7QlQdAgKn8TVvuUfkCRJq0gMUioK', 'CREATOR'),
+    ('creator_c', '강사C',  'creator_c@test.com', '$2a$10$N/1FjmE1Nxvz24gnJ4A.I.3zw7QlQdAgKn8TVvuUfkCRJq0gMUioK', 'CREATOR'),
+    ('student_a', '수강생A', 'student_a@test.com', '$2a$10$N/1FjmE1Nxvz24gnJ4A.I.3zw7QlQdAgKn8TVvuUfkCRJq0gMUioK', 'STUDENT'),
+    ('student_b', '수강생B', 'student_b@test.com', '$2a$10$N/1FjmE1Nxvz24gnJ4A.I.3zw7QlQdAgKn8TVvuUfkCRJq0gMUioK', 'STUDENT'),
+    ('student_c', '수강생C', 'student_c@test.com', '$2a$10$N/1FjmE1Nxvz24gnJ4A.I.3zw7QlQdAgKn8TVvuUfkCRJq0gMUioK', 'STUDENT');
 
 
 

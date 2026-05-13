@@ -61,6 +61,7 @@ const CourseRegisterPage = () => {
     /* 강의 정보 조회 실패 시 처리 */
     useEffect(() => {
         if (!isCourseError) return;
+        
         alert('강의 정보를 불러오는데 실패했습니다.');
         navigate(`/courses${previousSearch}`);
     }, [isCourseError]);

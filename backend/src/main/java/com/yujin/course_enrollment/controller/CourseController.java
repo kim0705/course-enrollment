@@ -15,6 +15,7 @@ import com.yujin.course_enrollment.service.CourseService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -43,7 +44,7 @@ public class CourseController {
 
         RespCourseCreateDto respCourseCreateDto = courseService.registerCourse(creatorId, reqCourseCreateDto);
 
-        return ResponseEntity.ok(ApiResponse.success(respCourseCreateDto));
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.created(respCourseCreateDto));
     }
 
     /**

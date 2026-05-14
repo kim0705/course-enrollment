@@ -35,12 +35,21 @@ const Header = () => {
                                     {roleLabel(user.role)}
                                 </span>
                             </div>
-                            <button
-                                onClick={() => navigate('/my-page')}
-                                className="text-sm px-3 py-1.5 rounded-md border border-gray-300 text-gray-600 hover:bg-gray-50 transition-colors cursor-pointer"
-                            >
-                                마이페이지
-                            </button>
+                            {user.role === 'ADMIN' ? (
+                                <button
+                                    onClick={() => navigate('/admin')}
+                                    className="text-sm px-3 py-1.5 rounded-md border border-gray-300 text-gray-600 hover:bg-gray-50 transition-colors cursor-pointer"
+                                >
+                                    관리자 페이지
+                                </button>
+                            ) : (
+                                <button
+                                    onClick={() => navigate('/my-page')}
+                                    className="text-sm px-3 py-1.5 rounded-md border border-gray-300 text-gray-600 hover:bg-gray-50 transition-colors cursor-pointer"
+                                >
+                                    마이페이지
+                                </button>
+                            )}
                             <button
                                 onClick={handleLogout}
                                 className="text-sm px-3 py-1.5 rounded-md border border-gray-300 text-gray-600 hover:bg-gray-50 transition-colors cursor-pointer"

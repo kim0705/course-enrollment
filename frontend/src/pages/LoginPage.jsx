@@ -15,9 +15,9 @@ const LoginPage = () => {
     /* 로그인 후 리다이렉트할 경로 */
     const redirect = location.state?.redirect || '/courses';
     /* 역할에 따른 라벨 */
-    const roleLabel = (role) => role === 'CREATOR' ? '강사' : '수강생';
+    const roleLabel = (role) => role === 'CREATOR' ? '강사' : role === 'ADMIN' ? '관리자' : '수강생';
     /* 역할에 따른 스타일 */
-    const roleStyle = (role) => role === 'CREATOR' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700';
+    const roleStyle = (role) => role === 'CREATOR' ? 'bg-blue-100 text-blue-700' : role === 'ADMIN' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700';
 
     /* 유저 선택 시 로그인 처리 */
     const handleSelectUser = (user) => {

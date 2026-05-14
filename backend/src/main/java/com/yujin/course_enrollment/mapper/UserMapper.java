@@ -2,6 +2,7 @@ package com.yujin.course_enrollment.mapper;
 
 import com.yujin.course_enrollment.entity.User;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
 
@@ -25,4 +26,7 @@ public interface UserMapper {
 
     /* 사용자 등록 */
     void insertUser(User user);
+
+    /* 사용자 역할 변경 */
+    void updateUserRole(@Param("id") Long id, @Param("role") String role);
 }

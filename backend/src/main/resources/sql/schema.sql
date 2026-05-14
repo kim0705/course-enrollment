@@ -1,3 +1,4 @@
+DROP TABLE IF EXISTS creator_requests;
 DROP TABLE IF EXISTS payments;
 DROP TABLE IF EXISTS enrollments;
 DROP TABLE IF EXISTS courses;
@@ -45,6 +46,17 @@ CREATE TABLE enrollments (
 
 CREATE UNIQUE INDEX idx_enrollment_user_course ON enrollments(user_id, course_id);
 CREATE INDEX idx_enrollment_course             ON enrollments(course_id);
+
+CREATE TABLE creator_requests (
+                                  id            BIGINT AUTO_INCREMENT PRIMARY KEY,
+                                  user_id       BIGINT      NOT NULL,
+                                  status        VARCHAR(20) NOT NULL DEFAULT 'PENDING',
+                                  reason        TEXT        NOT NULL,
+                                  reject_reason TEXT,
+                                  requested_at  DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                                  processed_at  DATETIME,
+                                  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE RESTRICT
+);
 
 CREATE TABLE payments (
                           id            BIGINT       AUTO_INCREMENT PRIMARY KEY,

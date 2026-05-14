@@ -74,4 +74,11 @@
         )
     </insert>
 
+    <!-- 사용자 역할 변경 -->
+    <update id="updateUserRole">
+        UPDATE users
+           SET role = #{role}
+         WHERE id = #{id}
+    </update>
+
 </mapper>

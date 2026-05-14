@@ -7,6 +7,7 @@ import CourseRegisterPage from './pages/CourseRegisterPage'
 import CourseListPage from './pages/CourseListPage'
 import CourseDetailPage from './pages/CourseDetailPage'
 import MyPage from './pages/MyPage'
+import AdminPage from './pages/AdminPage'
 import PaymentSuccessPage from './pages/PaymentSuccessPage'
 import PaymentFailPage from './pages/PaymentFailPage'
 
@@ -30,6 +31,16 @@ const CreatorRoute = ({ children }) => {
     return <Layout>{children}</Layout>;
 };
 
+/* ADMIN 권한 전용 라우트 */
+const AdminRoute = ({ children }) => {
+    const { user } = useAuth();
+
+    if (!user) return <Navigate to="/login" replace />;
+    if (user.role !== 'ADMIN') return <Navigate to="/courses" replace />;
+
+    return <Layout>{children}</Layout>;
+};
+
 function App() {
     return (
         <AuthProvider>
@@ -41,6 +52,7 @@ function App() {
                 <Route path="/courses/new" element={<CreatorRoute><CourseRegisterPage /></CreatorRoute>} />
                 <Route path="/courses/:courseId/edit" element={<CreatorRoute><CourseRegisterPage /></CreatorRoute>} />
                 <Route path="/my-page" element={<PrivateRoute><MyPage /></PrivateRoute>} />
+                <Route path="/admin" element={<AdminRoute><AdminPage /></AdminRoute>} />
                 <Route path="/payment/success" element={<PrivateRoute><PaymentSuccessPage /></PrivateRoute>} />
                 <Route path="/payment/fail" element={<PrivateRoute><PaymentFailPage /></PrivateRoute>} />
                 <Route path="*" element={<Navigate to="/courses" replace />} />

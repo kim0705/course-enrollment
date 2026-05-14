@@ -16,6 +16,47 @@
         )
     </insert>
 
+    <!-- 강사 신청 단건 조회 -->
+    <select id="selectCreatorRequestById" parameterType="Long" resultType="RespCreatorRequestDto">
+        SELECT cr.id
+             , cr.user_id
+             , u.username
+             , u.name
+             , cr.status
+             , cr.reason
+             , cr.reject_reason
+             , cr.requested_at
+             , cr.processed_at
+          FROM creator_requests cr
+          JOIN users u ON u.id = cr.user_id
+         WHERE cr.id = #{id}
+    </select>
+
+    <!-- 전체 강사 신청 목록 조회 -->
+    <select id="selectCreatorRequestList" resultType="RespCreatorRequestDto">
+        SELECT cr.id
+             , cr.user_id
+             , u.username
+             , u.name
+             , cr.status
+             , cr.reason
+             , cr.reject_reason
+             , cr.requested_at
+             , cr.processed_at
+          FROM creator_requests cr
+          JOIN users u ON u.id = cr.user_id
+        ORDER BY cr.requested_at DESC
+    </select>
+
+    <!-- 강사 신청 상태 업데이트 -->
+    <update id="updateCreatorRequestStatus" parameterType="CreatorRequest">
+        UPDATE creator_requests
+           SET status = #{status}
+             , reject_reason = #{rejectReason}
+             , processed_at = #{processedAt}
+         WHERE id = #{id}
+    </update>
+
     <!-- 사용자의 PENDING 상태 신청 조회 -->
     <select id="selectPendingRequestByUserId" parameterType="Long" resultType="CreatorRequest">
         SELECT id

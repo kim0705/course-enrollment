@@ -8,7 +8,7 @@ const Header = () => {
     const { user, logout } = useAuth();
 
     /* 역할에 따른 라벨 */
-    const roleLabel = (role) => role === 'CREATOR' ? '강사' : '수강생';
+    const roleLabel = (role) => role === 'CREATOR' ? '강사' : role === 'ADMIN' ? '관리자' : '수강생';
 
     /* 로그아웃 처리 */
     const handleLogout = () => {

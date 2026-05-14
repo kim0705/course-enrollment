@@ -6,7 +6,8 @@ VALUES
     ('creator_c', '강사C',  'creator_c@test.com', '$2a$10$N/1FjmE1Nxvz24gnJ4A.I.3zw7QlQdAgKn8TVvuUfkCRJq0gMUioK', 'CREATOR'),
     ('student_a', '수강생A', 'student_a@test.com', '$2a$10$N/1FjmE1Nxvz24gnJ4A.I.3zw7QlQdAgKn8TVvuUfkCRJq0gMUioK', 'STUDENT'),
     ('student_b', '수강생B', 'student_b@test.com', '$2a$10$N/1FjmE1Nxvz24gnJ4A.I.3zw7QlQdAgKn8TVvuUfkCRJq0gMUioK', 'STUDENT'),
-    ('student_c', '수강생C', 'student_c@test.com', '$2a$10$N/1FjmE1Nxvz24gnJ4A.I.3zw7QlQdAgKn8TVvuUfkCRJq0gMUioK', 'STUDENT');
+    ('student_c', '수강생C', 'student_c@test.com', '$2a$10$N/1FjmE1Nxvz24gnJ4A.I.3zw7QlQdAgKn8TVvuUfkCRJq0gMUioK', 'STUDENT'),
+    ('admin',     '관리자',  'admin@test.com',     '$2a$10$N/1FjmE1Nxvz24gnJ4A.I.3zw7QlQdAgKn8TVvuUfkCRJq0gMUioK', 'ADMIN');
 
 
 

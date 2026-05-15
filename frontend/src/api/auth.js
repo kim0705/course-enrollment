@@ -1,5 +1,15 @@
 import instance from './axios';
 
+/* 로그인 */
+export const login = (data) => {
+    return instance.post('/api/auth/login', data).then(res => res.data);
+};
+
+/* 로그아웃 */
+export const logout = () => {
+    return instance.post('/api/auth/logout').then(res => res.data);
+};
+
 /* 회원가입 */
 export const signup = (data) => {
     return instance.post('/api/auth/signup', data).then(res => res.data);

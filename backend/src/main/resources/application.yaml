@@ -33,6 +33,10 @@ logging:
   level:
     com.yujin.course_enrollment: DEBUG
 
+jwt:
+  secret: ${JWT_SECRET}
+  expiration: 900000
+
 toss:
   secret-key: ${TOSS_SECRET_KEY:}
   confirm-url: https://api.tosspayments.com/v1/payments/confirm

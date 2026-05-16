@@ -25,14 +25,52 @@ public class AuthService {
     private final UserMapper userMapper;
     private final BCryptPasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
+    private final RefreshTokenService refreshTokenService;
 
     /**
      * AccessToken 생성
      * @param user 인증된 사용자 엔티티
-     * @return 서명된 JWT 문자열
+     * @return 서명된 JWT accessToken 문자열
      */
-    public String generateToken(User user) {
+    public String generateAccessToken(User user) {
         return jwtUtil.generateToken(user.getId(), user.getRole());
+    }
+
+    /**
+     * RefreshToken 생성 후 Redis 저장
+     * @param userId 사용자 ID
+     * @return 생성된 refreshToken (UUID)
+     */
+    public String generateRefreshToken(Long userId) {
+        return refreshTokenService.save(userId);
+    }
+
+    /**
+     * RefreshToken 검증 → 사용자 조회 + RefreshToken 삭제 (rotation은 컨트롤러에서 완성)
+     * @param refreshToken 기존 refreshToken
+     * @return 검증된 사용자 엔티티
+     * @throws BusinessException 유효하지 않은 토큰 (401), 사용자 없음 (401)
+     */
+    public User validateAndRotateRefreshToken(String refreshToken) {
+        Long userId = refreshTokenService.getUserId(refreshToken);
+        User user = userMapper.selectUserById(userId);
+        if (user == null) {
+            throw new BusinessException(HttpStatus.UNAUTHORIZED, "사용자를 찾을 수 없습니다.");
+        }
+
+        refreshTokenService.delete(refreshToken);
+
+        return user;
+    }
+
+    /**
+     * RefreshToken 삭제 (로그아웃)
+     * @param refreshToken 삭제할 refreshToken (null이면 무시)
+     */
+    public void deleteRefreshToken(String refreshToken) {
+        if (refreshToken != null) {
+            refreshTokenService.delete(refreshToken);
+        }
     }
 
     /**

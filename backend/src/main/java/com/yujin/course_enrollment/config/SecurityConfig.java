@@ -43,7 +43,7 @@ public class SecurityConfig {
                         /* H2 콘솔, 인증 엔드포인트는 인증 없이 허용 */
                         .requestMatchers("/h2-console/**", "/error").permitAll()
                         .requestMatchers("/api/auth/login", "/api/auth/signup").anonymous()
-                        .requestMatchers("/api/auth/logout", "/api/auth/check-username", "/api/auth/check-email").permitAll()
+                        .requestMatchers("/api/auth/logout", "/api/auth/refresh", "/api/auth/check-username", "/api/auth/check-email").permitAll()
                         /* 강사 전용 */
                         .requestMatchers(HttpMethod.GET, "/api/courses/my", "/api/courses/{courseId}/enrollments").hasRole("CREATOR")
                         .requestMatchers(HttpMethod.POST, "/api/courses").hasRole("CREATOR")

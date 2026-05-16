@@ -42,7 +42,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         /* H2 콘솔, 인증 엔드포인트는 인증 없이 허용 */
                         .requestMatchers("/h2-console/**", "/error").permitAll()
-                        .requestMatchers("/api/auth/login", "/api/auth/signup").anonymous()
+                        .requestMatchers("/api/auth/login", "/api/auth/signup").permitAll()
                         .requestMatchers("/api/auth/logout", "/api/auth/refresh", "/api/auth/check-username", "/api/auth/check-email").permitAll()
                         /* 강사 전용 */
                         .requestMatchers(HttpMethod.GET, "/api/courses/my", "/api/courses/{courseId}/enrollments").hasRole("CREATOR")
@@ -51,8 +51,9 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.PATCH, "/api/courses/{courseId}/publish", "/api/courses/{courseId}/close").hasRole("CREATOR")
                         /* 강의 목록/상세 조회는 인증 없이 허용 */
                         .requestMatchers(HttpMethod.GET, "/api/courses", "/api/courses/{courseId}").permitAll()
+                        /* 수강생/강사 공통 */
+                        .requestMatchers("/api/enrollments/**", "/api/payments/**").hasAnyRole("STUDENT", "CREATOR")
                         /* 수강생 전용 */
-                        .requestMatchers("/api/enrollments/**", "/api/payments/**").hasRole("STUDENT")
                         .requestMatchers(HttpMethod.POST, "/api/creator-requests").hasRole("STUDENT")
                         /* 관리자 전용 */
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")

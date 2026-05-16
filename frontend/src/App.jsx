@@ -14,11 +14,21 @@ import PaymentFailPage from './pages/PaymentFailPage'
 /* 비회원도 접근 가능한 공개 라우트 */
 const PublicRoute = ({ children }) => <Layout>{children}</Layout>;
 
-/* 인증 여부에 따라 라우트 보호 및 공통 레이아웃 적용 */
+/* 인증된 사용자 전용 라우트 */
 const PrivateRoute = ({ children }) => {
     const { user } = useAuth();
 
     return user ? <Layout>{children}</Layout> : <Navigate to="/login" replace />;
+};
+
+/* STUDENT/CREATOR 전용 라우트 - ADMIN은 /admin으로 리다이렉트 */
+const StudentRoute = ({ children }) => {
+    const { user } = useAuth();
+
+    if (!user) return <Navigate to="/login" replace />;
+    if (user.role === 'ADMIN') return <Navigate to="/admin" replace />;
+
+    return <Layout>{children}</Layout>;
 };
 
 /* CREATOR 권한 전용 라우트 */
@@ -36,27 +46,38 @@ const AdminRoute = ({ children }) => {
     const { user } = useAuth();
 
     if (!user) return <Navigate to="/login" replace />;
-    if (user.role !== 'ADMIN') return <Navigate to="/courses" replace />;
+    if (user.role !== 'ADMIN') return <Navigate to="/my-page" replace />;
 
     return <Layout>{children}</Layout>;
 };
 
+/* 인증 초기화 완료 후 라우트 렌더링 */
+function AppRoutes() {
+    const { isInitializing } = useAuth();
+
+    if (isInitializing) return null;
+
+    return (
+        <Routes>
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/signup" element={<SignupPage />} />
+            <Route path="/courses" element={<PublicRoute><CourseListPage /></PublicRoute>} />
+            <Route path="/courses/:courseId" element={<PublicRoute><CourseDetailPage /></PublicRoute>} />
+            <Route path="/courses/new" element={<CreatorRoute><CourseRegisterPage /></CreatorRoute>} />
+            <Route path="/courses/:courseId/edit" element={<CreatorRoute><CourseRegisterPage /></CreatorRoute>} />
+            <Route path="/my-page" element={<StudentRoute><MyPage /></StudentRoute>} />
+            <Route path="/admin" element={<AdminRoute><AdminPage /></AdminRoute>} />
+            <Route path="/payment/success" element={<PrivateRoute><PaymentSuccessPage /></PrivateRoute>} />
+            <Route path="/payment/fail" element={<PrivateRoute><PaymentFailPage /></PrivateRoute>} />
+            <Route path="*" element={<Navigate to="/courses" replace />} />
+        </Routes>
+    );
+}
+
 function App() {
     return (
         <AuthProvider>
-            <Routes>
-                <Route path="/login" element={<LoginPage />} />
-                <Route path="/signup" element={<SignupPage />} />
-                <Route path="/courses" element={<PublicRoute><CourseListPage /></PublicRoute>} />
-                <Route path="/courses/:courseId" element={<PublicRoute><CourseDetailPage /></PublicRoute>} />
-                <Route path="/courses/new" element={<CreatorRoute><CourseRegisterPage /></CreatorRoute>} />
-                <Route path="/courses/:courseId/edit" element={<CreatorRoute><CourseRegisterPage /></CreatorRoute>} />
-                <Route path="/my-page" element={<PrivateRoute><MyPage /></PrivateRoute>} />
-                <Route path="/admin" element={<AdminRoute><AdminPage /></AdminRoute>} />
-                <Route path="/payment/success" element={<PrivateRoute><PaymentSuccessPage /></PrivateRoute>} />
-                <Route path="/payment/fail" element={<PrivateRoute><PaymentFailPage /></PrivateRoute>} />
-                <Route path="*" element={<Navigate to="/courses" replace />} />
-            </Routes>
+            <AppRoutes />
         </AuthProvider>
     )
 }

@@ -14,6 +14,13 @@ import PaymentFailPage from './pages/PaymentFailPage'
 /* 비회원도 접근 가능한 공개 라우트 */
 const PublicRoute = ({ children }) => <Layout>{children}</Layout>;
 
+/* 비인증 전용 라우트 - 로그인 상태면 /courses로 리다이렉트 */
+const GuestRoute = ({ children }) => {
+    const { user } = useAuth();
+
+    return user ? <Navigate to="/courses" replace /> : children;
+};
+
 /* 인증된 사용자 전용 라우트 */
 const PrivateRoute = ({ children }) => {
     const { user } = useAuth();
@@ -59,8 +66,8 @@ function AppRoutes() {
 
     return (
         <Routes>
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/signup" element={<SignupPage />} />
+            <Route path="/login" element={<GuestRoute><LoginPage /></GuestRoute>} />
+            <Route path="/signup" element={<GuestRoute><SignupPage /></GuestRoute>} />
             <Route path="/courses" element={<PublicRoute><CourseListPage /></PublicRoute>} />
             <Route path="/courses/:courseId" element={<PublicRoute><CourseDetailPage /></PublicRoute>} />
             <Route path="/courses/new" element={<CreatorRoute><CourseRegisterPage /></CreatorRoute>} />

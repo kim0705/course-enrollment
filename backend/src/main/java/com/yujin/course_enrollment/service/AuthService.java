@@ -46,6 +46,21 @@ public class AuthService {
     }
 
     /**
+     * 사용자 ID로 사용자 조회
+     * @param id 사용자 ID
+     * @return 사용자 엔티티
+     * @throws BusinessException 사용자 없음 (401)
+     */
+    public User getUserById(Long id) {
+        User user = userMapper.selectUserById(id);
+        if (user == null) {
+            throw new BusinessException(HttpStatus.UNAUTHORIZED, "사용자를 찾을 수 없습니다.");
+        }
+
+        return user;
+    }
+
+    /**
      * RefreshToken 검증 → 사용자 조회 + RefreshToken 삭제 (rotation은 컨트롤러에서 완성)
      * @param refreshToken 기존 refreshToken
      * @return 검증된 사용자 엔티티

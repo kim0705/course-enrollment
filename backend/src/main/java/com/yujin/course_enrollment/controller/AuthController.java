@@ -21,6 +21,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.Duration;
@@ -37,6 +38,21 @@ import java.util.Map;
 public class AuthController {
 
     private final AuthService authService;
+
+    /**
+     * 현재 인증된 사용자 정보 조회
+     * GET /api/auth/me
+     * @param userId SecurityContext에서 추출된 사용자 ID
+     * @return 사용자 정보 (id, username, name, role)
+     */
+    @GetMapping("/me")
+    public ResponseEntity<ApiResponse<RespLoginDto>> me(@AuthenticationPrincipal Long userId) {
+        log.debug("[AuthController] 내 정보 조회 - userId: {}", userId);
+
+        User user = authService.getUserById(userId);
+
+        return ResponseEntity.ok(ApiResponse.success(RespLoginDto.from(user)));
+    }
 
     /**
      * 로그인

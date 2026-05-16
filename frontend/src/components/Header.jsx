@@ -11,9 +11,9 @@ const Header = () => {
     const roleLabel = (role) => role === 'CREATOR' ? '강사' : role === 'ADMIN' ? '관리자' : '수강생';
 
     /* 로그아웃 처리 */
-    const handleLogout = () => {
-        logout();
-        navigate('/signup');
+    const handleLogout = async () => {
+        await logout();
+        navigate('/login');
     };
 
     return (
@@ -58,12 +58,20 @@ const Header = () => {
                             </button>
                         </>
                     ) : (
-                        <button
-                            onClick={() => navigate('/signup')}
-                            className="text-sm px-3 py-1.5 rounded-md bg-blue-600 text-white hover:bg-blue-700 transition-colors cursor-pointer"
-                        >
-                            회원가입
-                        </button>
+                        <>
+                            <button
+                                onClick={() => navigate('/login')}
+                                className="text-sm px-3 py-1.5 rounded-md border border-gray-300 text-gray-600 hover:bg-gray-50 transition-colors cursor-pointer"
+                            >
+                                로그인
+                            </button>
+                            <button
+                                onClick={() => navigate('/signup')}
+                                className="text-sm px-3 py-1.5 rounded-md bg-blue-600 text-white hover:bg-blue-700 transition-colors cursor-pointer"
+                            >
+                                회원가입
+                            </button>
+                        </>
                     )}
                 </div>
             </div>

@@ -17,6 +17,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 
@@ -39,7 +40,7 @@ public class CourseController {
      * @param reqCourseCreateDto 강의 등록 요청 DTO
      */
     @PostMapping
-    public ResponseEntity<ApiResponse<RespCourseCreateDto>> createCourse(@RequestHeader("X-User-Id") Long creatorId, @Valid @RequestBody ReqCourseCreateDto reqCourseCreateDto) {
+    public ResponseEntity<ApiResponse<RespCourseCreateDto>> createCourse(@AuthenticationPrincipal Long creatorId, @Valid @RequestBody ReqCourseCreateDto reqCourseCreateDto) {
         log.debug("[CourseController] 강의 등록 요청 - creatorId: {}, title: {}", creatorId, reqCourseCreateDto.getTitle());
 
         RespCourseCreateDto respCourseCreateDto = courseService.registerCourse(creatorId, reqCourseCreateDto);
@@ -68,7 +69,7 @@ public class CourseController {
      * @param courseId 강의 ID
      */
     @GetMapping("/{courseId}")
-    public ResponseEntity<ApiResponse<RespCourseDetailDto>> getCourseDetail(@RequestHeader(value = "X-User-Id", required = false) Long userId, @PathVariable Long courseId) {
+    public ResponseEntity<ApiResponse<RespCourseDetailDto>> getCourseDetail(@AuthenticationPrincipal Long userId, @PathVariable Long courseId) {
         log.debug("[CourseController] 강의 상세 조회 요청 - courseId: {}", courseId);
 
         RespCourseDetailDto result = courseService.findCourseById(courseId, userId);
@@ -84,7 +85,7 @@ public class CourseController {
      * @param reqCourseUpdateDto 강의 수정 요청 DTO
      */
     @PutMapping("/{courseId}")
-    public ResponseEntity<ApiResponse<RespCourseDetailDto>> updateCourse(@RequestHeader("X-User-Id") Long creatorId, @PathVariable Long courseId, @Valid @RequestBody ReqCourseUpdateDto reqCourseUpdateDto) {
+    public ResponseEntity<ApiResponse<RespCourseDetailDto>> updateCourse(@AuthenticationPrincipal Long creatorId, @PathVariable Long courseId, @Valid @RequestBody ReqCourseUpdateDto reqCourseUpdateDto) {
         log.debug("[CourseController] 강의 수정 요청 - creatorId: {}, courseId: {}", creatorId, courseId);
 
         RespCourseDetailDto result = courseService.modifyCourse(creatorId, courseId, reqCourseUpdateDto);
@@ -99,7 +100,7 @@ public class CourseController {
      * @param courseId 강의 ID
      */
     @PatchMapping("/{courseId}/publish")
-    public ResponseEntity<ApiResponse<RespCourseDetailDto>> publishCourse(@RequestHeader("X-User-Id") Long creatorId, @PathVariable Long courseId) {
+    public ResponseEntity<ApiResponse<RespCourseDetailDto>> publishCourse(@AuthenticationPrincipal Long creatorId, @PathVariable Long courseId) {
         log.debug("[CourseController] 강의 공개 요청 - creatorId: {}, courseId: {}", creatorId, courseId);
 
         RespCourseDetailDto result = courseService.publishCourse(creatorId, courseId);
@@ -114,7 +115,7 @@ public class CourseController {
      * @param courseId 강의 ID
      */
     @PatchMapping("/{courseId}/close")
-    public ResponseEntity<ApiResponse<RespCourseDetailDto>> closeCourse(@RequestHeader("X-User-Id") Long creatorId, @PathVariable Long courseId) {
+    public ResponseEntity<ApiResponse<RespCourseDetailDto>> closeCourse(@AuthenticationPrincipal Long creatorId, @PathVariable Long courseId) {
         log.debug("[CourseController] 강의 마감 요청 - creatorId: {}, courseId: {}", creatorId, courseId);
 
         RespCourseDetailDto result = courseService.closeCourse(creatorId, courseId);
@@ -129,7 +130,7 @@ public class CourseController {
      * @param reqMyCoursePageDto 페이징 조건 DTO
      */
     @GetMapping("/my")
-    public ResponseEntity<ApiResponse<RespPageDto<RespCourseListDto>>> getMyCourses(@RequestHeader("X-User-Id") Long creatorId, ReqMyCoursePageDto reqMyCoursePageDto) {
+    public ResponseEntity<ApiResponse<RespPageDto<RespCourseListDto>>> getMyCourses(@AuthenticationPrincipal Long creatorId, ReqMyCoursePageDto reqMyCoursePageDto) {
         log.debug("[CourseController] 나의 강의 목록 조회 요청 - creatorId: {}", creatorId);
 
         RespPageDto<RespCourseListDto> result = courseService.findMyCourses(creatorId, reqMyCoursePageDto);
@@ -145,7 +146,7 @@ public class CourseController {
      * @param reqCourseEnrollmentPageDto 페이징 조건 DTO
      */
     @GetMapping("/{courseId}/enrollments")
-    public ResponseEntity<ApiResponse<RespPageDto<RespEnrollmentCreatorDto>>> getCourseEnrollments(@RequestHeader("X-User-Id") Long creatorId, @PathVariable Long courseId, ReqCourseEnrollmentPageDto reqCourseEnrollmentPageDto) {
+    public ResponseEntity<ApiResponse<RespPageDto<RespEnrollmentCreatorDto>>> getCourseEnrollments(@AuthenticationPrincipal Long creatorId, @PathVariable Long courseId, ReqCourseEnrollmentPageDto reqCourseEnrollmentPageDto) {
         log.debug("[CourseController] 강의별 수강생 목록 조회 요청 - creatorId: {}, courseId: {}", creatorId, courseId);
 
         RespPageDto<RespEnrollmentCreatorDto> result = courseService.findCourseEnrollments(creatorId, courseId, reqCourseEnrollmentPageDto);

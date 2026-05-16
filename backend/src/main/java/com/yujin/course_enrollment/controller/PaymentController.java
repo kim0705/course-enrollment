@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 /**
@@ -33,7 +34,7 @@ public class PaymentController {
      * @return 저장된 결제 응답 DTO
      */
     @PostMapping("/confirm")
-    public ResponseEntity<ApiResponse<RespPaymentDto>> confirmPayment(@RequestHeader("X-User-Id") Long userId, @Valid @RequestBody ReqPaymentConfirmDto reqPaymentConfirmDto) {
+    public ResponseEntity<ApiResponse<RespPaymentDto>> confirmPayment(@AuthenticationPrincipal Long userId, @Valid @RequestBody ReqPaymentConfirmDto reqPaymentConfirmDto) {
         log.debug("[PaymentController] 결제 승인 요청 - userId: {}, enrollmentId: {}", userId, reqPaymentConfirmDto.getEnrollmentId());
 
         RespPaymentDto result = paymentService.confirmPayment(userId, reqPaymentConfirmDto);
@@ -49,7 +50,7 @@ public class PaymentController {
      * @return 페이징된 결제 내역 목록 (DONE, CANCELLED)
      */
     @GetMapping("/my")
-    public ResponseEntity<ApiResponse<RespPageDto<RespPaymentDto>>> getMyPayments(@RequestHeader("X-User-Id") Long userId, ReqMyPaymentPageDto reqMyPaymentPageDto) {
+    public ResponseEntity<ApiResponse<RespPageDto<RespPaymentDto>>> getMyPayments(@AuthenticationPrincipal Long userId, ReqMyPaymentPageDto reqMyPaymentPageDto) {
         log.debug("[PaymentController] 결제 내역 조회 요청 - userId: {}", userId);
 
         RespPageDto<RespPaymentDto> result = paymentService.findMyPayments(userId, reqMyPaymentPageDto);

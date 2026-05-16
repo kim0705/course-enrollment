@@ -1,4 +1,5 @@
 import { createContext, useContext, useState } from 'react';
+import { login as loginApi, logout as logoutApi } from '../api/auth';
 
 const AuthContext = createContext(null);
 
@@ -9,14 +10,19 @@ export const AuthProvider = ({ children }) => {
         return saved ? JSON.parse(saved) : null;
     });
 
-    /* 로그인: 선택한 유저를 전역 상태 및 localStorage에 저장 */
-    const login = (selectedUser) => {
-        localStorage.setItem('user', JSON.stringify(selectedUser));
-        setUser(selectedUser);
+    /* 로그인: API 호출 후 응답에서 사용자 정보 저장 */
+    const login = async (username, password) => {
+        const res = await loginApi({ username, password });
+        const userInfo = res.data;
+
+        localStorage.setItem('user', JSON.stringify(userInfo));
+        setUser(userInfo);
     };
 
-    /* 로그아웃: 전역 상태 및 localStorage 초기화 */
-    const logout = () => {
+    /* 로그아웃: API 호출 후 상태 및 localStorage 초기화 */
+    const logout = async () => {
+        await logoutApi();
+        
         localStorage.removeItem('user');
         setUser(null);
     };

@@ -81,4 +81,26 @@
          WHERE id = #{id}
     </update>
 
+    <!-- 프로필 수정 (이름·이메일) -->
+    <update id="updateUserInfo" parameterType="User">
+        UPDATE users
+           SET name = #{name}
+             , email = #{email}
+         WHERE id = #{id}
+    </update>
+
+    <!-- 비밀번호 변경 -->
+    <update id="updateUserPassword">
+        UPDATE users
+           SET password = #{password}
+         WHERE id = #{id}
+    </update>
+
+    <!-- 비밀번호 조회 (검증용) -->
+    <select id="selectPasswordById" parameterType="Long" resultType="String">
+        SELECT password
+          FROM users
+         WHERE id = #{id}
+    </select>
+
 </mapper>

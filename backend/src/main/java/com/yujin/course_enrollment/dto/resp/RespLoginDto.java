@@ -13,6 +13,7 @@ public class RespLoginDto {
     private Long id;
     private String username;
     private String name;
+    private String email;
     private String role;
 
     /* User 엔티티 → 로그인 응답 DTO 변환 */
@@ -21,6 +22,7 @@ public class RespLoginDto {
                 .id(user.getId())
                 .username(user.getUsername())
                 .name(user.getName())
+                .email(user.getEmail())
                 .role(user.getRole())
                 .build();
     }

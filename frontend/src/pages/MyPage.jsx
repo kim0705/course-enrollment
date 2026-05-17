@@ -6,6 +6,7 @@ import EnrollmentTab from './mypage/EnrollmentTab';
 import PaymentTab from './mypage/PaymentTab';
 import MyCourseTab from './mypage/MyCourseTab';
 import StudentTab from './mypage/StudentTab';
+import ProfileTab from './mypage/ProfileTab';
 
 /* 마이페이지 */
 const MyPage = () => {
@@ -14,20 +15,23 @@ const MyPage = () => {
     /* 인증 정보 */
     const { user } = useAuth();
     /* 현재 활성화된 탭 상태 */
-    const [activeTab, setActiveTab] = useState(location.state?.tab || 'enrollments');
+    const [activeTab, setActiveTab] = useState(location.state?.tab || (user?.role === 'CREATOR' ? 'my-courses' : 'enrollments'));
     /* 강사 신청 폼 표시 상태 */
     const [showCreatorForm, setShowCreatorForm] = useState(false);
     /* 강사 신청 사유 */
     const [creatorReason, setCreatorReason] = useState('');
 
-    /* 탭 목록 - CREATOR는 추가 탭 노출 */
+    /* 탭 목록
+     * STUDENT: 나의 수강목록 → 프로필 수정 → 결제 내역
+     * CREATOR: 내 강의 → 강의별 수강생 목록 → 나의 수강목록 → 프로필 수정 → 결제 내역 */
     const tabs = [
-        { key: 'enrollments', label: '나의 수강목록' },
-        { key: 'payments', label: '결제 내역' },
         ...(user?.role === 'CREATOR' ? [
             { key: 'my-courses', label: '내 강의' },
             { key: 'students', label: '강의별 수강생 목록' },
         ] : []),
+        { key: 'enrollments', label: '나의 수강목록' },
+        { key: 'profile', label: '프로필 수정' },
+        { key: 'payments', label: '결제 내역' },
     ];
 
     /* 강사 신청 제출 */
@@ -114,6 +118,7 @@ const MyPage = () => {
             {activeTab === 'payments' && <PaymentTab />}
             {activeTab === 'my-courses' && <MyCourseTab />}
             {activeTab === 'students' && <StudentTab />}
+            {activeTab === 'profile' && <ProfileTab />}
 
         </div>
     );

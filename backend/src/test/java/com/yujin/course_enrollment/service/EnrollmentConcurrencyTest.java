@@ -33,7 +33,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * 수강 신청 동시성 통합 테스트
  * 실제 DB의 조건부 UPDATE(enrolled_count < capacity)가 동시 요청에서 정원 초과를 막는지 검증
  */
-@SpringBootTest
+@SpringBootTest(properties = "jwt.secret=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=")
 class EnrollmentConcurrencyTest {
 
     @Autowired

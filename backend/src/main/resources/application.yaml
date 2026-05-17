@@ -19,6 +19,11 @@ spring:
       schema-locations: classpath:sql/schema.sql
       data-locations: classpath:sql/data.sql
 
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
   jackson:
     time-zone: Asia/Seoul
 

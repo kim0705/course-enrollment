@@ -1,7 +1,9 @@
 package com.yujin.course_enrollment.controller;
 
+import com.yujin.course_enrollment.dto.req.ReqAdminRoleUpdateDto;
 import com.yujin.course_enrollment.dto.req.ReqUpdatePasswordDto;
 import com.yujin.course_enrollment.dto.resp.RespAdminDashboardDto;
+import com.yujin.course_enrollment.entity.User;
 import com.yujin.course_enrollment.global.response.ApiResponse;
 import com.yujin.course_enrollment.service.AdminService;
 import com.yujin.course_enrollment.service.UserService;
@@ -12,9 +14,12 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
 
 /**
  * 관리자 컨트롤러
@@ -39,6 +44,34 @@ public class AdminController {
         log.debug("[AdminController] 대시보드 통계 조회 요청");
 
         return ResponseEntity.ok(ApiResponse.success(adminService.getDashboardStats()));
+    }
+
+    /**
+     * 전체 사용자 목록 조회
+     * GET /api/admin/users
+     * @return 전체 사용자 목록
+     */
+    @GetMapping("/users")
+    public ResponseEntity<ApiResponse<List<User>>> getUserList() {
+        log.debug("[AdminController] 전체 사용자 목록 조회 요청");
+
+        return ResponseEntity.ok(ApiResponse.success(adminService.findAllUsers()));
+    }
+
+    /**
+     * 사용자 역할 변경
+     * PATCH /api/admin/users/{userId}/role
+     * @param userId 대상 사용자 ID
+     * @param reqAdminRoleUpdateDto 변경할 역할
+     * @return 200 OK
+     */
+    @PatchMapping("/users/{userId}/role")
+    public ResponseEntity<ApiResponse<Void>> updateUserRole(@PathVariable Long userId, @Valid @RequestBody ReqAdminRoleUpdateDto reqAdminRoleUpdateDto) {
+        log.debug("[AdminController] 사용자 역할 변경 - userId: {}, role: {}", userId, reqAdminRoleUpdateDto.getRole());
+
+        adminService.updateUserRole(userId, reqAdminRoleUpdateDto.getRole());
+
+        return ResponseEntity.ok(ApiResponse.success());
     }
 
     /**

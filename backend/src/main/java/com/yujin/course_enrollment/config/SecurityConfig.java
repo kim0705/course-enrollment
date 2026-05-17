@@ -54,6 +54,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/courses", "/api/courses/{courseId}").permitAll()
                         /* 수강생/강사 공통 */
                         .requestMatchers("/api/enrollments/**", "/api/payments/**").hasAnyRole("STUDENT", "CREATOR")
+                        /* 프로필 수정 (STUDENT / CREATOR 전용) */
+                        .requestMatchers(HttpMethod.PATCH, "/api/users/me", "/api/users/me/password").hasAnyRole("STUDENT", "CREATOR")
                         /* 수강생 전용 */
                         .requestMatchers(HttpMethod.POST, "/api/creator-requests").hasRole("STUDENT")
                         /* 관리자 전용 */

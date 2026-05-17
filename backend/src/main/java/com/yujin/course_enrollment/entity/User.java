@@ -58,4 +58,13 @@ public class User {
                 .role("STUDENT")
                 .build();
     }
+
+    /* 프로필 수정용 엔티티 생성 */
+    public static User ofProfileUpdate(Long id, String name, String email) {
+        return User.builder()
+                .id(id)
+                .name(name)
+                .email(email)
+                .build();
+    }
 }

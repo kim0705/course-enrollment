@@ -29,4 +29,13 @@ public interface UserMapper {
 
     /* 사용자 역할 변경 */
     void updateUserRole(@Param("id") Long id, @Param("role") String role);
+
+    /* 프로필 수정 (이름·이메일) */
+    void updateUserInfo(User user);
+
+    /* 비밀번호 변경 */
+    void updateUserPassword(@Param("id") Long id, @Param("password") String password);
+
+    /* 비밀번호 조회 (검증용) */
+    String selectPasswordById(Long id);
 }

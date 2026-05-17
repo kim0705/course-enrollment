@@ -1,24 +1,68 @@
-import { createContext, useContext, useState, useEffect, useRef } from 'react';
+import { createContext, useContext, useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { login as loginApi, logout as logoutApi } from '../api/auth';
-import { plainAxios } from '../api/axios';
+import instance, { plainAxios } from '../api/axios';
 
 /* 인증 컨텍스트 */
 const AuthContext = createContext(null);
 
+/* StrictMode 이중 실행 방지 — useRef는 remount 시 초기화되므로 모듈 레벨 변수 사용 */
+let didAuthInit = false;
+
 export const AuthProvider = ({ children }) => {
+    /* 네비게이션 훅 */
+    const navigate = useNavigate();
     /* 현재 로그인한 사용자 정보 상태 */
     const [user, setUser] = useState(null);
     /* 앱 초기 구동 시 서버 인증 상태 확인 완료 여부 */
     const [isInitializing, setIsInitializing] = useState(true);
-    /* StrictMode 이중 실행 방지 — refreshToken rotation 충돌 방어 */
-    const initRef = useRef(false);
 
-    /* 앱 마운트 시 서버에서 토큰 유효성 및 사용자 정보 검증
-     * validateStatus로 인터셉터 개입 없이 직접 401/200 처리 */
+    /* 응답 인터셉터: 401 Unauthorized 응답 시 자동으로 토큰 갱신 시도
+     * - refresh/login 요청 자체거나 이미 재시도한 경우는 그대로 reject
+     * - refresh 성공 시 원래 요청 재시도
+     * - refresh 실패 시 로컬 스토리지에서 사용자 정보 제거 후 로그인 페이지로 리다이렉트 */
     useEffect(() => {
-        if (initRef.current) return;
+        const id = instance.interceptors.response.use(
+            res => res,
+            async error => {
+                const original = error.config;
 
-        initRef.current = true;
+                if (
+                    error.response?.status !== 401 ||
+                    original._retry ||
+                    original.url === '/api/auth/refresh' ||
+                    original.url === '/api/auth/login'
+                ) {
+                    return Promise.reject(error);
+                }
+
+                original._retry = true;
+
+                try {
+                    await instance.post('/api/auth/refresh');
+                    return instance(original);
+                } catch {
+                    localStorage.removeItem('user');
+                    setUser(null);
+                    navigate('/login', { replace: true });
+                    return Promise.reject(error);
+                }
+            }
+        );
+
+        return () => instance.interceptors.response.eject(id);
+    }, [navigate]);
+
+    /* 앱 초기 구동 시 서버 인증 상태 확인
+     * - localStorage에 사용자 정보가 없으면 바로 초기화 완료 처리
+     * - 있으면 /api/auth/me로 인증 상태 확인 시도
+     *   - 401 응답 시 토큰 갱신 시도 후 재확인
+     *   - 성공 시 사용자 정보 상태 및 localStorage에 저장
+     *   - 실패 시 사용자 정보 제거 */
+    useEffect(() => {
+        if (didAuthInit) return;
+
+        didAuthInit = true;
 
         if (!localStorage.getItem('user')) {
             setIsInitializing(false);
@@ -26,26 +70,29 @@ export const AuthProvider = ({ children }) => {
         }
 
         const init = async () => {
+            localStorage.removeItem('user');
+
             try {
-                let res = await plainAxios.get('/api/auth/me');
+                let res = await plainAxios.get('/api/auth/me', {
+                    headers: { 'Cache-Control': 'no-cache' },
+                });
 
                 if (res.status === 401) {
                     const refreshRes = await plainAxios.post('/api/auth/refresh');
 
-                    if (refreshRes.status !== 200) throw new Error('refresh failed');
-                    
-                    res = await plainAxios.get('/api/auth/me');
+                    if (refreshRes.status === 200) {
+                        res = await plainAxios.get('/api/auth/me', {
+                            headers: { 'Cache-Control': 'no-cache' },
+                        });
+                    }
                 }
 
                 if (res.status === 200) {
                     setUser(res.data.data);
                     localStorage.setItem('user', JSON.stringify(res.data.data));
-                } else {
-                    throw new Error('me failed');
                 }
             } catch {
-                setUser(null);
-                localStorage.removeItem('user');
+                /* network error — user stays null */
             } finally {
                 setIsInitializing(false);
             }
@@ -78,4 +125,5 @@ export const AuthProvider = ({ children }) => {
     );
 };
 
+/* 인증 컨텍스트 훅 */
 export const useAuth = () => useContext(AuthContext);

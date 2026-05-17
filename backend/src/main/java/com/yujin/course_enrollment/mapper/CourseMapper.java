@@ -47,4 +47,7 @@ public interface CourseMapper {
 
     /* 나의 강의 목록 전체 수 조회 (페이징용) */
     int selectCourseListByCreatorIdCount(Long creatorId);
+
+    /* 관리자 전체 강의 수 조회 */
+    int selectAdminCourseListCount();
 }

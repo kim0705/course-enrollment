@@ -202,4 +202,10 @@
            AND enrolled_count > 0
     </update>
 
+    <!-- 관리자 전체 강의 수 조회 -->
+    <select id="selectAdminCourseListCount" resultType="int">
+        SELECT COUNT(*)
+          FROM courses
+    </select>
+
 </mapper>

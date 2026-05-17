@@ -1,13 +1,16 @@
 package com.yujin.course_enrollment.controller;
 
 import com.yujin.course_enrollment.dto.req.ReqUpdatePasswordDto;
+import com.yujin.course_enrollment.dto.resp.RespAdminDashboardDto;
 import com.yujin.course_enrollment.global.response.ApiResponse;
+import com.yujin.course_enrollment.service.AdminService;
 import com.yujin.course_enrollment.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -24,6 +27,19 @@ import org.springframework.web.bind.annotation.RestController;
 public class AdminController {
 
     private final UserService userService;
+    private final AdminService adminService;
+
+    /**
+     * 대시보드 통계 조회
+     * GET /api/admin/dashboard
+     * @return 전체 사용자 수, 강의 수, 확정 수강 신청 수
+     */
+    @GetMapping("/dashboard")
+    public ResponseEntity<ApiResponse<RespAdminDashboardDto>> getDashboard() {
+        log.debug("[AdminController] 대시보드 통계 조회 요청");
+
+        return ResponseEntity.ok(ApiResponse.success(adminService.getDashboardStats()));
+    }
 
     /**
      * 관리자 비밀번호 변경

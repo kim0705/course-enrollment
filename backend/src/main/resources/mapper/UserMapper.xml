@@ -103,4 +103,10 @@
          WHERE id = #{id}
     </select>
 
+    <!-- 전체 사용자 수 조회 -->
+    <select id="selectUserCount" resultType="int">
+        SELECT COUNT(*)
+          FROM users
+    </select>
+
 </mapper>

@@ -38,4 +38,7 @@ public interface UserMapper {
 
     /* 비밀번호 조회 (검증용) */
     String selectPasswordById(Long id);
+
+    /* 전체 사용자 수 조회 */
+    int selectUserCount();
 }

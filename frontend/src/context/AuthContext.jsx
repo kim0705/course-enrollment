@@ -118,8 +118,14 @@ export const AuthProvider = ({ children }) => {
         setUser(null);
     };
 
+    /* 프로필 수정 후 사용자 정보 갱신 */
+    const updateUser = (newUserInfo) => {
+        localStorage.setItem('user', JSON.stringify(newUserInfo));
+        setUser(newUserInfo);
+    };
+
     return (
-        <AuthContext.Provider value={{ user, isInitializing, login, logout }}>
+        <AuthContext.Provider value={{ user, isInitializing, login, logout, updateUser }}>
             {children}
         </AuthContext.Provider>
     );

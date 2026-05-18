@@ -2,6 +2,7 @@ import { useState } from 'react';
 import CreatorRequestTab from './admin/CreatorRequestTab';
 import DashboardTab from './admin/DashboardTab';
 import UserManagementTab from './admin/UserManagementTab';
+import CourseManagementTab from './admin/CourseManagementTab';
 import { updateAdminPassword } from '../api/admin';
 
 /* 관리자 페이지 */
@@ -20,6 +21,7 @@ const AdminPage = () => {
         { key: 'dashboard', label: '대시보드' },
         { key: 'creator-requests', label: '강사 신청 관리' },
         { key: 'users', label: '사용자 관리' },
+        { key: 'courses', label: '강의 관리' },
     ];
 
     /* 모달 닫기 */
@@ -84,6 +86,7 @@ const AdminPage = () => {
             {activeTab === 'dashboard' && <DashboardTab />}
             {activeTab === 'creator-requests' && <CreatorRequestTab />}
             {activeTab === 'users' && <UserManagementTab />}
+            {activeTab === 'courses' && <CourseManagementTab />}
 
             {/* 비밀번호 변경 모달 */}
             {showPasswordModal && (

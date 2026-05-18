@@ -1,7 +1,12 @@
 package com.yujin.course_enrollment.service;
 
+import com.yujin.course_enrollment.dto.req.ReqAdminCoursePageDto;
 import com.yujin.course_enrollment.dto.resp.RespAdminDashboardDto;
+import com.yujin.course_enrollment.dto.resp.RespCourseListDto;
+import com.yujin.course_enrollment.dto.resp.RespPageDto;
+import com.yujin.course_enrollment.entity.Course;
 import com.yujin.course_enrollment.entity.User;
+import com.yujin.course_enrollment.global.CourseStatus;
 import com.yujin.course_enrollment.global.exception.BusinessException;
 import com.yujin.course_enrollment.mapper.CourseMapper;
 import com.yujin.course_enrollment.mapper.EnrollmentMapper;
@@ -68,5 +73,40 @@ public class AdminService {
         }
 
         userMapper.updateUserRole(userId, role);
+    }
+
+    /**
+     * 전체 강의 목록 조회 (모든 상태 포함)
+     * @param reqAdminCoursePageDto 페이징 조건
+     * @return 페이징된 강의 목록
+     */
+    public RespPageDto<RespCourseListDto> findAllCourses(ReqAdminCoursePageDto reqAdminCoursePageDto) {
+        log.info("[AdminService] 전체 강의 목록 조회 - page: {}, size: {}", reqAdminCoursePageDto.getPage(), reqAdminCoursePageDto.getSize());
+
+        List<RespCourseListDto> content = courseMapper.selectAdminCourseList(reqAdminCoursePageDto);
+        int totalCount = courseMapper.selectAdminCourseListCount();
+
+        return RespPageDto.of(content, reqAdminCoursePageDto.getPage(), reqAdminCoursePageDto.getSize(), totalCount);
+    }
+
+    /**
+     * 강의 강제 폐강
+     * @param courseId 강의 ID
+     * @throws BusinessException 강의 없음(404), 이미 폐강(400)
+     */
+    @Transactional
+    public void forceCloseCourse(Long courseId) {
+        log.info("[AdminService] 강의 강제 폐강 - courseId: {}", courseId);
+
+        Course course = courseMapper.selectCourseById(courseId);
+        if (course == null) {
+            throw new BusinessException(HttpStatus.NOT_FOUND, "존재하지 않는 강의입니다.");
+        }
+
+        if (CourseStatus.CLOSED.equals(course.getStatus())) {
+            throw new BusinessException(HttpStatus.BAD_REQUEST, "이미 폐강된 강의입니다.");
+        }
+
+        courseMapper.updateCourseStatus(Course.builder().id(courseId).status(CourseStatus.CLOSED).build());
     }
 }

@@ -1,8 +1,11 @@
 package com.yujin.course_enrollment.controller;
 
+import com.yujin.course_enrollment.dto.req.ReqAdminCoursePageDto;
 import com.yujin.course_enrollment.dto.req.ReqAdminRoleUpdateDto;
 import com.yujin.course_enrollment.dto.req.ReqUpdatePasswordDto;
 import com.yujin.course_enrollment.dto.resp.RespAdminDashboardDto;
+import com.yujin.course_enrollment.dto.resp.RespCourseListDto;
+import com.yujin.course_enrollment.dto.resp.RespPageDto;
 import com.yujin.course_enrollment.entity.User;
 import com.yujin.course_enrollment.global.response.ApiResponse;
 import com.yujin.course_enrollment.service.AdminService;
@@ -70,6 +73,34 @@ public class AdminController {
         log.debug("[AdminController] 사용자 역할 변경 - userId: {}, role: {}", userId, reqAdminRoleUpdateDto.getRole());
 
         adminService.updateUserRole(userId, reqAdminRoleUpdateDto.getRole());
+
+        return ResponseEntity.ok(ApiResponse.success());
+    }
+
+    /**
+     * 전체 강의 목록 조회
+     * GET /api/admin/courses
+     * @param reqAdminCoursePageDto 페이징 조건
+     * @return 전체 강의 목록 (모든 상태 포함)
+     */
+    @GetMapping("/courses")
+    public ResponseEntity<ApiResponse<RespPageDto<RespCourseListDto>>> getCourseList(ReqAdminCoursePageDto reqAdminCoursePageDto) {
+        log.debug("[AdminController] 전체 강의 목록 조회 요청");
+
+        return ResponseEntity.ok(ApiResponse.success(adminService.findAllCourses(reqAdminCoursePageDto)));
+    }
+
+    /**
+     * 강의 강제 폐강
+     * PATCH /api/admin/courses/{courseId}/close
+     * @param courseId 강의 ID
+     * @return 200 OK
+     */
+    @PatchMapping("/courses/{courseId}/close")
+    public ResponseEntity<ApiResponse<Void>> forceCloseCourse(@PathVariable Long courseId) {
+        log.debug("[AdminController] 강의 강제 폐강 요청 - courseId: {}", courseId);
+
+        adminService.forceCloseCourse(courseId);
 
         return ResponseEntity.ok(ApiResponse.success());
     }

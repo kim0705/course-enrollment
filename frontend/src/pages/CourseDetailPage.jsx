@@ -216,6 +216,11 @@ const CourseDetailPage = () => {
                                                 className="w-full mt-8 py-4 font-bold rounded-md transition-all shadow-md cursor-not-allowed bg-gray-200 text-gray-500">
                                                 이미 신청한 강의입니다
                                             </button>
+                                        ) : user?.role === 'ADMIN' ? (
+                                            <button disabled
+                                                className="w-full mt-8 py-4 font-bold rounded-md transition-all shadow-md cursor-not-allowed bg-gray-200 text-gray-500">
+                                                관리자는 수강 신청할 수 없습니다
+                                            </button>
                                         ) : (
                                             <button
                                                 onClick={handleEnroll}

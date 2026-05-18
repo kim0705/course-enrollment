@@ -1,11 +1,14 @@
 import { useState } from 'react';
 import CreatorRequestTab from './admin/CreatorRequestTab';
+import DashboardTab from './admin/DashboardTab';
+import UserManagementTab from './admin/UserManagementTab';
+import CourseManagementTab from './admin/CourseManagementTab';
 import { updateAdminPassword } from '../api/admin';
 
 /* 관리자 페이지 */
 const AdminPage = () => {
     /* 현재 활성화된 탭 상태 */
-    const [activeTab, setActiveTab] = useState('creator-requests');
+    const [activeTab, setActiveTab] = useState('dashboard');
     /* 비밀번호 변경 모달 표시 상태 */
     const [showPasswordModal, setShowPasswordModal] = useState(false);
     /* 비밀번호 폼 */
@@ -15,7 +18,10 @@ const AdminPage = () => {
 
     /* 탭 목록 */
     const tabs = [
+        { key: 'dashboard', label: '대시보드' },
         { key: 'creator-requests', label: '강사 신청 관리' },
+        { key: 'users', label: '사용자 관리' },
+        { key: 'courses', label: '강의 관리' },
     ];
 
     /* 모달 닫기 */
@@ -77,7 +83,10 @@ const AdminPage = () => {
             </div>
 
             {/* 탭 콘텐츠 */}
+            {activeTab === 'dashboard' && <DashboardTab />}
             {activeTab === 'creator-requests' && <CreatorRequestTab />}
+            {activeTab === 'users' && <UserManagementTab />}
+            {activeTab === 'courses' && <CourseManagementTab />}
 
             {/* 비밀번호 변경 모달 */}
             {showPasswordModal && (

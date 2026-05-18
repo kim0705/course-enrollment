@@ -124,6 +124,13 @@
            AND status = 'WAITLIST'
     </update>
 
+    <!-- 확정된 수강 신청 수 조회 -->
+    <select id="selectConfirmedEnrollmentCount" resultType="int">
+        SELECT COUNT(*)
+          FROM enrollments
+         WHERE status = 'CONFIRMED'
+    </select>
+
     <!-- 대기열 첫 번째 조회 (자동 승격용) -->
     <select id="selectNextWaitlist" parameterType="Long" resultType="Enrollment">
         SELECT id

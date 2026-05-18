@@ -45,4 +45,7 @@ public interface EnrollmentMapper {
 
     /* 대기열 승격 (WAITLIST 상태일 때만 PENDING으로 변경) */
     int updateEnrollmentStatusPromote(Long id);
+
+    /* 확정된 수강 신청 수 조회 */
+    int selectConfirmedEnrollmentCount();
 }

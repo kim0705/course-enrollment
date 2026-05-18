@@ -103,4 +103,17 @@
          WHERE id = #{id}
     </select>
 
+    <!-- 전체 사용자 수 조회 -->
+    <select id="selectUserCount" resultType="int">
+        SELECT COUNT(*)
+          FROM users
+    </select>
+
+    <!-- 역할별 사용자 수 조회 -->
+    <select id="selectUserCountByRole" resultType="int">
+        SELECT COUNT(*)
+          FROM users
+         WHERE role = #{role}
+    </select>
+
 </mapper>

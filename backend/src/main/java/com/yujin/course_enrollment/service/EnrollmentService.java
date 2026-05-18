@@ -92,12 +92,16 @@ public class EnrollmentService {
             throw new BusinessException(HttpStatus.BAD_REQUEST, "이미 신청한 강의입니다.");
         }
 
-        // 재신청: UNIQUE 충돌 방지를 위해 INSERT 대신 기존 행 UPDATE
+        // 재신청: UNIQUE 충돌 방지를 위해 INSERT 대신 기존 행 UPDATE (AND status = 'CANCELLED' 조건으로 동시 재신청 방어)
         if (existing != null) {
             if (course.getEnrolledCount() >= course.getCapacity()) {
                 log.info("[EnrollmentService] 정원 초과 - 재신청 대기열 등록 - userId: {}, courseId: {}", userId, courseId);
 
-                enrollmentMapper.updateEnrollmentStatus(Enrollment.ofWaitlistById(existing.getId()));
+                int reEnrolled = enrollmentMapper.updateEnrollmentStatusReEnroll(Enrollment.ofWaitlistById(existing.getId()));
+                if (reEnrolled == 0) {
+                    throw new BusinessException(HttpStatus.BAD_REQUEST, "이미 신청한 강의입니다.");
+                }
+
                 Enrollment saved = enrollmentMapper.selectEnrollmentById(existing.getId());
 
                 return RespEnrollmentDto.of(saved, course.getTitle());
@@ -107,13 +111,21 @@ public class EnrollmentService {
             if (updated == 0) {
                 log.info("[EnrollmentService] 동시 신청으로 정원 초과 - 재신청 대기열 등록 - userId: {}, courseId: {}", userId, courseId);
 
-                enrollmentMapper.updateEnrollmentStatus(Enrollment.ofWaitlistById(existing.getId()));
+                int reEnrolled = enrollmentMapper.updateEnrollmentStatusReEnroll(Enrollment.ofWaitlistById(existing.getId()));
+                if (reEnrolled == 0) {
+                    throw new BusinessException(HttpStatus.BAD_REQUEST, "이미 신청한 강의입니다.");
+                }
+
                 Enrollment saved = enrollmentMapper.selectEnrollmentById(existing.getId());
 
                 return RespEnrollmentDto.of(saved, course.getTitle());
             }
 
-            enrollmentMapper.updateEnrollmentStatus(Enrollment.ofPending(existing.getId()));
+            int reEnrolled = enrollmentMapper.updateEnrollmentStatusReEnroll(Enrollment.ofPending(existing.getId()));
+            if (reEnrolled == 0) {
+                throw new BusinessException(HttpStatus.BAD_REQUEST, "이미 신청한 강의입니다.");
+            }
+
             log.info("[EnrollmentService] 재신청 완료 - userId: {}, courseId: {}", userId, courseId);
 
             Enrollment saved = enrollmentMapper.selectEnrollmentById(existing.getId());

@@ -70,12 +70,4 @@ public class Enrollment {
                 .status(EnrollmentStatus.WAITLIST)
                 .build();
     }
-
-    /* 대기열에서 PENDING으로 승격할 엔티티 생성 */
-    public static Enrollment ofPromote(Long id) {
-        return Enrollment.builder()
-                .id(id)
-                .status(EnrollmentStatus.PENDING)
-                .build();
-    }
 }

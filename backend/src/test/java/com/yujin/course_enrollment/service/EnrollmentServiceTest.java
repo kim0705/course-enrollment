@@ -253,7 +253,7 @@ class EnrollmentServiceTest {
         given(courseMapper.selectCourseById(courseId)).willReturn(openCourse);
         given(enrollmentMapper.selectEnrollmentByUserIdAndCourseId(userId, courseId)).willReturn(cancelled);
         given(courseMapper.updateCourseEnrolledCountPlus(courseId)).willReturn(1);
-        willDoNothing().given(enrollmentMapper).updateEnrollmentStatus(any());
+        given(enrollmentMapper.updateEnrollmentStatusReEnroll(any())).willReturn(1);
         given(enrollmentMapper.selectEnrollmentById(1L)).willReturn(reEnrolled);
 
         // when
@@ -261,7 +261,7 @@ class EnrollmentServiceTest {
 
         // then
         assertThat(result.getStatus()).isEqualTo("PENDING");
-        then(enrollmentMapper).should().updateEnrollmentStatus(any());
+        then(enrollmentMapper).should().updateEnrollmentStatusReEnroll(any());
         then(enrollmentMapper).should(never()).insertEnrollment(any());
         then(courseMapper).should().updateCourseEnrolledCountPlus(courseId);
     }

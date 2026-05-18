@@ -443,4 +443,58 @@ class EnrollmentConcurrencyTest {
         System.out.println("[enrolled_count] " + updated.getEnrolledCount());
         assertThat(updated.getEnrolledCount()).isEqualTo(1);
     }
+
+    @Test
+    @DisplayName("같은 사용자 동시 재신청 - 1건만 성공, 나머지는 500 없이 400 처리")
+    void registerEnrollment_sameUser_concurrentReEnrollments_noDuplicate() throws InterruptedException {
+        // given - 사용자가 신청 후 취소한 상태 세팅
+        Long userId = insertStudents(1).get(0);
+        Long courseId = createOpenCourse(1L, 10).getId();
+
+        enrollmentService.registerEnrollment(userId, new ReqEnrollmentCreateDto(courseId));
+        Long enrollmentId = enrollmentMapper.selectEnrollmentByUserIdAndCourseId(userId, courseId).getId();
+        enrollmentService.cancelEnrollment(userId, enrollmentId, null);
+
+        int requestCount = 5;
+        CopyOnWriteArrayList<String> statuses = new CopyOnWriteArrayList<>();
+        ExecutorService executor = Executors.newFixedThreadPool(requestCount);
+        CountDownLatch readyLatch = new CountDownLatch(requestCount);
+        CountDownLatch startLatch = new CountDownLatch(1);
+        CountDownLatch doneLatch  = new CountDownLatch(requestCount);
+
+        for (int i = 0; i < requestCount; i++) {
+            executor.submit(() -> {
+                try {
+                    readyLatch.countDown();
+                    startLatch.await();
+                    RespEnrollmentDto result = enrollmentService.registerEnrollment(userId, new ReqEnrollmentCreateDto(courseId));
+                    statuses.add(result.getStatus());
+                } catch (BusinessException | DuplicateKeyException e) {
+                    statuses.add("400: " + e.getMessage());
+                } catch (Exception e) {
+                    statuses.add("ERROR: [" + e.getClass().getSimpleName() + "] " + e.getMessage());
+                } finally {
+                    doneLatch.countDown();
+                }
+            });
+        }
+
+        readyLatch.await();
+        startLatch.countDown();
+        doneLatch.await(10, TimeUnit.SECONDS);
+        executor.shutdown();
+
+        // then
+        long successCount = statuses.stream().filter(s -> EnrollmentStatus.PENDING.equals(s) || EnrollmentStatus.WAITLIST.equals(s)).count();
+        long errorCount   = statuses.stream().filter(s -> s.startsWith("ERROR")).count();
+
+        System.out.println("[결과] 성공: " + successCount + " / 400 처리: " + (requestCount - successCount - errorCount) + " / ERROR(500): " + errorCount);
+
+        assertThat(errorCount).isEqualTo(0);
+        assertThat(successCount).isEqualTo(1);
+
+        Course updated = courseMapper.selectCourseById(courseId);
+        System.out.println("[enrolled_count] " + updated.getEnrolledCount());
+        assertThat(updated.getEnrolledCount()).isEqualTo(1);
+    }
 }

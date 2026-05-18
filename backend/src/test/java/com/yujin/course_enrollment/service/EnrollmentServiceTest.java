@@ -251,16 +251,18 @@ class EnrollmentServiceTest {
 
         given(userMapper.selectUserById(userId)).willReturn(student);
         given(courseMapper.selectCourseById(courseId)).willReturn(openCourse);
-        given(enrollmentMapper.selectEnrollmentByUserIdAndCourseId(userId, courseId)).willReturn(cancelled).willReturn(reEnrolled);
-        willDoNothing().given(enrollmentMapper).insertEnrollment(any());
+        given(enrollmentMapper.selectEnrollmentByUserIdAndCourseId(userId, courseId)).willReturn(cancelled);
         given(courseMapper.updateCourseEnrolledCountPlus(courseId)).willReturn(1);
+        willDoNothing().given(enrollmentMapper).updateEnrollmentStatus(any());
+        given(enrollmentMapper.selectEnrollmentById(1L)).willReturn(reEnrolled);
 
         // when
         RespEnrollmentDto result = enrollmentService.registerEnrollment(userId, req);
 
         // then
         assertThat(result.getStatus()).isEqualTo("PENDING");
-        then(enrollmentMapper).should().insertEnrollment(any());
+        then(enrollmentMapper).should().updateEnrollmentStatus(any());
+        then(enrollmentMapper).should(never()).insertEnrollment(any());
         then(courseMapper).should().updateCourseEnrolledCountPlus(courseId);
     }
 
@@ -467,7 +469,7 @@ class EnrollmentServiceTest {
 
         given(enrollmentMapper.selectEnrollmentById(enrollmentId)).willReturn(pending).willReturn(cancelled);
         willDoNothing().given(enrollmentMapper).updateEnrollmentStatus(any());
-        willDoNothing().given(courseMapper).updateCourseEnrolledCountMinus(1L);
+        given(courseMapper.updateCourseEnrolledCountMinus(1L)).willReturn(1);
         given(courseMapper.selectCourseById(1L)).willReturn(course);
 
         // when
@@ -549,7 +551,7 @@ class EnrollmentServiceTest {
         given(enrollmentMapper.selectEnrollmentById(enrollmentId)).willReturn(confirmed).willReturn(cancelled);
         willDoNothing().given(paymentService).refund(enrollmentId, cancelReason);
         willDoNothing().given(enrollmentMapper).updateEnrollmentStatus(any());
-        willDoNothing().given(courseMapper).updateCourseEnrolledCountMinus(courseId);
+        given(courseMapper.updateCourseEnrolledCountMinus(courseId)).willReturn(1);
         given(enrollmentMapper.selectNextWaitlist(courseId)).willReturn(null);
         given(courseMapper.selectCourseById(courseId)).willReturn(course);
 

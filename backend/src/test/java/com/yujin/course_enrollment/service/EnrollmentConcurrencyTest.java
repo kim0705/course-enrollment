@@ -5,18 +5,23 @@ import com.yujin.course_enrollment.dto.resp.RespEnrollmentDto;
 import com.yujin.course_enrollment.entity.Course;
 import com.yujin.course_enrollment.global.CourseStatus;
 import com.yujin.course_enrollment.global.EnrollmentStatus;
+import com.yujin.course_enrollment.global.exception.BusinessException;
 import com.yujin.course_enrollment.mapper.CourseMapper;
+import org.springframework.dao.DuplicateKeyException;
 import com.yujin.course_enrollment.mapper.EnrollmentMapper;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
+import org.testcontainers.containers.MySQLContainer;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.sql.PreparedStatement;
-import java.sql.Statement;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -31,10 +36,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * 수강 신청 동시성 통합 테스트
- * 실제 DB의 조건부 UPDATE(enrolled_count < capacity)가 동시 요청에서 정원 초과를 막는지 검증
+ * 실제 MySQL의 UNIQUE INDEX와 조건부 UPDATE가 동시 요청에서 정합성을 보장하는지 검증
  */
+@Testcontainers
 @SpringBootTest(properties = "jwt.secret=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=")
 class EnrollmentConcurrencyTest {
+
+    @Container
+    @ServiceConnection
+    static MySQLContainer<?> mysql = new MySQLContainer<>("mysql:8.0");
 
     @Autowired
     private EnrollmentService enrollmentService;
@@ -246,6 +256,7 @@ class EnrollmentConcurrencyTest {
 
         Course updated = courseMapper.selectCourseById(courseId);
 
+
         System.out.println("[승격 결과] PENDING 승격: " + promotedCount + " / enrolled_count: " + updated.getEnrolledCount() + " / capacity: " + updated.getCapacity());
 
         assertThat(promotedCount).isEqualTo(3); // WAITLIST 3명 모두 PENDING 승격
@@ -316,6 +327,7 @@ class EnrollmentConcurrencyTest {
 
         Course updated = courseMapper.selectCourseById(courseId);
 
+
         System.out.println("[승격 결과] PENDING 승격: " + promotedCount + " / enrolled_count: " + updated.getEnrolledCount() + " / capacity: " + updated.getCapacity());
 
         assertThat(promotedCount).isEqualTo(2); // 취소 2명 → 승격 2명
@@ -375,9 +387,60 @@ class EnrollmentConcurrencyTest {
         // then
         Course updated = courseMapper.selectCourseById(courseId);
 
+
         System.out.println("[취소 결과] enrolled_count: " + updated.getEnrolledCount() + " / capacity: " + updated.getCapacity());
 
         assertThat(updated.getEnrolledCount()).isEqualTo(0);
         assertThat(updated.getEnrolledCount()).isLessThanOrEqualTo(updated.getCapacity());
+    }
+
+    @Test
+    @DisplayName("같은 사용자 동시 신청 - 1건만 성공, 나머지는 500 없이 400 처리")
+    void registerEnrollment_sameUser_concurrentRequests_noDuplicate() throws InterruptedException {
+        // given
+        Long userId = insertStudents(1).get(0);
+        Long courseId = createOpenCourse(1L, 10).getId();
+
+        int requestCount = 5;
+        CopyOnWriteArrayList<String> statuses = new CopyOnWriteArrayList<>();
+        ExecutorService executor = Executors.newFixedThreadPool(requestCount);
+        CountDownLatch readyLatch = new CountDownLatch(requestCount);
+        CountDownLatch startLatch = new CountDownLatch(1);
+        CountDownLatch doneLatch  = new CountDownLatch(requestCount);
+
+        for (int i = 0; i < requestCount; i++) {
+            executor.submit(() -> {
+                try {
+                    readyLatch.countDown();
+                    startLatch.await();
+                    RespEnrollmentDto result = enrollmentService.registerEnrollment(userId, new ReqEnrollmentCreateDto(courseId));
+                    statuses.add(result.getStatus());
+                } catch (BusinessException | DuplicateKeyException e) {
+                    statuses.add("400: " + e.getMessage());
+                } catch (Exception e) {
+                    statuses.add("ERROR: [" + e.getClass().getSimpleName() + "] " + e.getMessage());
+                } finally {
+                    doneLatch.countDown();
+                }
+            });
+        }
+
+        readyLatch.await();
+        startLatch.countDown();
+        doneLatch.await(10, TimeUnit.SECONDS);
+        executor.shutdown();
+
+        // then
+        long successCount = statuses.stream().filter(s -> EnrollmentStatus.PENDING.equals(s) || EnrollmentStatus.WAITLIST.equals(s)).count();
+        long errorCount   = statuses.stream().filter(s -> s.startsWith("ERROR")).count();
+
+        System.out.println("[결과] 성공: " + successCount + " / 400 처리: " + (requestCount - successCount - errorCount) + " / ERROR(500): " + errorCount);
+
+        assertThat(errorCount).isEqualTo(0);
+        assertThat(successCount).isEqualTo(1);
+
+        Course updated = courseMapper.selectCourseById(courseId);
+        System.out.println("[enrolled_count] " + updated.getEnrolledCount());
+        assertThat(updated.getEnrolledCount()).isEqualTo(1);
     }
 }

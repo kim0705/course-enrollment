@@ -3,7 +3,7 @@
 
 <mapper namespace="com.yujin.course_enrollment.mapper.EnrollmentMapper">
 
-    <!-- 수강 신청 등록 (취소 후 재신청 시 ON DUPLICATE KEY UPDATE로 PENDING 초기화) -->
+    <!-- 수강 신청 등록 -->
     <insert id="insertEnrollment" parameterType="Enrollment" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO enrollments (
                 user_id
@@ -14,10 +14,6 @@
               , #{courseId}
               , #{status}
         )
-        ON DUPLICATE KEY UPDATE
-              status = #{status}
-            , confirmed_at = NULL
-            , cancelled_at = NULL
     </insert>
 
     <!-- 수강 신청 단건 조회 -->

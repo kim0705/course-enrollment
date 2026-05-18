@@ -47,7 +47,7 @@ public class JwtFilter extends OncePerRequestFilter {
 
                 log.debug("[JwtFilter] 인증 설정 완료 - userId: {}, role: ROLE_{}", userId, role);
             } catch (Exception e) {
-                log.debug("[JwtFilter] 토큰 파싱 실패: {}", e.getMessage());
+                log.warn("[JwtFilter] 토큰 파싱 실패: {}", e.getMessage());
             }
         } else {
             log.debug("[JwtFilter] accessToken 쿠키 없음 - uri: {}", request.getRequestURI());

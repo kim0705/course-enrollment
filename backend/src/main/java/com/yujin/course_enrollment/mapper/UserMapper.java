@@ -41,4 +41,7 @@ public interface UserMapper {
 
     /* 전체 사용자 수 조회 */
     int selectUserCount();
+
+    /* 역할별 사용자 수 조회 */
+    int selectUserCountByRole(@Param("role") String role);
 }

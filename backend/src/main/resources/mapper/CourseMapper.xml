@@ -227,4 +227,11 @@
           FROM courses
     </select>
 
+    <!-- 상태별 강의 수 조회 -->
+    <select id="selectCourseCountByStatus" resultType="int">
+        SELECT COUNT(*)
+          FROM courses
+         WHERE status = #{status}
+    </select>
+
 </mapper>

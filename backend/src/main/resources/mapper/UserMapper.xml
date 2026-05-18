@@ -109,4 +109,11 @@
           FROM users
     </select>
 
+    <!-- 역할별 사용자 수 조회 -->
+    <select id="selectUserCountByRole" resultType="int">
+        SELECT COUNT(*)
+          FROM users
+         WHERE role = #{role}
+    </select>
+
 </mapper>

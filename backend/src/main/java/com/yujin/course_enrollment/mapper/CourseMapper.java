@@ -7,6 +7,7 @@ import com.yujin.course_enrollment.dto.resp.RespCourseDetailDto;
 import com.yujin.course_enrollment.dto.resp.RespCourseListDto;
 import com.yujin.course_enrollment.entity.Course;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
 
@@ -54,4 +55,7 @@ public interface CourseMapper {
 
     /* 관리자 전체 강의 수 조회 */
     int selectAdminCourseListCount();
+
+    /* 상태별 강의 수 조회 */
+    int selectCourseCountByStatus(@Param("status") String status);
 }

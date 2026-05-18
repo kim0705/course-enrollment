@@ -40,7 +40,16 @@ public class AdminService {
     public RespAdminDashboardDto getDashboardStats() {
         log.info("[AdminService] 대시보드 통계 조회");
 
-        return RespAdminDashboardDto.of(userMapper.selectUserCount(), courseMapper.selectAdminCourseListCount(), enrollmentMapper.selectConfirmedEnrollmentCount());
+        int totalUsers = userMapper.selectUserCount();
+        int studentCount = userMapper.selectUserCountByRole("STUDENT");
+        int creatorCount = userMapper.selectUserCountByRole("CREATOR");
+        int totalCourses = courseMapper.selectAdminCourseListCount();
+        int draftCount = courseMapper.selectCourseCountByStatus("DRAFT");
+        int openCount = courseMapper.selectCourseCountByStatus("OPEN");
+        int closedCount = courseMapper.selectCourseCountByStatus("CLOSED");
+        int totalEnrollments = enrollmentMapper.selectConfirmedEnrollmentCount();
+
+        return RespAdminDashboardDto.of(totalUsers, studentCount, creatorCount, totalCourses, draftCount, openCount, closedCount, totalEnrollments);
     }
 
     /**

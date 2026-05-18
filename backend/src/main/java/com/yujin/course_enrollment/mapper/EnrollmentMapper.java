@@ -28,6 +28,9 @@ public interface EnrollmentMapper {
     /* 수강 신청 상태 변경 */
     void updateEnrollmentStatus(Enrollment enrollment);
 
+    /* 재신청 상태 변경 (CANCELLED 상태일 때만, 반환값: 업데이트된 행 수) */
+    int updateEnrollmentStatusReEnroll(Enrollment enrollment);
+
     /* 나의 수강 신청 목록 조회 */
     List<RespEnrollmentStudentDto> selectEnrollmentListByUserId(ReqEnrollmentPageDto reqEnrollmentPageDto);
 

@@ -5,6 +5,7 @@ import com.yujin.course_enrollment.dto.resp.RespAdminDashboardDto;
 import com.yujin.course_enrollment.dto.resp.RespCourseListDto;
 import com.yujin.course_enrollment.dto.resp.RespPageDto;
 import com.yujin.course_enrollment.entity.Course;
+import com.yujin.course_enrollment.entity.Enrollment;
 import com.yujin.course_enrollment.entity.User;
 import com.yujin.course_enrollment.global.CourseStatus;
 import com.yujin.course_enrollment.global.exception.BusinessException;
@@ -16,6 +17,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.util.List;
 
@@ -32,6 +35,8 @@ public class AdminService {
     private final UserMapper userMapper;
     private final CourseMapper courseMapper;
     private final EnrollmentMapper enrollmentMapper;
+    private final PaymentService paymentService;
+    private final TransactionTemplate transactionTemplate;
 
     /**
      * 대시보드 통계 조회
@@ -47,7 +52,7 @@ public class AdminService {
         int draftCount = courseMapper.selectCourseCountByStatus("DRAFT");
         int openCount = courseMapper.selectCourseCountByStatus("OPEN");
         int closedCount = courseMapper.selectCourseCountByStatus("CLOSED");
-        int totalEnrollments = enrollmentMapper.selectConfirmedEnrollmentCount();
+        int totalEnrollments = enrollmentMapper.selectActiveEnrollmentCount();
 
         return RespAdminDashboardDto.of(totalUsers, studentCount, creatorCount, totalCourses, draftCount, openCount, closedCount, totalEnrollments);
     }
@@ -103,7 +108,6 @@ public class AdminService {
      * @param courseId 강의 ID
      * @throws BusinessException 강의 없음(404), 이미 폐강(400)
      */
-    @Transactional
     public void forceCloseCourse(Long courseId) {
         log.info("[AdminService] 강의 강제 폐강 - courseId: {}", courseId);
 
@@ -112,10 +116,38 @@ public class AdminService {
             throw new BusinessException(HttpStatus.NOT_FOUND, "존재하지 않는 강의입니다.");
         }
 
-        if (CourseStatus.CLOSED.equals(course.getStatus())) {
+        if (CourseStatus.CLOSED.equals(course.getStatus()) || CourseStatus.FORCE_CLOSED.equals(course.getStatus())) {
             throw new BusinessException(HttpStatus.BAD_REQUEST, "이미 폐강된 강의입니다.");
         }
 
-        courseMapper.updateCourseStatus(Course.builder().id(courseId).status(CourseStatus.CLOSED).build());
+        // 강의 폐강 + WAITLIST/PENDING 즉시 취소 (트랜잭션)
+        // CONFIRMED ID는 트랜잭션 안에서 조회해 일관된 스냅샷 보장
+        List<Long> confirmedIds = transactionTemplate.execute(status -> {
+            List<Long> ids = enrollmentMapper.selectConfirmedEnrollmentIdsByCourseId(courseId);
+            enrollmentMapper.updatePendingWaitlistCancelledByCourseId(courseId);
+            courseMapper.updateCourseEnrolledCountReset(courseId);
+            courseMapper.updateCourseStatus(Course.ofForceClosed(courseId));
+            return ids;
+        });
+
+        if (confirmedIds == null || confirmedIds.isEmpty()) {
+            log.info("[AdminService] 강의 강제 폐강 완료 - courseId: {}, 환불 대상 없음", courseId);
+            return;
+        }
+
+        // CONFIRMED 건별 환불 후 취소 — 실패해도 다음 건으로 진행
+        int successCount = 0;
+        for (Long enrollmentId : confirmedIds) {
+            try {
+                paymentService.refund(enrollmentId, "강의 폐강");
+                transactionTemplate.executeWithoutResult(s ->
+                        enrollmentMapper.updateEnrollmentStatus(Enrollment.ofForceClose(enrollmentId)));
+                successCount++;
+            } catch (Exception e) {
+                log.error("[AdminService] 환불 처리 실패 - enrollmentId: {}", enrollmentId, e);
+            }
+        }
+
+        log.info("[AdminService] 강의 강제 폐강 완료 - courseId: {}, 환불 성공: {}/{}", courseId, successCount, confirmedIds.size());
     }
 }

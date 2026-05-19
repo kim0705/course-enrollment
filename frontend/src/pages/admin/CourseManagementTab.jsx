@@ -81,7 +81,13 @@ const CourseManagementTab = () => {
                                         {COURSE_STATUS_LABEL[course.status]}
                                     </span>
                                 </td>
-                                <td className="py-4 pr-6 text-gray-500">{course.enrolledCount} / {course.capacity}</td>
+                                <td className="py-4 pr-6 text-gray-500">
+                                    {course.confirmedCount}명
+                                    {course.pendingCount > 0 && (
+                                        <span className="text-amber-500"> (결제 대기 {course.pendingCount}명)</span>
+                                    )}
+                                    {' '}/ {course.capacity}명
+                                </td>
                                 <td className="py-4 pr-6 text-gray-500">{course.createdAt?.substring(0, 10)}</td>
                                 <td className="py-4">
                                     {course.status !== 'CLOSED' && course.status !== 'FORCE_CLOSED' && (

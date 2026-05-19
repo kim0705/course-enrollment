@@ -218,6 +218,14 @@
              , c.price
              , c.capacity
              , c.enrolled_count
+             , (SELECT COUNT(*)
+                  FROM enrollments e
+                 WHERE e.course_id = c.id
+                   AND e.status = 'CONFIRMED') AS confirmeCount
+             , (SELECT COUNT(*)
+                  FROM enrollments e
+                 WHERE e.course_id = c.id
+                   AND e.status = 'PENDING') AS pendingCount
              , c.status
              , c.start_date
              , c.end_date

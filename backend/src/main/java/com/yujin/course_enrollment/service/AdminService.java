@@ -52,9 +52,10 @@ public class AdminService {
         int draftCount = courseMapper.selectCourseCountByStatus("DRAFT");
         int openCount = courseMapper.selectCourseCountByStatus("OPEN");
         int closedCount = courseMapper.selectCourseCountByStatus("CLOSED");
+        int forceClosedCount = courseMapper.selectCourseCountByStatus("FORCE_CLOSED");
         int totalEnrollments = enrollmentMapper.selectActiveEnrollmentCount();
 
-        return RespAdminDashboardDto.of(totalUsers, studentCount, creatorCount, totalCourses, draftCount, openCount, closedCount, totalEnrollments);
+        return RespAdminDashboardDto.of(totalUsers, studentCount, creatorCount, totalCourses, draftCount, openCount, closedCount, forceClosedCount, totalEnrollments);
     }
 
     /**

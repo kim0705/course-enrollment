@@ -62,7 +62,7 @@
           FROM courses c
           JOIN users u ON c.creator_id = u.id
           <where>
-              AND c.status != 'DRAFT'
+              AND c.status NOT IN ('DRAFT', 'FORCE_CLOSED')
               <if test="status != null and status != ''">
                   AND c.status = #{status}
               </if>
@@ -94,7 +94,7 @@
           FROM courses c
           JOIN users u ON c.creator_id = u.id
           <where>
-              AND c.status != 'DRAFT'
+              AND c.status NOT IN ('DRAFT', 'FORCE_CLOSED')
               <if test="status != null and status != ''">
                   AND c.status = #{status}
               </if>
@@ -200,6 +200,13 @@
            SET enrolled_count = enrolled_count - 1
          WHERE id = #{courseId}
            AND enrolled_count > 0
+    </update>
+
+    <!-- 수강 인원 초기화 (강제 폐강 시) -->
+    <update id="updateCourseEnrolledCountReset" parameterType="Long">
+        UPDATE courses
+           SET enrolled_count = 0
+         WHERE id = #{courseId}
     </update>
 
     <!-- 관리자 전체 강의 목록 조회 -->

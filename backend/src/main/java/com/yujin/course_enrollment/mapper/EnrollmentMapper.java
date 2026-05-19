@@ -49,9 +49,15 @@ public interface EnrollmentMapper {
     /* 대기열 승격 (WAITLIST 상태일 때만 PENDING으로 변경) */
     int updateEnrollmentStatusPromote(Long id);
 
-    /* 확정된 수강 신청 수 조회 */
-    int selectConfirmedEnrollmentCount();
+    /* 수강 신청 수 조회 (PENDING + CONFIRMED) */
+    int selectActiveEnrollmentCount();
 
     /* 강의 마감 시 대기열 전체 취소 */
     int updateWaitlistCancelledByCourseId(Long courseId);
+
+    /* 강제 폐강 시 CONFIRMED 수강 신청 ID 목록 조회 */
+    List<Long> selectConfirmedEnrollmentIdsByCourseId(Long courseId);
+
+    /* 강제 폐강 시 미결제 수강 신청 취소 (WAITLIST, PENDING → CANCELLED) */
+    int updatePendingWaitlistCancelledByCourseId(Long courseId);
 }

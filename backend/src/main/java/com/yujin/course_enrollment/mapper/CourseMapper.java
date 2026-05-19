@@ -58,4 +58,7 @@ public interface CourseMapper {
 
     /* 상태별 강의 수 조회 */
     int selectCourseCountByStatus(@Param("status") String status);
+
+    /* 수강 인원 초기화 (강제 폐강 시) */
+    void updateCourseEnrolledCountReset(Long courseId);
 }

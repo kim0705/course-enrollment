@@ -130,12 +130,29 @@
            AND status = 'WAITLIST'
     </update>
 
-    <!-- 확정된 수강 신청 수 조회 -->
-    <select id="selectConfirmedEnrollmentCount" resultType="int">
+    <!-- 수강 신청 수 조회 (PENDING + CONFIRMED) -->
+    <select id="selectActiveEnrollmentCount" resultType="int">
         SELECT COUNT(*)
           FROM enrollments
-         WHERE status = 'CONFIRMED'
+         WHERE status IN ('PENDING', 'CONFIRMED')
     </select>
+
+    <!-- 강제 폐강 시 CONFIRMED 수강 신청 ID 목록 조회 -->
+    <select id="selectConfirmedEnrollmentIdsByCourseId" parameterType="Long" resultType="Long">
+        SELECT id
+          FROM enrollments
+         WHERE course_id = #{courseId}
+           AND status = 'CONFIRMED'
+    </select>
+
+    <!-- 강제 폐강 시 미결제 수강 신청 취소 (WAITLIST, PENDING → FORCE_CLOSED) -->
+    <update id="updatePendingWaitlistCancelledByCourseId" parameterType="Long">
+        UPDATE enrollments
+           SET status = 'FORCE_CLOSED'
+             , cancelled_at = NOW()
+         WHERE course_id = #{courseId}
+           AND status IN ('WAITLIST', 'PENDING')
+    </update>
 
     <!-- 강의 마감 시 대기열 전체 취소 -->
     <update id="updateWaitlistCancelledByCourseId" parameterType="Long">

@@ -7,6 +7,7 @@ public class CourseStatus {
     public static final String DRAFT = "DRAFT";
     public static final String OPEN = "OPEN";
     public static final String CLOSED = "CLOSED";
+    public static final String FORCE_CLOSED = "FORCE_CLOSED";
 
     private CourseStatus() {}
 }

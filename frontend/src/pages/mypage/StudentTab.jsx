@@ -38,7 +38,7 @@ const StudentTab = () => {
                     className="w-full sm:w-80 border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                     <option value="">강의를 선택하세요</option>
-                    {myCourseData.content.map(course => (
+                    {myCourseData.content.filter(course => course.status !== 'FORCE_CLOSED').map(course => (
                         <option key={course.id} value={course.id}>{course.title}</option>
                     ))}
                 </select>

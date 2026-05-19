@@ -48,8 +48,8 @@ const EnrollmentTab = () => {
                             <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2 mb-1">
                                     <span
-                                        onClick={() => navigate(`/courses/${enrollment.courseId}`, { state: { from: 'my-page', tab: 'enrollments' } })}
-                                        className="text-base font-bold text-gray-900 truncate cursor-pointer hover:text-blue-600 transition-colors"
+                                        onClick={() => enrollment.courseStatus !== 'FORCE_CLOSED' && navigate(`/courses/${enrollment.courseId}`, { state: { from: 'my-page', tab: 'enrollments' } })}
+                                        className={`text-base font-bold text-gray-900 truncate transition-colors ${enrollment.courseStatus !== 'FORCE_CLOSED' ? 'cursor-pointer hover:text-blue-600' : 'cursor-default'}`}
                                     >
                                         {enrollment.courseTitle}
                                     </span>
@@ -74,6 +74,11 @@ const EnrollmentTab = () => {
                                 {enrollment.status === 'CANCELLED' && enrollment.cancelledAt && (
                                     <p className="text-xs text-gray-400 mt-1">
                                         취소일 {enrollment.cancelledAt.substring(0, 10)}
+                                    </p>
+                                )}
+                                {enrollment.status === 'FORCE_CLOSED' && enrollment.cancelledAt && (
+                                    <p className="text-xs text-red-400 mt-1">
+                                        폐강일 {enrollment.cancelledAt.substring(0, 10)}
                                     </p>
                                 )}
                                 {enrollment.status === 'WAITLIST' && enrollment.waitlistPosition && (

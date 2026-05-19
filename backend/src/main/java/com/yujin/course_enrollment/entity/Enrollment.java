@@ -70,4 +70,13 @@ public class Enrollment {
                 .status(EnrollmentStatus.WAITLIST)
                 .build();
     }
+
+    /* 강제 폐강으로 취소할 엔티티 생성 */
+    public static Enrollment ofForceClose(Long id) {
+        return Enrollment.builder()
+                .id(id)
+                .status(EnrollmentStatus.FORCE_CLOSED)
+                .cancelledAt(LocalDateTime.now())
+                .build();
+    }
 }

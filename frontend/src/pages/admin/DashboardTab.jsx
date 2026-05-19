@@ -4,7 +4,7 @@ import { getAdminDashboard } from '../../api/admin';
 
 /* 사용자 역할별 레이블 및 색상 설정 */
 const USER_COLORS = ['#4F46E5', '#8B5CF6'];
-const COURSE_COLORS = ['#10B981', '#9ca3af', '#F87171'];
+const COURSE_COLORS = ['#10B981', '#9ca3af', '#F87171', '#DC2626'];
 
 /* 도넛 차트 중앙 라벨 */
 const DonutCenter = ({ viewBox, total }) => {
@@ -57,7 +57,7 @@ const DashboardTab = () => {
     const cards = [
         { label: '전체 사용자', value: stats?.totalUsers ?? 0, unit: '명', icon: <IconUsers /> },
         { label: '전체 강의', value: stats?.totalCourses ?? 0, unit: '개', icon: <IconBook /> },
-        { label: '확정 수강 신청', value: stats?.totalEnrollments ?? 0, unit: '건', icon: <IconCheck /> },
+        { label: '수강 신청 현황', value: stats?.totalEnrollments ?? 0, unit: '건', icon: <IconCheck /> },
     ];
 
     /* 사용자 역할 분포 차트 데이터 */
@@ -71,6 +71,7 @@ const DashboardTab = () => {
         { name: '모집 중', value: stats?.openCount ?? 0 },
         { name: '준비 중', value: stats?.draftCount ?? 0 },
         { name: '마감', value: stats?.closedCount ?? 0 },
+        { name: '강제 폐강', value: stats?.forceClosedCount ?? 0 },
     ];
 
     /* 전체 사용자 수 계산 (도넛 차트 중앙 라벨용) */

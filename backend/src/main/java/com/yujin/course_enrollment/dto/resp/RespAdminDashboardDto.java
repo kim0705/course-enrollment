@@ -16,10 +16,11 @@ public class RespAdminDashboardDto {
     private int draftCount;
     private int openCount;
     private int closedCount;
+    private int forceClosedCount;
     private int totalEnrollments;
 
     /* 통계 집계 결과로 대시보드 응답 생성 */
-    public static RespAdminDashboardDto of(int totalUsers, int studentCount, int creatorCount, int totalCourses, int draftCount, int openCount, int closedCount, int totalEnrollments) {
+    public static RespAdminDashboardDto of(int totalUsers, int studentCount, int creatorCount, int totalCourses, int draftCount, int openCount, int closedCount, int forceClosedCount, int totalEnrollments) {
         return RespAdminDashboardDto.builder()
                 .totalUsers(totalUsers)
                 .studentCount(studentCount)
@@ -28,6 +29,7 @@ public class RespAdminDashboardDto {
                 .draftCount(draftCount)
                 .openCount(openCount)
                 .closedCount(closedCount)
+                .forceClosedCount(forceClosedCount)
                 .totalEnrollments(totalEnrollments)
                 .build();
     }

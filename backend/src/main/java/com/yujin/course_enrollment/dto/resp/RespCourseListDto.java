@@ -17,6 +17,8 @@ public class RespCourseListDto {
     private int price;
     private int capacity;
     private int enrolledCount;
+    private int confirmedCount;
+    private int pendingCount;
     private String status;
     private LocalDate startDate;
     private LocalDate endDate;

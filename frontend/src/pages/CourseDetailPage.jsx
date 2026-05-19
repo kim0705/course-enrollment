@@ -25,10 +25,10 @@ const CourseDetailPage = () => {
     /* 현재 로그인한 사용자가 강의 소유자인지 여부 */
     const isOwner = course?.creatorId === user?.id;
 
-    /* 강의 조회 실패 시 목록으로 이동 */
+    /* 강의 조회 실패 또는 강제 폐강된 강의는 목록으로 이동 */
     useEffect(() => {
-        if (isError) navigate('/courses', { replace: true });
-    }, [isError, navigate]);
+        if (isError || course?.status === 'FORCE_CLOSED') navigate('/courses', { replace: true });
+    }, [isError, course, navigate]);
 
     /* 목록으로 돌아가기 */
     const handleBackToList = () => {

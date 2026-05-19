@@ -250,7 +250,7 @@ public class EnrollmentService {
         }
 
         // 이미 취소됨 확인
-        if (EnrollmentStatus.CANCELLED.equals(enrollment.getStatus())) {
+        if (EnrollmentStatus.CANCELLED.equals(enrollment.getStatus()) || EnrollmentStatus.FORCE_CLOSED.equals(enrollment.getStatus())) {
             log.warn("[EnrollmentService] 이미 취소됨 - enrollmentId: {}", enrollmentId);
             throw new BusinessException(HttpStatus.BAD_REQUEST, "이미 취소된 수강 신청입니다.");
         }

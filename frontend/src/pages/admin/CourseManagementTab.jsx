@@ -40,7 +40,7 @@ const CourseManagementTab = () => {
 
         try {
             await forceCloseCourse(courseId);
-            setCourses(prev => prev.map(c => c.id === courseId ? { ...c, status: 'CLOSED' } : c));
+            setCourses(prev => prev.map(c => c.id === courseId ? { ...c, status: 'FORCE_CLOSED' } : c));
         } catch (err) {
             alert(err.response?.data?.message || '강제 폐강에 실패했습니다.');
         }
@@ -81,10 +81,16 @@ const CourseManagementTab = () => {
                                         {COURSE_STATUS_LABEL[course.status]}
                                     </span>
                                 </td>
-                                <td className="py-4 pr-6 text-gray-500">{course.enrolledCount} / {course.capacity}</td>
+                                <td className="py-4 pr-6 text-gray-500">
+                                    {course.confirmedCount}명
+                                    {course.pendingCount > 0 && (
+                                        <span className="text-amber-500"> (결제 대기 {course.pendingCount}명)</span>
+                                    )}
+                                    {' '}/ {course.capacity}명
+                                </td>
                                 <td className="py-4 pr-6 text-gray-500">{course.createdAt?.substring(0, 10)}</td>
                                 <td className="py-4">
-                                    {course.status !== 'CLOSED' && (
+                                    {course.status !== 'CLOSED' && course.status !== 'FORCE_CLOSED' && (
                                         <button
                                             onClick={() => handleForceClose(course.id, course.title)}
                                             className="px-3 py-1 text-xs font-semibold text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition-colors cursor-pointer"

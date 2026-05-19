@@ -28,8 +28,8 @@ const MyCourseTab = () => {
             <div className="flex flex-col gap-4">
                 {myCourseData.content.map(course => (
                     <div key={course.id}
-                        onClick={() => navigate(`/courses/${course.id}`, { state: { from: 'my-page' } })}
-                        className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4 cursor-pointer hover:shadow-md transition-shadow">
+                        onClick={() => course.status !== 'FORCE_CLOSED' && navigate(`/courses/${course.id}`, { state: { from: 'my-page' } })}
+                        className={`bg-white border border-gray-200 rounded-lg p-6 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-shadow ${course.status !== 'FORCE_CLOSED' ? 'cursor-pointer hover:shadow-md' : 'cursor-default'}`}>
                         <div className="flex-1 min-w-0">
                             {/* 강의 제목과 상태 배지 */}
                             <div className="flex items-center gap-2 mb-1">

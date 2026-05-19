@@ -252,6 +252,11 @@ public class CourseService {
 
         courseMapper.updateCourseStatus(Course.builder().id(courseId).status(CourseStatus.CLOSED).build());
 
+        int cancelled = enrollmentMapper.updateWaitlistCancelledByCourseId(courseId);
+        if (cancelled > 0) {
+            log.info("[CourseService] 대기열 자동 취소 - courseId: {}, count: {}", courseId, cancelled);
+        }
+
         log.info("[CourseService] 강의 마감 완료 - courseId: {}", courseId);
 
         return courseMapper.selectCourseDetailById(courseId);

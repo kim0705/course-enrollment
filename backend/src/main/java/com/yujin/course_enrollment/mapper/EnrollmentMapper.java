@@ -51,4 +51,7 @@ public interface EnrollmentMapper {
 
     /* 확정된 수강 신청 수 조회 */
     int selectConfirmedEnrollmentCount();
+
+    /* 강의 마감 시 대기열 전체 취소 */
+    int updateWaitlistCancelledByCourseId(Long courseId);
 }

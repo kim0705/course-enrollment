@@ -137,6 +137,15 @@
          WHERE status = 'CONFIRMED'
     </select>
 
+    <!-- 강의 마감 시 대기열 전체 취소 -->
+    <update id="updateWaitlistCancelledByCourseId" parameterType="Long">
+        UPDATE enrollments
+           SET status = 'CANCELLED'
+             , cancelled_at = NOW()
+         WHERE course_id = #{courseId}
+           AND status = 'WAITLIST'
+    </update>
+
     <!-- 대기열 첫 번째 조회 (자동 승격용, FOR UPDATE SKIP LOCKED으로 동시 취소 경합 방지) -->
     <select id="selectNextWaitlist" parameterType="Long" resultType="Enrollment">
         SELECT id

@@ -2,6 +2,7 @@ package com.yujin.course_enrollment.service;
 
 import com.yujin.course_enrollment.dto.req.ReqMyPaymentPageDto;
 import com.yujin.course_enrollment.dto.req.ReqPaymentConfirmDto;
+import com.yujin.course_enrollment.dto.req.ReqTossWebhookDto;
 import com.yujin.course_enrollment.dto.resp.RespPageDto;
 import com.yujin.course_enrollment.dto.resp.RespPaymentDto;
 import com.yujin.course_enrollment.entity.Course;
@@ -69,13 +70,14 @@ public class PaymentService {
             throw new BusinessException(HttpStatus.BAD_REQUEST, "PENDING 상태의 수강 신청만 결제할 수 있습니다.");
         }
 
-        // 결제 금액 검증 (프론트 조작 방지)
+        // 강의 존재 여부 확인
         Course course = courseMapper.selectCourseById(enrollment.getCourseId());
         if (course == null) {
             log.warn("[PaymentService] 강의 없음 - courseId: {}", enrollment.getCourseId());
             throw new BusinessException(HttpStatus.BAD_REQUEST, "존재하지 않는 강의입니다.");
         }
 
+        // 결제 금액 검증 (프론트 조작 방지)
         int coursePrice = course.getPrice();
         if (coursePrice != reqPaymentConfirmDto.getAmount()) {
             log.warn("[PaymentService] 금액 불일치 - enrollmentId: {}, coursePrice: {}, reqAmount: {}", reqPaymentConfirmDto.getEnrollmentId(), coursePrice, reqPaymentConfirmDto.getAmount());
@@ -146,6 +148,44 @@ public class PaymentService {
     }
 
     /**
+     * Toss 웹훅 처리
+     * PAYMENT_STATUS_CHANGED + CANCELED 이벤트 수신 시 결제 상태를 CANCELLED로 업데이트
+     * refund() 인라인 업데이트 실패로 인한 불일치를 복구하는 안전망
+     * @param reqTossWebhookDto 웹훅 페이로드
+     */
+    @Transactional
+    public void handleTossWebhook(ReqTossWebhookDto reqTossWebhookDto) {
+        // 결제 상태 변경 이벤트만 처리
+        if (!"PAYMENT_STATUS_CHANGED".equals(reqTossWebhookDto.getEventType())) {
+            return;
+        }
+
+        ReqTossWebhookDto.TossPaymentData data = reqTossWebhookDto.getData();
+
+        // 취소 상태만 처리
+        if (!"CANCELED".equals(data.getStatus())) {
+            return;
+        }
+
+        // 결제 내역 없음
+        Payment payment = paymentMapper.selectPaymentByOrderId(data.getOrderId());
+        if (payment == null) {
+            log.warn("[PaymentService] 웹훅 - 결제 내역 없음 - orderId: {}", data.getOrderId());
+            return;
+        }
+
+        // 이미 CANCELLED 상태면 무시
+        if (PaymentStatus.CANCELLED.equals(payment.getStatus())) {
+            log.info("[PaymentService] 웹훅 - 이미 취소된 결제 - orderId: {}", data.getOrderId());
+            return;
+        }
+
+        paymentMapper.updatePaymentCancelled(Payment.ofCancelled(payment.getId(), "Toss 웹훅 취소"));
+
+        log.info("[PaymentService] 웹훅 - 결제 취소 처리 완료 - orderId: {}", data.getOrderId());
+    }
+
+    /**
      * 사용자 결제 내역 조회
      * @param userId 사용자 ID
      * @param reqMyPaymentPageDto 페이징 조건 DTO
@@ -159,6 +199,7 @@ public class PaymentService {
         List<RespPaymentDto> content = paymentMapper.selectPaymentListByUserId(reqMyPaymentPageDto).stream()
                 .map(RespPaymentDto::of)
                 .collect(Collectors.toList());
+
         int totalCount = paymentMapper.selectPaymentListByUserIdCount(userId);
 
         return RespPageDto.of(content, reqMyPaymentPageDto.getPage(), reqMyPaymentPageDto.getSize(), totalCount);

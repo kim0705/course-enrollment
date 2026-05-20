@@ -10,6 +10,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+
 /**
  * Toss 웹훅 컨트롤러
  * 결제 상태 변경 이벤트를 수신해 DB 상태를 동기화
@@ -35,15 +38,24 @@ public class TossWebhookController {
     @PostMapping("/toss")
     public ResponseEntity<Void> handleTossWebhook(@RequestHeader(value = "secret", required = false) String secret, @RequestBody ReqTossWebhookDto reqTossWebhookDto) {
 
-        // 시크릿 설정된 경우에만 검증
-        if (StringUtils.hasText(webhookSecret) && !webhookSecret.equals(secret)) {
-            log.warn("[TossWebhookController] 웹훅 시크릿 불일치");
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        // 시크릿 설정된 경우에만 검증 (상수 시간 비교로 타이밍 공격 방어)
+        if (StringUtils.hasText(webhookSecret)) {
+            byte[] expected = webhookSecret.getBytes(StandardCharsets.UTF_8);
+            byte[] actual = (secret != null ? secret : "").getBytes(StandardCharsets.UTF_8);
+
+            if (!MessageDigest.isEqual(expected, actual)) {
+                log.warn("[TossWebhookController] 웹훅 시크릿 불일치");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            }
         }
 
         log.info("[TossWebhookController] 웹훅 수신 - eventType: {}", reqTossWebhookDto.getEventType());
 
-        paymentService.handleTossWebhook(reqTossWebhookDto);
+        try {
+            paymentService.handleTossWebhook(reqTossWebhookDto);
+        } catch (Exception e) {
+            log.error("[TossWebhookController] 웹훅 처리 실패 - eventType: {}", reqTossWebhookDto.getEventType(), e);
+        }
 
         return ResponseEntity.ok().build();
     }

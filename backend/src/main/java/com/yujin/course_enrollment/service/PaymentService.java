@@ -162,6 +162,12 @@ public class PaymentService {
 
         ReqTossWebhookDto.TossPaymentData data = reqTossWebhookDto.getData();
 
+        // data 누락 방어
+        if (data == null || data.getOrderId() == null) {
+            log.warn("[PaymentService] 웹훅 - data 누락 - eventType: {}", reqTossWebhookDto.getEventType());
+            return;
+        }
+
         // 취소 상태만 처리
         if (!"CANCELED".equals(data.getStatus())) {
             return;
@@ -174,13 +180,27 @@ public class PaymentService {
             return;
         }
 
+        // paymentKey 교차 검증
+        if (!payment.getPaymentKey().equals(data.getPaymentKey())) {
+            log.warn("[PaymentService] 웹훅 - paymentKey 불일치 - orderId: {}", data.getOrderId());
+            return;
+        }
+
         // 이미 CANCELLED 상태면 무시
         if (PaymentStatus.CANCELLED.equals(payment.getStatus())) {
             log.info("[PaymentService] 웹훅 - 이미 취소된 결제 - orderId: {}", data.getOrderId());
             return;
         }
 
+        // 결제 CANCELLED 처리
         paymentMapper.updatePaymentCancelled(Payment.ofCancelled(payment.getId(), "Toss 웹훅 취소"));
+
+        // enrollment 상태 동기화 (CONFIRMED → CANCELLED)
+        Enrollment enrollment = enrollmentMapper.selectEnrollmentById(payment.getEnrollmentId());
+        if (enrollment != null && EnrollmentStatus.CONFIRMED.equals(enrollment.getStatus())) {
+            enrollmentMapper.updateEnrollmentStatus(Enrollment.ofCancel(payment.getEnrollmentId()));
+            log.info("[PaymentService] 웹훅 - enrollment 취소 동기화 - enrollmentId: {}", payment.getEnrollmentId());
+        }
 
         log.info("[PaymentService] 웹훅 - 결제 취소 처리 완료 - orderId: {}", data.getOrderId());
     }

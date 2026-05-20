@@ -89,6 +89,7 @@
              , canceled_at = #{canceledAt}
              , cancel_reason = #{cancelReason}
          WHERE id = #{id}
+           AND status = 'DONE'
     </update>
 
     <!-- 사용자 결제 내역 조회 (DONE, CANCELLED) -->

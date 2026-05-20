@@ -1,5 +1,6 @@
 package com.yujin.course_enrollment.dto.req;
 
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -9,6 +10,7 @@ import lombok.NoArgsConstructor;
  */
 @Getter
 @NoArgsConstructor
+@AllArgsConstructor
 public class ReqTossWebhookDto {
     private String eventType;
     private String createdAt;
@@ -16,10 +18,10 @@ public class ReqTossWebhookDto {
 
     @Getter
     @NoArgsConstructor
+    @AllArgsConstructor
     public static class TossPaymentData {
         private String paymentKey;
         private String orderId;
         private String status;
     }
-
 }

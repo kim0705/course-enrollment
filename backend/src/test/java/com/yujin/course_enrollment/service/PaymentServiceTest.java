@@ -2,6 +2,7 @@ package com.yujin.course_enrollment.service;
 
 import com.yujin.course_enrollment.dto.req.ReqMyPaymentPageDto;
 import com.yujin.course_enrollment.dto.req.ReqPaymentConfirmDto;
+import com.yujin.course_enrollment.dto.req.ReqTossWebhookDto;
 import com.yujin.course_enrollment.dto.resp.RespPageDto;
 import com.yujin.course_enrollment.dto.resp.RespPaymentDto;
 import com.yujin.course_enrollment.entity.Course;
@@ -292,6 +293,132 @@ class PaymentServiceTest {
 
         // then
         then(tossPaymentClient).should(never()).cancel(any(), any());
+        then(paymentMapper).should(never()).updatePaymentCancelled(any());
+    }
+
+    @Test
+    @DisplayName("웹훅 - 정상 취소 처리 - payment CANCELLED + enrollment CANCELLED 동기화")
+    void handleTossWebhook_success() {
+        // given
+        ReqTossWebhookDto reqTossWebhookDto = new ReqTossWebhookDto("PAYMENT_STATUS_CHANGED", "2026-05-21T00:00:00+09:00", new ReqTossWebhookDto.TossPaymentData("tgen_abc123", "order_001", "CANCELED"));
+        Payment done = Payment.builder()
+                .id(1L)
+                .enrollmentId(1L)
+                .paymentKey("tgen_abc123")
+                .orderId("order_001")
+                .status("DONE")
+                .build();
+        Enrollment confirmed = Enrollment.builder()
+                .id(1L)
+                .status("CONFIRMED")
+                .build();
+
+        given(paymentMapper.selectPaymentByOrderId("order_001")).willReturn(done);
+        given(enrollmentMapper.selectEnrollmentById(1L)).willReturn(confirmed);
+        willDoNothing().given(paymentMapper).updatePaymentCancelled(any());
+        willDoNothing().given(enrollmentMapper).updateEnrollmentStatus(any());
+
+        // when
+        paymentService.handleTossWebhook(reqTossWebhookDto);
+
+        // then
+        then(paymentMapper).should().updatePaymentCancelled(any());
+        then(enrollmentMapper).should().updateEnrollmentStatus(any());
+    }
+
+    @Test
+    @DisplayName("웹훅 - PAYMENT_STATUS_CHANGED 아닌 이벤트 무시")
+    void handleTossWebhook_ignore_otherEvent() {
+        // given
+        ReqTossWebhookDto reqTossWebhookDto = new ReqTossWebhookDto("PAYMENT_BILLING_KEY_ISSUED", "2026-05-21T00:00:00+09:00", null);
+
+        // when
+        paymentService.handleTossWebhook(reqTossWebhookDto);
+
+        // then
+        then(paymentMapper).should(never()).selectPaymentByOrderId(any());
+    }
+
+    @Test
+    @DisplayName("웹훅 - CANCELED 아닌 상태 무시")
+    void handleTossWebhook_ignore_nonCanceledStatus() {
+        // given
+        ReqTossWebhookDto reqTossWebhookDto = new ReqTossWebhookDto("PAYMENT_STATUS_CHANGED", "2026-05-21T00:00:00+09:00", new ReqTossWebhookDto.TossPaymentData("tgen_abc123", "order_001", "DONE"));
+
+        // when
+        paymentService.handleTossWebhook(reqTossWebhookDto);
+
+        // then
+        then(paymentMapper).should(never()).updatePaymentCancelled(any());
+    }
+
+    @Test
+    @DisplayName("웹훅 - 이미 CANCELLED 상태면 멱등성 스킵")
+    void handleTossWebhook_idempotent_alreadyCancelled() {
+        // given
+        ReqTossWebhookDto reqTossWebhookDto = new ReqTossWebhookDto("PAYMENT_STATUS_CHANGED", "2026-05-21T00:00:00+09:00", new ReqTossWebhookDto.TossPaymentData("tgen_abc123", "order_001", "CANCELED"));
+        Payment cancelled = Payment.builder()
+                .id(1L)
+                .paymentKey("tgen_abc123")
+                .orderId("order_001")
+                .status("CANCELLED")
+                .build();
+
+        given(paymentMapper.selectPaymentByOrderId("order_001")).willReturn(cancelled);
+
+        // when
+        paymentService.handleTossWebhook(reqTossWebhookDto);
+
+        // then
+        then(paymentMapper).should(never()).updatePaymentCancelled(any());
+    }
+
+    @Test
+    @DisplayName("웹훅 - 결제 내역 없음 - 처리 스킵")
+    void handleTossWebhook_skip_paymentNotFound() {
+        // given
+        ReqTossWebhookDto reqTossWebhookDto = new ReqTossWebhookDto("PAYMENT_STATUS_CHANGED", "2026-05-21T00:00:00+09:00", new ReqTossWebhookDto.TossPaymentData("tgen_abc123", "order_999", "CANCELED"));
+
+        given(paymentMapper.selectPaymentByOrderId("order_999")).willReturn(null);
+
+        // when
+        paymentService.handleTossWebhook(reqTossWebhookDto);
+
+        // then
+        then(paymentMapper).should(never()).updatePaymentCancelled(any());
+    }
+
+    @Test
+    @DisplayName("웹훅 - paymentKey 불일치 - 처리 스킵")
+    void handleTossWebhook_skip_paymentKeyMismatch() {
+        // given
+        ReqTossWebhookDto reqTossWebhookDto = new ReqTossWebhookDto("PAYMENT_STATUS_CHANGED", "2026-05-21T00:00:00+09:00", new ReqTossWebhookDto.TossPaymentData("tgen_WRONG", "order_001", "CANCELED"));
+        Payment done = Payment.builder()
+                .id(1L)
+                .paymentKey("tgen_abc123")
+                .orderId("order_001")
+                .status("DONE")
+                .build();
+
+        given(paymentMapper.selectPaymentByOrderId("order_001")).willReturn(done);
+
+        // when
+        paymentService.handleTossWebhook(reqTossWebhookDto);
+
+        // then
+        then(paymentMapper).should(never()).updatePaymentCancelled(any());
+    }
+
+    @Test
+    @DisplayName("웹훅 - data null - 처리 스킵")
+    void handleTossWebhook_skip_dataNull() {
+        // given
+        ReqTossWebhookDto reqTossWebhookDto = new ReqTossWebhookDto("PAYMENT_STATUS_CHANGED", "2026-05-21T00:00:00+09:00", null);
+
+        // when
+        paymentService.handleTossWebhook(reqTossWebhookDto);
+
+        // then
         then(paymentMapper).should(never()).updatePaymentCancelled(any());
     }
 

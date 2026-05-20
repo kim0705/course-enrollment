@@ -16,7 +16,7 @@ INSERT INTO courses (creator_id, title, description, price, capacity, enrolled_c
 VALUES
     (1, 'React 실전 마스터',           'Vite와 최신 React 라이브러리를 활용한 실무 프로젝트',   45000,  30, 2, 'OPEN', '2026-05-01', '2026-07-31', '2026-04-01 09:00:00'),
     (1, 'Spring Boot 완전 정복',       '스프링 부트로 RESTful API 서버 설계부터 배포까지',     49000,  50, 2, 'OPEN', '2026-06-01', '2026-08-31', '2026-04-05 10:00:00'),
-    (1, '자바 최적화(GC의 이해)',       'JVM 성능을 극대화하는 GC 튜닝 비법',                  80000,   2, 2, 'OPEN', '2026-05-01', '2026-06-30', '2026-04-08 11:00:00'),
+    (1, '자바 최적화(GC의 이해)',       'JVM 성능을 극대화하는 GC 튜닝 비법',                  80000,   2, 1, 'OPEN', '2026-05-01', '2026-06-30', '2026-04-08 11:00:00'),
     (2, 'Next.js 14 완벽 가이드',      'App Router와 SSR의 핵심 원리 파헤치기',               60000,  40, 2, 'OPEN', '2026-05-15', '2026-08-15', '2026-04-03 09:30:00'),
     (2, 'AWS 클라우드 기초',            'EC2부터 S3까지 클라우드 인프라 시작하기',                  0,  50, 1, 'OPEN', '2026-05-01', '2026-08-01', '2026-04-10 14:00:00'),
     (3, 'TypeScript 핵심 문법',        '자바스크립트 개발자를 위한 타입 시스템 정복',          25000,  60, 1, 'OPEN', '2026-04-15', '2026-07-15', '2026-04-02 08:30:00'),
@@ -66,7 +66,6 @@ VALUES
 -- 수강 신청 - 수강생A (user_id=4)
 INSERT INTO enrollments (user_id, course_id, status, confirmed_at, cancelled_at, created_at)
 VALUES
-    (4,  3, 'WAITLIST',  NULL,                  NULL,                  '2026-04-25 10:15:00'),
     (4,  4, 'PENDING',   NULL,                  NULL,                  '2026-04-24 11:20:00'),
     (4,  5, 'PENDING',   NULL,                  NULL,                  '2026-04-23 15:40:00'),
     (4,  2, 'CONFIRMED', '2026-04-22 14:30:00', NULL,                  '2026-04-20 10:00:00'),
@@ -100,7 +99,6 @@ VALUES
 -- 수강 신청 - 수강생C (user_id=6)
 INSERT INTO enrollments (user_id, course_id, status, confirmed_at, cancelled_at, created_at)
 VALUES
-    (6,  3, 'PENDING',   NULL,                  NULL,                  '2026-04-22 09:30:00'),
     (6,  2, 'CONFIRMED', '2026-04-24 10:00:00', NULL,                  '2026-04-23 09:00:00'),
     (6,  4, 'CONFIRMED', '2026-04-13 10:00:00', NULL,                  '2026-04-10 15:30:00'),
     (6,  6, 'CANCELLED', NULL,                  '2026-04-10 16:00:00', '2026-04-03 09:00:00'),

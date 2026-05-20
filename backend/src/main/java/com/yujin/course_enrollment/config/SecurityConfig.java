@@ -42,6 +42,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         /* H2 콘솔, 인증 엔드포인트는 인증 없이 허용 */
                         .requestMatchers("/h2-console/**", "/error").permitAll()
+                        .requestMatchers("/api/webhooks/**").permitAll()
                         .requestMatchers("/api/auth/login").permitAll()
                         .requestMatchers("/api/auth/signup").anonymous()
                         .requestMatchers("/api/auth/logout", "/api/auth/refresh", "/api/auth/check-username", "/api/auth/check-email").permitAll()

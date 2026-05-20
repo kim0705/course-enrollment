@@ -4,3 +4,22 @@ spring:
       mode: always
       schema-locations: classpath:sql/schema.sql
       data-locations: classpath:sql/data.sql
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+mybatis:
+  mapper-locations: classpath:mapper/**/*.xml
+  type-aliases-package: com.yujin.course_enrollment.entity, com.yujin.course_enrollment.dto.resp, com.yujin.course_enrollment.dto.req
+  configuration:
+    map-underscore-to-camel-case: true
+
+jwt:
+  secret: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+  expiration: 900000
+
+toss:
+  secret-key: ""
+  confirm-url: https://api.tosspayments.com/v1/payments/confirm
+  cancel-url-template: https://api.tosspayments.com/v1/payments/%s/cancel

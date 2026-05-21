@@ -41,6 +41,7 @@ export const AuthProvider = ({ children }) => {
 
                 if (
                     error.response?.status !== 401 ||
+                    original._retry ||
                     original.url === '/api/auth/refresh' ||
                     original.url === '/api/auth/login'
                 ) {
@@ -49,12 +50,14 @@ export const AuthProvider = ({ children }) => {
 
                 /* refresh 진행 중이면 큐에 대기 */
                 if (isRefreshing) {
+                    original._retry = true;
                     return new Promise((resolve, reject) => {
                         failedQueue.push({ resolve, reject });
                     }).then(() => instance(original))
                       .catch(err => Promise.reject(err));
                 }
 
+                original._retry = true;
                 isRefreshing = true;
 
                 try {

@@ -8,7 +8,8 @@ const COURSE_COLORS = ['#10B981', '#9ca3af', '#F87171', '#DC2626'];
 
 /* 도넛 차트 중앙 라벨 */
 const DonutCenter = ({ viewBox, total }) => {
-    const { cx, cy } = viewBox;
+    const { cx, cy } = viewBox || {};
+    if (cx == null || cy == null) return null;
     return (
         <g>
             <text x={cx} y={cy - 5} textAnchor="middle" fill="#111827" style={{ fontSize: 22, fontWeight: 700 }}>

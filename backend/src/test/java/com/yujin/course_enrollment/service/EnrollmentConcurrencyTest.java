@@ -145,15 +145,11 @@ class EnrollmentConcurrencyTest {
         long waitlistCount = statuses.stream().filter(EnrollmentStatus.WAITLIST::equals).count();
         long errorCount    = statuses.stream().filter(s -> s.startsWith("ERROR")).count();
 
-        System.out.println("[결과] PENDING: " + pendingCount + " / WAITLIST: " + waitlistCount + " / ERROR: " + errorCount);
-
         assertThat(errorCount).isEqualTo(0);
         assertThat(pendingCount).isEqualTo(1);
         assertThat(waitlistCount).isEqualTo(19);
 
         Course updated = courseMapper.selectCourseById(courseId);
-        System.out.println("[enrolled_count] " + updated.getEnrolledCount() + " / capacity: " + updated.getCapacity());
-
         assertThat(updated.getEnrolledCount()).isEqualTo(1);
         assertThat(updated.getEnrolledCount()).isLessThanOrEqualTo(updated.getCapacity());
     }
@@ -173,15 +169,11 @@ class EnrollmentConcurrencyTest {
         long waitlistCount = statuses.stream().filter(EnrollmentStatus.WAITLIST::equals).count();
         long errorCount    = statuses.stream().filter(s -> s.startsWith("ERROR")).count();
 
-        System.out.println("[결과] PENDING: " + pendingCount + " / WAITLIST: " + waitlistCount + " / ERROR: " + errorCount);
-
         assertThat(errorCount).isEqualTo(0);
         assertThat(pendingCount).isEqualTo(5);
         assertThat(waitlistCount).isEqualTo(25);
 
         Course updated = courseMapper.selectCourseById(courseId);
-        System.out.println("[enrolled_count] " + updated.getEnrolledCount() + " / capacity: " + updated.getCapacity());
-
         assertThat(updated.getEnrolledCount()).isEqualTo(5);
         assertThat(updated.getEnrolledCount()).isLessThanOrEqualTo(updated.getCapacity());
     }
@@ -194,8 +186,8 @@ class EnrollmentConcurrencyTest {
      *   → 대기자 3명이 모두 PENDING으로 승격되어야 함
      *   → enrolled_count = 3 (승격 인원수, cap 초과 없음)
      *
-     * updateEnrollmentStatusPromote가 AND status = 'WAITLIST' 조건으로 실행되어
-     * 동일 대기자에 대한 중복 승격을 방지함
+     * 예외 가능 상황: 모든 스레드가 selectNextWaitlist에서 동일 대기자를 발견
+     *   → updateCourseEnrolledCountPlus가 중복 실행되면 enrolled_count 불일치
      */
     @Test
     @DisplayName("5명 동시 취소 - WAITLIST 3명 전원 PENDING 승격, enrolled_count 정합성 유지")

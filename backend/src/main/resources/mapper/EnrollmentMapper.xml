@@ -100,15 +100,16 @@
              , e.confirmed_at
              , e.cancelled_at
              , e.created_at
-             , wr.waitlist_rank AS waitlistPosition
+             , CASE WHEN e.status = 'WAITLIST'
+                    THEN (SELECT COUNT(*) + 1
+                            FROM enrollments e2
+                           WHERE e2.course_id = e.course_id
+                             AND e2.status = 'WAITLIST'
+                             AND e2.created_at <![CDATA[ < ]]> e.created_at)
+                    ELSE NULL
+               END AS waitlistPosition
           FROM enrollments e
           JOIN courses c ON e.course_id = c.id
-          LEFT JOIN (
-              SELECT id
-                   , RANK() OVER (PARTITION BY course_id ORDER BY created_at) AS waitlist_rank
-                FROM enrollments
-               WHERE status = 'WAITLIST'
-          ) wr ON wr.id = e.id
          WHERE e.user_id = #{userId}
         ORDER BY CASE WHEN e.status != 'CANCELLED' THEN 0 ELSE 1 END ASC
                , e.updated_at DESC

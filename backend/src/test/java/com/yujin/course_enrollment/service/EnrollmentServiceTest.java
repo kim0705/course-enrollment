@@ -44,13 +44,20 @@ class EnrollmentServiceTest {
     @Mock
     private UserMapper userMapper;
 
+    @Mock
+    private PaymentService paymentService;
+
     @Test
     @DisplayName("수강 신청 성공")
     void registerEnrollment_success() {
         // given
         Long userId = 4L;
         Long courseId = 1L;
-        User student = new User(userId, "수강생A", "STUDENT");
+        User student = User.builder()
+                .id(userId)
+                .name("수강생A")
+                .role("STUDENT")
+                .build();
         Course openCourse = Course.builder()
                 .id(courseId)
                 .creatorId(1L)
@@ -104,7 +111,11 @@ class EnrollmentServiceTest {
         // given
         Long userId = 4L;
         Long courseId = 999L;
-        User student = new User(userId, "수강생A", "STUDENT");
+        User student = User.builder()
+                .id(userId)
+                .name("수강생A")
+                .role("STUDENT")
+                .build();
         ReqEnrollmentCreateDto req = new ReqEnrollmentCreateDto(courseId);
 
         given(userMapper.selectUserById(userId)).willReturn(student);
@@ -122,7 +133,11 @@ class EnrollmentServiceTest {
         // given
         Long userId = 1L;
         Long courseId = 1L;
-        User creator = new User(userId, "강사A", "CREATOR");
+        User creator = User.builder()
+                .id(userId)
+                .name("강사A")
+                .role("CREATOR")
+                .build();
         Course ownCourse = Course.builder()
                 .id(courseId)
                 .creatorId(userId)
@@ -145,7 +160,11 @@ class EnrollmentServiceTest {
         // given
         Long userId = 4L;
         Long courseId = 1L;
-        User student = new User(userId, "수강생A", "STUDENT");
+        User student = User.builder()
+                .id(userId)
+                .name("수강생A")
+                .role("STUDENT")
+                .build();
         Course closedCourse = Course.builder()
                 .id(courseId)
                 .creatorId(1L)
@@ -168,7 +187,11 @@ class EnrollmentServiceTest {
         // given
         Long userId = 4L;
         Long courseId = 1L;
-        User student = new User(userId, "수강생A", "STUDENT");
+        User student = User.builder()
+                .id(userId)
+                .name("수강생A")
+                .role("STUDENT")
+                .build();
         Course openCourse = Course.builder()
                 .id(courseId)
                 .creatorId(1L)
@@ -198,7 +221,11 @@ class EnrollmentServiceTest {
         // given
         Long userId = 4L;
         Long courseId = 1L;
-        User student = new User(userId, "수강생A", "STUDENT");
+        User student = User.builder()
+                .id(userId)
+                .name("수강생A")
+                .role("STUDENT")
+                .build();
         Course openCourse = Course.builder()
                 .id(courseId)
                 .creatorId(1L)
@@ -224,16 +251,18 @@ class EnrollmentServiceTest {
 
         given(userMapper.selectUserById(userId)).willReturn(student);
         given(courseMapper.selectCourseById(courseId)).willReturn(openCourse);
-        given(enrollmentMapper.selectEnrollmentByUserIdAndCourseId(userId, courseId)).willReturn(cancelled).willReturn(reEnrolled);
-        willDoNothing().given(enrollmentMapper).insertEnrollment(any());
+        given(enrollmentMapper.selectEnrollmentByUserIdAndCourseId(userId, courseId)).willReturn(cancelled);
         given(courseMapper.updateCourseEnrolledCountPlus(courseId)).willReturn(1);
+        given(enrollmentMapper.updateEnrollmentStatusReEnroll(any())).willReturn(1);
+        given(enrollmentMapper.selectEnrollmentById(1L)).willReturn(reEnrolled);
 
         // when
         RespEnrollmentDto result = enrollmentService.registerEnrollment(userId, req);
 
         // then
         assertThat(result.getStatus()).isEqualTo("PENDING");
-        then(enrollmentMapper).should().insertEnrollment(any());
+        then(enrollmentMapper).should().updateEnrollmentStatusReEnroll(any());
+        then(enrollmentMapper).should(never()).insertEnrollment(any());
         then(courseMapper).should().updateCourseEnrolledCountPlus(courseId);
     }
 
@@ -243,7 +272,11 @@ class EnrollmentServiceTest {
         // given
         Long userId = 4L;
         Long courseId = 1L;
-        User student = new User(userId, "수강생A", "STUDENT");
+        User student = User.builder()
+                .id(userId)
+                .name("수강생A")
+                .role("STUDENT")
+                .build();
         Course openCourse = Course.builder()
                 .id(courseId)
                 .creatorId(1L)
@@ -282,7 +315,11 @@ class EnrollmentServiceTest {
         // given
         Long userId = 4L;
         Long courseId = 1L;
-        User student = new User(userId, "수강생A", "STUDENT");
+        User student = User.builder()
+                .id(userId)
+                .name("수강생A")
+                .role("STUDENT")
+                .build();
         Course fullCourse = Course.builder()
                 .id(courseId)
                 .creatorId(1L)
@@ -432,11 +469,11 @@ class EnrollmentServiceTest {
 
         given(enrollmentMapper.selectEnrollmentById(enrollmentId)).willReturn(pending).willReturn(cancelled);
         willDoNothing().given(enrollmentMapper).updateEnrollmentStatus(any());
-        willDoNothing().given(courseMapper).updateCourseEnrolledCountMinus(1L);
+        given(courseMapper.updateCourseEnrolledCountMinus(1L)).willReturn(1);
         given(courseMapper.selectCourseById(1L)).willReturn(course);
 
         // when
-        RespEnrollmentDto result = enrollmentService.cancelEnrollment(userId, enrollmentId);
+        RespEnrollmentDto result = enrollmentService.cancelEnrollment(userId, enrollmentId, null);
 
         // then
         assertThat(result.getStatus()).isEqualTo("CANCELLED");
@@ -460,7 +497,7 @@ class EnrollmentServiceTest {
         given(enrollmentMapper.selectEnrollmentById(enrollmentId)).willReturn(cancelled);
 
         // when & then
-        assertThatThrownBy(() -> enrollmentService.cancelEnrollment(userId, enrollmentId))
+        assertThatThrownBy(() -> enrollmentService.cancelEnrollment(userId, enrollmentId, null))
                 .isInstanceOf(BusinessException.class)
                 .hasMessage("이미 취소된 수강 신청입니다.");
     }
@@ -482,8 +519,72 @@ class EnrollmentServiceTest {
         given(enrollmentMapper.selectEnrollmentById(enrollmentId)).willReturn(confirmed);
 
         // when & then
-        assertThatThrownBy(() -> enrollmentService.cancelEnrollment(userId, enrollmentId))
+        assertThatThrownBy(() -> enrollmentService.cancelEnrollment(userId, enrollmentId, null))
                 .isInstanceOf(BusinessException.class)
                 .hasMessage("수강 확정 후 7일이 지나 취소할 수 없습니다.");
+    }
+
+    @Test
+    @DisplayName("CONFIRMED 수강 취소 성공 - 환불 처리 포함")
+    void cancelEnrollment_success_confirmed() {
+        // given
+        Long userId = 4L;
+        Long enrollmentId = 1L;
+        Long courseId = 1L;
+        String cancelReason = "단순 변심";
+        Enrollment confirmed = Enrollment.builder()
+                .id(enrollmentId)
+                .userId(userId)
+                .courseId(courseId)
+                .status("CONFIRMED")
+                .confirmedAt(LocalDateTime.now().minusDays(1))
+                .build();
+        Course course = Course.builder().id(courseId).title("Spring Boot 강의").build();
+        Enrollment cancelled = Enrollment.builder()
+                .id(enrollmentId)
+                .userId(userId)
+                .courseId(courseId)
+                .status("CANCELLED")
+                .cancelledAt(LocalDateTime.now())
+                .build();
+
+        given(enrollmentMapper.selectEnrollmentById(enrollmentId)).willReturn(confirmed).willReturn(cancelled);
+        willDoNothing().given(paymentService).refund(enrollmentId, cancelReason);
+        willDoNothing().given(enrollmentMapper).updateEnrollmentStatus(any());
+        given(courseMapper.updateCourseEnrolledCountMinus(courseId)).willReturn(1);
+        given(enrollmentMapper.selectNextWaitlist(courseId)).willReturn(null);
+        given(courseMapper.selectCourseById(courseId)).willReturn(course);
+
+        // when
+        RespEnrollmentDto result = enrollmentService.cancelEnrollment(userId, enrollmentId, cancelReason);
+
+        // then
+        assertThat(result.getStatus()).isEqualTo("CANCELLED");
+        then(paymentService).should().refund(enrollmentId, cancelReason);
+        then(enrollmentMapper).should().updateEnrollmentStatus(any());
+        then(courseMapper).should().updateCourseEnrolledCountMinus(courseId);
+    }
+
+    @Test
+    @DisplayName("CONFIRMED 취소 사유 없음 - 수강 취소 실패")
+    void cancelEnrollment_fail_noReason() {
+        // given
+        Long userId = 4L;
+        Long enrollmentId = 1L;
+        Enrollment confirmed = Enrollment.builder()
+                .id(enrollmentId)
+                .userId(userId)
+                .courseId(1L)
+                .status("CONFIRMED")
+                .confirmedAt(LocalDateTime.now().minusDays(1))
+                .build();
+
+        given(enrollmentMapper.selectEnrollmentById(enrollmentId)).willReturn(confirmed);
+
+        // when & then
+        assertThatThrownBy(() -> enrollmentService.cancelEnrollment(userId, enrollmentId, null))
+                .isInstanceOf(BusinessException.class)
+                .hasMessage("취소 사유를 입력해주세요.");
+        then(paymentService).should(never()).refund(any(), any());
     }
 }

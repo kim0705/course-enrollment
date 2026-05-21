@@ -28,6 +28,9 @@ public interface EnrollmentMapper {
     /* 수강 신청 상태 변경 */
     void updateEnrollmentStatus(Enrollment enrollment);
 
+    /* 재신청 상태 변경 (CANCELLED 상태일 때만, 반환값: 업데이트된 행 수) */
+    int updateEnrollmentStatusReEnroll(Enrollment enrollment);
+
     /* 나의 수강 신청 목록 조회 */
     List<RespEnrollmentStudentDto> selectEnrollmentListByUserId(ReqEnrollmentPageDto reqEnrollmentPageDto);
 
@@ -42,4 +45,19 @@ public interface EnrollmentMapper {
 
     /* 대기열 첫 번째 조회 (자동 승격용) */
     Enrollment selectNextWaitlist(Long courseId);
+
+    /* 대기열 승격 (WAITLIST 상태일 때만 PENDING으로 변경) */
+    int updateEnrollmentStatusPromote(Long id);
+
+    /* 수강 신청 수 조회 (PENDING + CONFIRMED) */
+    int selectActiveEnrollmentCount();
+
+    /* 강의 마감 시 대기열 전체 취소 */
+    int updateWaitlistCancelledByCourseId(Long courseId);
+
+    /* 강제 폐강 시 CONFIRMED 수강 신청 ID 목록 조회 */
+    List<Long> selectConfirmedEnrollmentIdsByCourseId(Long courseId);
+
+    /* 강제 폐강 시 미결제 수강 신청 취소 (WAITLIST, PENDING → CANCELLED) */
+    int updatePendingWaitlistCancelledByCourseId(Long courseId);
 }

@@ -13,7 +13,7 @@ import lombok.Setter;
 public class ReqEnrollmentPageDto {
     private Long userId;
     private int page = 0;
-    private int size = 5;
+    private int size = 10;
 
     /* offset 계산 */
     public int getOffset() {

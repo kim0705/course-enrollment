@@ -3,7 +3,7 @@
 
 <mapper namespace="com.yujin.course_enrollment.mapper.EnrollmentMapper">
 
-    <!-- 수강 신청 등록 (취소 후 재신청 시 ON DUPLICATE KEY UPDATE로 PENDING 초기화) -->
+    <!-- 수강 신청 등록 -->
     <insert id="insertEnrollment" parameterType="Enrollment" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO enrollments (
                 user_id
@@ -14,10 +14,6 @@
               , #{courseId}
               , #{status}
         )
-        ON DUPLICATE KEY UPDATE
-              status = #{status}
-            , confirmed_at = NULL
-            , cancelled_at = NULL
     </insert>
 
     <!-- 수강 신청 단건 조회 -->
@@ -56,6 +52,16 @@
              , confirmed_at = #{confirmedAt}
              , cancelled_at = #{cancelledAt}
          WHERE id = #{id}
+    </update>
+
+    <!-- 재신청 상태 변경 (CANCELLED 상태일 때만 업데이트, 동시 재신청 경합 방지) -->
+    <update id="updateEnrollmentStatusReEnroll" parameterType="Enrollment">
+        UPDATE enrollments
+           SET status = #{status}
+             , confirmed_at = #{confirmedAt}
+             , cancelled_at = #{cancelledAt}
+         WHERE id = #{id}
+           AND status = 'CANCELLED'
     </update>
 
     <!-- 강의별 수강생 목록 조회 (CREATOR 전용) -->
@@ -117,7 +123,48 @@
          WHERE user_id = #{userId}
     </select>
 
-    <!-- 대기열 첫 번째 조회 (자동 승격용) -->
+    <!-- 대기열 승격 (WAITLIST 상태일 때만 PENDING으로 변경) -->
+    <update id="updateEnrollmentStatusPromote" parameterType="Long">
+        UPDATE enrollments
+           SET status = 'PENDING'
+         WHERE id = #{id}
+           AND status = 'WAITLIST'
+    </update>
+
+    <!-- 수강 신청 수 조회 (PENDING + CONFIRMED) -->
+    <select id="selectActiveEnrollmentCount" resultType="int">
+        SELECT COUNT(*)
+          FROM enrollments
+         WHERE status IN ('PENDING', 'CONFIRMED')
+    </select>
+
+    <!-- 강제 폐강 시 CONFIRMED 수강 신청 ID 목록 조회 -->
+    <select id="selectConfirmedEnrollmentIdsByCourseId" parameterType="Long" resultType="Long">
+        SELECT id
+          FROM enrollments
+         WHERE course_id = #{courseId}
+           AND status = 'CONFIRMED'
+    </select>
+
+    <!-- 강제 폐강 시 미결제 수강 신청 취소 (WAITLIST, PENDING → FORCE_CLOSED) -->
+    <update id="updatePendingWaitlistCancelledByCourseId" parameterType="Long">
+        UPDATE enrollments
+           SET status = 'FORCE_CLOSED'
+             , cancelled_at = NOW()
+         WHERE course_id = #{courseId}
+           AND status IN ('WAITLIST', 'PENDING')
+    </update>
+
+    <!-- 강의 마감 시 대기열 전체 취소 -->
+    <update id="updateWaitlistCancelledByCourseId" parameterType="Long">
+        UPDATE enrollments
+           SET status = 'CANCELLED'
+             , cancelled_at = NOW()
+         WHERE course_id = #{courseId}
+           AND status = 'WAITLIST'
+    </update>
+
+    <!-- 대기열 첫 번째 조회 (자동 승격용, FOR UPDATE SKIP LOCKED으로 동시 취소 경합 방지) -->
     <select id="selectNextWaitlist" parameterType="Long" resultType="Enrollment">
         SELECT id
              , user_id
@@ -132,6 +179,7 @@
            AND status = 'WAITLIST'
         ORDER BY created_at ASC
         LIMIT 1
+        FOR UPDATE SKIP LOCKED
     </select>
 
 </mapper>

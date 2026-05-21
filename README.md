@@ -1,374 +1,109 @@
-# 📋 프로젝트 README
+# 강의 커머스 플랫폼
 
-## 📌 프로젝트 개요
-- **프로젝트 목적:** 강사(CREATOR)가 강의를 등록·관리하고, 수강생(STUDENT)이 강의를 검색·신청 할 수 있는 수강 신청 시스템
-- **주요 기능:**
-  - 강의 등록 / 수정 / 상태 관리 (DRAFT → OPEN → CLOSED)
-  - 강의 목록 조회 (상태 필터, 키워드 검색, 페이징)
-  - 수강 신청 / 결제 확정 / 취소
-  - 정원 초과 시 자동 대기열(WAITLIST) 등록 및 취소 시 자동 승격
-  - 마이페이지: 수강생 신청 목록 / 강사 강의 목록 · 수강생 조회
-- **핵심 요구사항:**
-  - 동시 수강 신청 시 정원 초과 방지 (조건부 UPDATE)
-  - 강의 상태별 접근 제어 (DRAFT 강의는 작성자 외 접근 불가)
-  - CONFIRMED 확정 후 7일 이내에만 취소 가능
+강사가 강의를 등록하고 수강생이 신청·결제할 수 있는 커머스 플랫폼입니다.
+동시 요청 상황에서도 정원 초과나 중복 처리 없이 동작하는 걸 목표로 설계했습니다.
 
 ---
 
-## 🛠 기술 스택
-- **Backend:** Java 17, Spring Boot 3.5.13
-- **Frontend:** React + Vite
-- **Database:** H2 (In-Memory, MySQL 호환 모드)
-- **ORM / Mapper:** MyBatis
-- **Security:** 별도 인증 없음 — `X-User-Id` 요청 헤더로 사용자 식별
-- **Build Tool:** Gradle
+## 화면
 
----
-
-## 🚀 실행 방법
-
-### 1. 프로젝트 클론
-```bash
-git clone https://github.com/kim0705/course-enrollment.git
-cd course-enrollment
-```
-
-### 2. 백엔드 실행
-IntelliJ IDEA에서 `CourseEnrollmentApplication` 실행
-
-### 3. 프론트엔드 실행
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-### 4. DB 및 환경 설정
-- DB 설정 불필요 — 애플리케이션 시작 시 H2 인메모리 DB가 자동으로 스키마/샘플 데이터 초기화
-
-### 5. 접속 URL
-| 서비스 | URL |
+| 수강 신청 | 대기열 상태 |
 |---|---|
-| 프론트엔드 | http://localhost:5173 |
-| 백엔드 API | http://localhost:8080 |
-| H2 Console | http://localhost:8080/h2-console |
-
-> H2 Console 접속 정보: JDBC URL `jdbc:h2:mem:course_enrollment`, 계정 `sa` / 비밀번호 없음
+| <img width="1742" height="1013" alt="강의상세_정원마감" src="https://github.com/user-attachments/assets/36d3c24a-06fb-470c-ad55-f3ec056a1c49" /> | <img width="1706" height="934" alt="마이페이지_목록" src="https://github.com/user-attachments/assets/b6fbd1ff-5034-45cc-b800-23b52c32d671" />
 
 ---
 
-## 📡 주요 API 목록 및 예시
+## 핵심 기능
 
-> 인증 방식: 요청 헤더 `X-User-Id: {userId}` 로 사용자 식별
+**수강 신청 흐름**
+- 정원이 찼을 때 자동으로 대기열 등록
+- 취소 발생 시 대기열 첫 번째 수강생 자동 승격
+- 동시 신청 시에도 정원 초과 없이 처리 (DB 레벨 조건부 UPDATE)
 
-### 1. 강의 등록
-- **Method:** `POST`
-- **URL:** `/api/courses`
-- **Headers:** `X-User-Id: 1`
-- **Request:**
-```json
-{
-  "title": "Spring Boot 완전 정복",
-  "description": "강의 설명",
-  "price": 49000,
-  "capacity": 30,
-  "startDate": "2026-06-01",
-  "endDate": "2026-08-31"
-}
-```
-- **Response:**
-```json
-{
-  "code": 200,
-  "message": "success",
-  "data": {
-    "id": 29,
-    "creatorId": 1,
-    "title": "Spring Boot 완전 정복",
-    "description": "강의 설명",
-    "price": 49000,
-    "capacity": 30,
-    "status": "DRAFT",
-    "startDate": "2026-06-01",
-    "endDate": "2026-08-31",
-    "createdAt": "2026-04-27T21:38:38.782161"
-  }
-}
-```
+**결제 및 환불**
+- Toss Payments 연동 / 결제 확정 전 서버에서 금액 재검증 (위변조 방지)
+- 결제 확정 후 7일 이내 환불
+- 강제 폐강 시 전체 수강생 일괄 환불 처리
+
+**권한 관리**
+- 수강생 / 강사 / 관리자 역할별 API 접근 제어
+- 수강생 → 강사 전환 신청 및 관리자 승인 흐름
+- 로그아웃 시 accessToken Redis 블랙리스트 등록으로 즉시 무효화
 
 ---
 
-### 2. 강의 목록 조회
-- **Method:** `GET`
-- **URL:** `/api/courses?status=OPEN&keyword=React&page=0&size=12`
-- **Request:** Query Parameter (모두 선택사항)
-  - `status`: `OPEN` | `CLOSED` (미입력 시 전체, DRAFT 제외)
-  - `keyword`: 제목 검색어
-  - `page`: 페이지 번호 (기본값 0)
-  - `size`: 페이지 크기 (기본값 12)
-- **Response:**
-```json
-{
-  "code": 200,
-  "message": "success",
-  "data": {
-    "content": [
-      {
-        "id": 1,
-        "creatorId": 1,
-        "creatorName": "강사A",
-        "title": "React 실전 마스터",
-        "price": 45000,
-        "capacity": 30,
-        "enrolledCount": 2,
-        "status": "OPEN",
-        "startDate": "2026-05-01",
-        "endDate": "2026-07-31",
-        "createdAt": "2026-04-01T09:00:00"
-      }
-    ],
-    "page": 0,
-    "size": 12,
-    "totalCount": 1,
-    "totalPages": 1,
-    "last": true
-  }
-}
-```
+## 기술 스택
+
+| 구분 | 기술 |
+|---|---|
+| Backend | Java 17, Spring Boot, Spring Security, MyBatis |
+| Frontend | React, Vite |
+| Database | MySQL (로컬 Docker / Testcontainers) |
+| 인증 | JWT — accessToken / refreshToken 쿠키, Redis |
+| 결제 | Toss Payments API |
+| 테스트 | JUnit 5, Testcontainers |
 
 ---
 
-### 3. 강의 상세 조회
-- **Method:** `GET`
-- **URL:** `/api/courses/{courseId}`
-- **Headers:** `X-User-Id: 4` (선택 — 미입력 시 수강 신청 여부 미포함)
-- **Request:** 없음
-- **Response:**
-```json
-{
-  "code": 200,
-  "message": "success",
-  "data": {
-    "id": 1,
-    "creatorId": 1,
-    "creatorName": "강사A",
-    "title": "React 실전 마스터",
-    "description": "Vite와 최신 React 라이브러리를 활용한 실무 프로젝트",
-    "price": 45000,
-    "capacity": 30,
-    "enrolledCount": 2,
-    "status": "OPEN",
-    "startDate": "2026-05-01",
-    "endDate": "2026-07-31",
-    "createdAt": "2026-04-01T09:00:00",
-    "updatedAt": "2026-04-27T21:36:20.858123",
-    "enrolled": true
-  }
-}
-```
+## 실행 방법
 
----
+환경 변수: `JWT_SECRET`, `TOSS_SECRET_KEY`, `TOSS_WEBHOOK_SECRET`, `DB_PASSWORD`
 
-### 4. 수강 신청
-- **Method:** `POST`
-- **URL:** `/api/enrollments`
-- **Headers:** `X-User-Id: 6`
-- **Request:**
-```json
-{ "courseId": 1 }
-```
-- **Response:**
-```json
-{
-  "code": 200,
-  "message": "success",
-  "data": {
-    "id": 33,
-    "userId": 6,
-    "courseId": 1,
-    "courseTitle": "React 실전 마스터",
-    "status": "PENDING",
-    "confirmedAt": null,
-    "cancelledAt": null,
-    "createdAt": "2026-04-27T21:44:41.331255"
-  }
-}
-```
-> 정원 초과 시 `status: "WAITLIST"` 로 응답
-
----
-
-### 5. 결제 요청 (PENDING → CONFIRMED)
-- **Method:** `PATCH`
-- **URL:** `/api/enrollments/{enrollmentId}/confirm`
-- **Headers:** `X-User-Id: 4`
-- **Request:** 없음
-- **Response:** 수강 신청 정보 (`status: "CONFIRMED"`, `confirmedAt` 포함)
-
----
-
-### 6. 수강 취소
-- **Method:** `PATCH`
-- **URL:** `/api/enrollments/{enrollmentId}/cancel`
-- **Headers:** `X-User-Id: 4`
-- **Request:** 없음
-- **Response:** 수강 신청 정보 (`status: "CANCELLED"`, `cancelledAt` 포함)
-> CONFIRMED 상태는 확정 후 7일 이내에만 취소 가능
-> PENDING/CONFIRMED 취소 시 WAITLIST 첫 번째 대기자 자동 PENDING 승격
-
----
-
-## 🗂 데이터 모델 설명
-
-### 1. ERD (Entity Relationship Diagram)
-<img width="1063" height="536" alt="course_enrollment-db" src="https://github.com/user-attachments/assets/b46d01e5-df09-4856-9297-1c7266f1c33c" />
-
-
-### 2. 테이블 상세 설명
-
-- **users**
-  - 설명: 사용자(강사/수강생) 정보를 관리하는 테이블
-
-- **courses**
-  - 설명: 강의 정보 및 현재 모집 상태를 관리하는 테이블
-
-- **enrollments**
-  - 설명: 수강생의 강의 신청 내역을 관리하는 테이블
-
-### 3. 테이블 관계 및 제약 사항
-- `users` : `courses` = 1:N (한 강사가 여러 강의 등록 가능)
-- `users` : `enrollments` = 1:N (한 수강생이 여러 강의 신청 가능)
-- `courses` : `enrollments` = 1:N (한 강의에 여러 수강 신청 존재)
-- `enrollments(user_id, course_id)` UNIQUE 제약 — 동일 강의 중복 신청 불가
-- `courses.enrolled_count` 조건부 UPDATE 적용 — 정원 초과 방지
-
----
-
-## 📌 요구사항 해석 및 가정
-
-### 구현 범위
-
-**필수 구현** 
-- 강의 등록 / 강의 상태 관리 (DRAFT → OPEN → CLOSED)
-- 강의 목록 조회 (상태 필터), 강의 상세 조회 (현재 신청 인원 포함)
-- 수강 신청 / 신청 상태 관리 / 수강 취소 / 내 수강 신청 목록 조회
-- 정원 초과 신청 거부, 동시 신청 처리
-
-**선택 구현**
-- 수강 취소 기간 제한 (결제 확정 후 7일 이내)
-- 대기열(WAITLIST) 기능
-- 강의별 수강생 목록 조회 (크리에이터 전용)
-- 신청 내역 페이지네이션
-
-**요구사항 외 추가 구현**
-- 강의 수정 — DRAFT 상태에서만 허용
-- 개설 강의 목록 조회 — 강사가 본인 강의(DRAFT 포함) 확인용
-- 강의 목록 키워드 검색 및 페이지네이션
-
----
-
-### 요구사항 해석 및 가정
-
-**정원 초과 신청 처리**
-- 정원이 초과된 경우 수강 신청 상태를 `WAITLIST`로 처리
-- 기본 상태(`PENDING → CONFIRMED → CANCELLED`)에 `WAITLIST` 상태 추가
-
-**WAITLIST 자동 승격**
-- PENDING / CONFIRMED 취소 발생 시 WAITLIST 첫 번째를 PENDING으로 승격
-- 승격 순서는 생성 시점 기준
-
-**취소 가능 기간 기준**
-- 취소 가능 기간은 `CONFIRMED(결제 완료 시점)` 기준으로 적용
-- PENDING은 아직 결제 전이므로 환불 개념이 없다고 보고 기간 제한 없이 취소 가능
-
-**강의 수정 가능 시점**
-- 강의 수정은 `DRAFT` 상태에서만 가능
-
-**동시성 처리 방식**
-- 조건부 UPDATE로 정원 초과 방지
-
-**강사의 본인 강의 수강 신청 제한**
-- 강사는 본인이 생성한 강의에 수강 신청할 수 없도록 제한
-
-**DRAFT 강의 접근 제어**
-- DRAFT는 준비 중인 강의이므로 일반 목록에서 제외하고 강사 본인만 상세 조회 가능하도록 처리
-
-**X-User-Id 없는 경우 비회원 처리**
-- `X-User-Id` 미포함 시 비회원으로 처리 (조회만 가능)
-
----
-
-## ⚙️ 설계 결정과 이유
-
-**조건부 UPDATE로 동시성 제어**
-- `UPDATE ... WHERE enrolled_count < capacity` 방식으로 정원 초과 방지
-- 별도 락 없이 단일 쿼리로 처리 가능해 구현이 단순하고 성능 부담이 적음
-
-**enrolled_count 컬럼 직접 관리**
-- `COUNT(*)` 집계 대신 수강 신청/취소 시 직접 증감
-- 매 요청마다 집계 쿼리를 수행하지 않아 성능 저하를 방지
-
-**WAITLIST 승격을 취소 트랜잭션에 동기 포함**
-- 취소와 승격을 하나의 트랜잭션으로 처리
-- 처리 중 일부만 반영되는 상황을 방지하기 위함
-
-**`X-User-Id` 헤더 인증**
-- `X-User-Id` 헤더로 사용자 식별
-- 인증 구현을 생략하고 핵심 로직에 집중하기 위함
-
-**DRAFT 공개 목록 제외**
-- 일반 목록에서는 제외하고 작성자만 조회 가능
-- 준비 중인 강의가 외부에 노출되는 것을 방지
-
----
-
-## ⚡ 한계 및 트레이드오프
-
-- **enrolled_count 정합성:** 수강 신청/취소 시 직접 증감하는 구조이기 때문에 예상치 못한 오류 발생 시 실제 신청 건수와 enrolled_count가 어긋날 수 있음
-- **WAITLIST 승격 실패 시 취소 롤백:** 승격을 취소와 같은 트랜잭션으로 묶기 때문에 승격 중 예외가 생기면 취소도 함께 롤백됨
-- **키워드 검색 성능:** `LIKE '%keyword%'` 방식이라 데이터가 많아지면 검색 속도가 느려질 수 있음
-
----
-
-## 🧪 테스트 실행 방법
-
-- **실행 방법:**
 ```bash
-cd backend  
-./gradlew test
+# MySQL + Redis 실행
+docker compose up -d
+
+# 백엔드
+cd backend && ./gradlew bootRun
+
+# 프론트엔드
+cd frontend && npm install && npm run dev
 ```
 
-- **주요 테스트:**
-  - CourseServiceTest: 강의 등록/조회/상태 변경
-  - EnrollmentServiceTest: 수강 신청/결제/취소/대기열 처리
-  - EnrollmentConcurrencyTest: 동시 신청 시 정원 초과 방지 검증
+---
+
+## ERD
+
+<img width="1135" height="1252" alt="course_enrollment-db" src="https://github.com/user-attachments/assets/52f28773-feed-4e43-860f-bc6d951f8bb9" />
+
+```
+수강 신청 상태 흐름
+PENDING → CONFIRMED → CANCELLED
+WAITLIST → PENDING (정원 공석 발생 시 자동 승격)
+```
 
 ---
 
-## ⚠️ 미구현 / 제약사항
+## 설계 결정
 
-- **미구현 기능:**
+### 동시 신청 처리 — 조건부 UPDATE
+```sql
+UPDATE courses
+   SET enrolled_count = enrolled_count + 1
+ WHERE id = #{id}
+   AND enrolled_count < capacity
+```
+애플리케이션 레벨에서 정원을 체크하면 동시 요청 시 타이밍 문제가 생깁니다. 단일 UPDATE 쿼리로 처리하면 DB가 원자적으로 처리하기 때문에 별도 락 없이 정원 초과를 방지할 수 있습니다.
 
-  - 실제 인증/인가 (JWT, Spring Security)
-    - 과제 요구사항에 따라 `X-User-Id` 헤더 기반으로 대체
-  
-  - 회원 가입 / 로그인 UI (현재 사용자 선택 방식)
-  
-  - 실제 결제 연동
-    - 외부 시스템 없이 상태 변경(PENDING → CONFIRMED)으로 단순화
+### 대기열 승격 — FOR UPDATE SKIP LOCKED
+취소가 동시에 발생하면 여러 트랜잭션이 같은 대기자를 조회해 중복 승격이 생길 수 있습니다. 일반 `FOR UPDATE`는 락이 걸린 행을 다른 트랜잭션이 대기하므로 동시 취소가 몰릴 경우 병목이 생깁니다. `SKIP LOCKED`는 이미 락이 걸린 행을 건너뛰고 다음 대기자를 선점하기 때문에 대기 없이 서로 다른 대기자를 처리할 수 있습니다.
 
-  - 강의 CLOSED 시 WAITLIST 처리
-    - 현재는 마감 이후에도 WAITLIST가 유지됨
+### enrolled_count 직접 관리
+`COUNT(*)` 집계 대신 수강 신청·취소 시 직접 증감합니다. 매 요청마다 집계 쿼리를 수행하지 않아 성능 부담을 줄이지만 예상치 못한 오류 발생 시 실제 신청 건수와 어긋날 수 있는 트레이드오프가 있습니다.
 
-  - 강의 종료 시 상태 자동 변경
-    - 현재는 수동으로 CLOSED 처리
-
-- **제약사항:**
-  - 인증을 `X-User-Id` 헤더 기반으로 단순화하여 사용자 검증 기능이 없음
+### AccessToken 즉시 무효화 — Redis 블랙리스트
+JWT는 stateless 특성상 발급 후 서버에서 제어가 어렵습니다. 로그아웃 시 해당 accessToken을 Redis에 저장하고(`BL:{token}`, 잔여 TTL 기준), JwtFilter에서 요청마다 블랙리스트 여부를 확인해 등록된 토큰을 즉시 차단합니다. 만료된 키는 Redis TTL에 의해 자동 삭제됩니다.
 
 ---
 
-## AI 활용 범위
+## 한계 및 트레이드오프
 
-- **활용 내용:** 백엔드/프론트엔드 코드 작성 및 단위 테스트 작성
-- **활용 방식:** 설계 방향은 직접 결정하고 구현 및 검증 과정에서 AI를 활용
+- **외부 API와 트랜잭션 일관성**: 환불 API 성공 후 DB 롤백이 발생하면 환불은 됐지만 상태는 CONFIRMED로 남을 수 있음. Toss 웹훅(`PAYMENT_STATUS_CHANGED`)을 수신해 결제 상태를 동기화하는 방식으로 보완 - 인라인 업데이트 실패 시 웹훅이 안전망으로 동작
+- **대기열 승격 알림**: 승격 시 사용자에게 별도 알림이 없어 결제 기한을 놓칠 수 있는 구조. 이메일 알림 연동으로 개선 가능
+- **AccessToken 블랙리스트**: 모든 인증 요청마다 Redis 조회가 추가됨. Redis 장애 시 블랙리스트 체크가 불가능해 로그아웃된 토큰이 일시적으로 유효한 상태가 될 수 있음
+
+---
+
+## 테스트
+
+단위 테스트로 수강 신청·결제·취소·대기열·인증 처리 흐름을 검증하고 동시성 테스트는 실제 락 동작 검증을 위해 Testcontainers로 격리된 MySQL 환경을 구성해 진행했습니다. Redis를 사용하는 RefreshToken·AccessToken 블랙리스트는 실제 Redis 연결 기반 통합 테스트로 검증합니다.

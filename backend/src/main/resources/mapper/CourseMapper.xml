@@ -62,7 +62,7 @@
           FROM courses c
           JOIN users u ON c.creator_id = u.id
           <where>
-              AND c.status != 'DRAFT'
+              AND c.status NOT IN ('DRAFT', 'FORCE_CLOSED')
               <if test="status != null and status != ''">
                   AND c.status = #{status}
               </if>
@@ -94,7 +94,7 @@
           FROM courses c
           JOIN users u ON c.creator_id = u.id
           <where>
-              AND c.status != 'DRAFT'
+              AND c.status NOT IN ('DRAFT', 'FORCE_CLOSED')
               <if test="status != null and status != ''">
                   AND c.status = #{status}
               </if>
@@ -166,7 +166,7 @@
     </update>
 
     <!-- 나의 강의 목록 조회 (CREATOR 전용) -->
-    <select id="selectCourseListByCreatorId" parameterType="Long" resultType="RespCourseListDto">
+    <select id="selectCourseListByCreatorId" parameterType="ReqMyCoursePageDto" resultType="RespCourseListDto">
         SELECT c.id
              , c.creator_id
              , u.name AS creatorName
@@ -184,6 +184,14 @@
           JOIN users u ON c.creator_id = u.id
          WHERE c.creator_id = #{creatorId}
         ORDER BY c.created_at DESC
+        LIMIT #{size} OFFSET #{offset}
+    </select>
+
+    <!-- 나의 강의 목록 전체 수 조회 (페이징용) -->
+    <select id="selectCourseListByCreatorIdCount" parameterType="Long" resultType="int">
+        SELECT COUNT(*)
+          FROM courses
+         WHERE creator_id = #{creatorId}
     </select>
 
     <!-- 수강 인원 감소 -->
@@ -193,5 +201,52 @@
          WHERE id = #{courseId}
            AND enrolled_count > 0
     </update>
+
+    <!-- 수강 인원 초기화 (강제 폐강 시) -->
+    <update id="updateCourseEnrolledCountReset" parameterType="Long">
+        UPDATE courses
+           SET enrolled_count = 0
+         WHERE id = #{courseId}
+    </update>
+
+    <!-- 관리자 전체 강의 목록 조회 -->
+    <select id="selectAdminCourseList" parameterType="ReqAdminCoursePageDto" resultType="RespCourseListDto">
+        SELECT c.id
+             , c.creator_id
+             , u.name AS creatorName
+             , c.title
+             , c.price
+             , c.capacity
+             , c.enrolled_count
+             , (SELECT COUNT(*)
+                  FROM enrollments e
+                 WHERE e.course_id = c.id
+                   AND e.status = 'CONFIRMED') AS confirmeCount
+             , (SELECT COUNT(*)
+                  FROM enrollments e
+                 WHERE e.course_id = c.id
+                   AND e.status = 'PENDING') AS pendingCount
+             , c.status
+             , c.start_date
+             , c.end_date
+             , c.created_at
+          FROM courses c
+          JOIN users u ON c.creator_id = u.id
+        ORDER BY c.created_at DESC
+        LIMIT #{size} OFFSET #{offset}
+    </select>
+
+    <!-- 관리자 전체 강의 수 조회 -->
+    <select id="selectAdminCourseListCount" resultType="int">
+        SELECT COUNT(*)
+          FROM courses
+    </select>
+
+    <!-- 상태별 강의 수 조회 -->
+    <select id="selectCourseCountByStatus" resultType="int">
+        SELECT COUNT(*)
+          FROM courses
+         WHERE status = #{status}
+    </select>
 
 </mapper>

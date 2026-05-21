@@ -1,5 +1,6 @@
 package com.yujin.course_enrollment.entity;
 
+import com.yujin.course_enrollment.global.CourseStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -30,4 +31,28 @@ public class Course {
     private LocalDate endDate;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+
+    /* 강의 공개 상태 변경용 */
+    public static Course ofOpen(Long id) {
+        return Course.builder()
+                .id(id)
+                .status(CourseStatus.OPEN)
+                .build();
+    }
+
+    /* 강의 마감 상태 변경용 */
+    public static Course ofClosed(Long id) {
+        return Course.builder()
+                .id(id)
+                .status(CourseStatus.CLOSED)
+                .build();
+    }
+
+    /* 강제 폐강 상태 변경용 */
+    public static Course ofForceClosed(Long id) {
+        return Course.builder()
+                .id(id)
+                .status(CourseStatus.FORCE_CLOSED)
+                .build();
+    }
 }

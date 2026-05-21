@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
-import { registerCourse, getCourseDetail, updateCourse } from '../api/course';
+import { useQueryClient } from '@tanstack/react-query';
+import { registerCourse, updateCourse } from '../api/course';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useCourseDetail } from '../hooks/useCourseDetail';
 
 /* 강의 등록/수정 페이지 */
 const CourseRegisterPage = () => {
@@ -13,7 +15,6 @@ const CourseRegisterPage = () => {
     const location = useLocation();
     /* 인증 정보에서 현재 사용자 정보 추출 */
     const { user } = useAuth();
-
     /* 수정 모드 여부 */
     const isEdit = !!courseId;
     /* 이전 검색어 유지 */
@@ -33,45 +34,37 @@ const CourseRegisterPage = () => {
     });
     /* 데이터 로딩 상태 */
     const [ready, setReady] = useState(!isEdit);
+    /* 강의 상세 정보 조회 */
+    const { data: courseData, isError: isCourseError } = useCourseDetail(courseId);
+    /* React Query의 쿼리 클라이언트 */
+    const queryClient = useQueryClient();
 
-    /* 수정 모드일 때 기존 데이터 불러오기 */
+    /* 수정 모드일 때 기존 데이터로 폼 초기화 */
     useEffect(() => {
-        if (!isEdit) return;
+        if (!courseData) return;
 
-        let cancelled = false;
+        if (courseData.creatorId !== user.id) {
+            alert('수정 권한이 없습니다.');
+            navigate(`/courses${previousSearch}`, { replace: true });
+            return;
+        }
 
-        const fetchCourseData = async () => {
-            try {
-                const response = await getCourseDetail(courseId);
-                
-                if (cancelled) return;
+        setForm({
+            ...courseData,
+            title: courseData.title ?? '',
+            description: courseData.description ?? '',
+            priceDisplay: courseData.price.toLocaleString()
+        });
+        setReady(true);
+    }, [courseData]);
 
-                const data = response.data;
-
-                if (data.creatorId !== user?.id) {
-                    alert('수정 권한이 없습니다.');
-                    navigate(`/courses${previousSearch}`, { replace: true });
-                    return;
-                }
-
-                setForm({
-                    ...data,
-                    title: data.title ?? '',
-                    description: data.description ?? '',
-                    priceDisplay: data.price.toLocaleString()
-                });
-                setReady(true);
-            } catch (err) {
-                if (cancelled) return;
-                alert('강의 정보를 불러오는데 실패했습니다.');
-                navigate(`/courses${previousSearch}`);
-            }
-        };
-
-        fetchCourseData();
-
-        return () => { cancelled = true; };
-    }, [courseId, isEdit]);
+    /* 강의 정보 조회 실패 시 처리 */
+    useEffect(() => {
+        if (!isCourseError) return;
+        
+        alert('강의 정보를 불러오는데 실패했습니다.');
+        navigate(`/courses${previousSearch}`);
+    }, [isCourseError]);
 
     /* 입력값 변경 핸들러 */
     const handleChange = (e) => {
@@ -114,11 +107,12 @@ const CourseRegisterPage = () => {
 
         try {
             if (isEdit) {
-                await updateCourse(courseId, user?.id, form);
+                await updateCourse(courseId, user.id, form);
+                queryClient.invalidateQueries({ queryKey: ['courseDetail', courseId] });
                 alert('강의 정보가 수정되었습니다!');
                 navigate(`/courses/${courseId}`, { state: { fromSearch: previousSearch, from } });
             } else {
-                const result = await registerCourse(user?.id, form);
+                const result = await registerCourse(user.id, form);
                 alert('강의가 등록되었습니다!');
                 navigate(`/courses/${result.data.id}`, { state: { fromSearch: previousSearch } });
             }

@@ -1,21 +1,23 @@
 import axios from 'axios';
 
+/* Axios 인스턴스 설정
+ * - baseURL: API 서버 주소
+ * - withCredentials: 쿠키 자동 포함
+ * - headers: JSON 요청 기본값 */
 const instance = axios.create({
     baseURL: 'http://localhost:8080',
+    withCredentials: true,
     headers: {
         'Content-Type': 'application/json',
     },
 });
 
-/* 요청 인터셉터: localStorage에서 유저 정보를 읽어 X-User-Id 헤더 자동 추가 */
-instance.interceptors.request.use(config => {
-    const user = localStorage.getItem('user');
-
-    if (user) {
-        config.headers['X-User-Id'] = JSON.parse(user).id;
-    }
-    
-    return config;
+/* 인터셉터 없는 인스턴스 — 앱 초기화 시 인증 상태 확인 전용 */
+export const plainAxios = axios.create({
+    baseURL: 'http://localhost:8080',
+    withCredentials: true,
+    headers: { 'Content-Type': 'application/json' },
+    validateStatus: s => s < 500,
 });
 
 export default instance;

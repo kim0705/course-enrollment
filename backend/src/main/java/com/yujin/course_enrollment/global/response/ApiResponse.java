@@ -29,6 +29,16 @@ public class ApiResponse<T> {
         return new ApiResponse<>(200, "success", null);
     }
 
+    /* 생성 성공 응답 (데이터 있음) */
+    public static <T> ApiResponse<T> created(T data) {
+        return new ApiResponse<>(201, "created", data);
+    }
+
+    /* 생성 성공 응답 (데이터 없음) */
+    public static <T> ApiResponse<T> created() {
+        return new ApiResponse<>(201, "created", null);
+    }
+
     /* 실패 응답 */
     public static <T> ApiResponse<T> fail(int code, String message) {
         return new ApiResponse<>(code, message, null);

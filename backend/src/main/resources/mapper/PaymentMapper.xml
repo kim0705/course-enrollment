@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.yujin.course_enrollment.mapper.PaymentMapper">
+
+    <!-- 결제 저장 -->
+    <insert id="insertPayment" parameterType="Payment" useGeneratedKeys="true" keyProperty="id">
+        INSERT IGNORE INTO payments (
+                enrollment_id
+              , payment_key
+              , order_id
+              , order_name
+              , amount
+              , method
+              , status
+              , paid_at
+        ) VALUES (
+                #{enrollmentId}
+              , #{paymentKey}
+              , #{orderId}
+              , #{orderName}
+              , #{amount}
+              , #{method}
+              , #{status}
+              , #{paidAt}
+        )
+    </insert>
+
+    <!-- 결제 승인 완료 (DONE 업데이트) -->
+    <update id="updatePaymentDone" parameterType="Payment">
+        UPDATE payments
+           SET payment_key = #{paymentKey}
+             , method = #{method}
+             , status = #{status}
+             , paid_at = #{paidAt}
+         WHERE id = #{id}
+    </update>
+
+    <!-- 결제 승인 실패 (FAILED 업데이트) -->
+    <update id="updatePaymentFailed" parameterType="Long">
+        UPDATE payments
+           SET status = 'FAILED'
+         WHERE id = #{id}
+    </update>
+
+    <!-- 주문 ID로 결제 조회 -->
+    <select id="selectPaymentByOrderId" parameterType="String" resultType="Payment">
+        SELECT id
+             , enrollment_id
+             , payment_key
+             , order_id
+             , order_name
+             , amount
+             , method
+             , status
+             , paid_at
+             , canceled_at
+             , cancel_reason
+             , created_at
+             , updated_at
+          FROM payments
+         WHERE order_id = #{orderId}
+    </select>
+
+    <!-- 수강 신청 ID로 DONE 상태 결제 조회 -->
+    <select id="selectPaymentByEnrollmentId" parameterType="Long" resultType="Payment">
+        SELECT id
+             , enrollment_id
+             , payment_key
+             , order_id
+             , order_name
+             , amount
+             , method
+             , status
+             , paid_at
+             , canceled_at
+             , cancel_reason
+             , created_at
+             , updated_at
+          FROM payments
+         WHERE enrollment_id = #{enrollmentId}
+           AND status = 'DONE'
+    </select>
+
+    <!-- 결제 취소 상태 업데이트 -->
+    <update id="updatePaymentCancelled" parameterType="Payment">
+        UPDATE payments
+           SET status = #{status}
+             , canceled_at = #{canceledAt}
+             , cancel_reason = #{cancelReason}
+         WHERE id = #{id}
+           AND status = 'DONE'
+    </update>
+
+    <!-- 사용자 결제 내역 조회 (DONE, CANCELLED) -->
+    <select id="selectPaymentListByUserId" parameterType="ReqMyPaymentPageDto" resultType="Payment">
+        SELECT p.id
+             , p.enrollment_id
+             , p.payment_key
+             , p.order_id
+             , p.order_name
+             , p.amount
+             , p.method
+             , p.status
+             , p.paid_at
+             , p.canceled_at
+             , p.cancel_reason
+             , p.created_at
+             , p.updated_at
+          FROM payments p
+          JOIN enrollments e ON p.enrollment_id = e.id
+         WHERE e.user_id = #{userId}
+           AND p.status IN ('DONE', 'CANCELLED')
+        ORDER BY p.created_at DESC
+        LIMIT #{size} OFFSET #{offset}
+    </select>
+
+    <!-- 사용자 결제 내역 전체 수 조회 (페이징용) -->
+    <select id="selectPaymentListByUserIdCount" parameterType="Long" resultType="int">
+        SELECT COUNT(*)
+          FROM payments p
+          JOIN enrollments e ON p.enrollment_id = e.id
+         WHERE e.user_id = #{userId}
+           AND p.status IN ('DONE', 'CANCELLED')
+    </select>
+
+</mapper>

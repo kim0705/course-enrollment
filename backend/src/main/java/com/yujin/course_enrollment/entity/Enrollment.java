@@ -55,11 +55,28 @@ public class Enrollment {
                 .build();
     }
 
-    /* 대기열에서 PENDING으로 승격할 엔티티 생성 */
-    public static Enrollment ofPromote(Long id) {
+    /* 재신청 시 PENDING 상태로 변경할 엔티티 생성 */
+    public static Enrollment ofPending(Long id) {
         return Enrollment.builder()
                 .id(id)
                 .status(EnrollmentStatus.PENDING)
+                .build();
+    }
+
+    /* 재신청 시 WAITLIST 상태로 변경할 엔티티 생성 */
+    public static Enrollment ofWaitlistById(Long id) {
+        return Enrollment.builder()
+                .id(id)
+                .status(EnrollmentStatus.WAITLIST)
+                .build();
+    }
+
+    /* 강제 폐강으로 취소할 엔티티 생성 */
+    public static Enrollment ofForceClose(Long id) {
+        return Enrollment.builder()
+                .id(id)
+                .status(EnrollmentStatus.FORCE_CLOSED)
+                .cancelledAt(LocalDateTime.now())
                 .build();
     }
 }

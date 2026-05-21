@@ -8,11 +8,11 @@ const Header = () => {
     const { user, logout } = useAuth();
 
     /* 역할에 따른 라벨 */
-    const roleLabel = (role) => role === 'CREATOR' ? '강사' : '수강생';
+    const roleLabel = (role) => role === 'CREATOR' ? '강사' : role === 'ADMIN' ? '관리자' : '수강생';
 
     /* 로그아웃 처리 */
-    const handleLogout = () => {
-        logout();
+    const handleLogout = async () => {
+        await logout();
         navigate('/login');
     };
 
@@ -35,12 +35,21 @@ const Header = () => {
                                     {roleLabel(user.role)}
                                 </span>
                             </div>
-                            <button
-                                onClick={() => navigate('/my-page')}
-                                className="text-sm px-3 py-1.5 rounded-md border border-gray-300 text-gray-600 hover:bg-gray-50 transition-colors cursor-pointer"
-                            >
-                                마이페이지
-                            </button>
+                            {user.role === 'ADMIN' ? (
+                                <button
+                                    onClick={() => navigate('/admin')}
+                                    className="text-sm px-3 py-1.5 rounded-md border border-gray-300 text-gray-600 hover:bg-gray-50 transition-colors cursor-pointer"
+                                >
+                                    관리자 페이지
+                                </button>
+                            ) : (
+                                <button
+                                    onClick={() => navigate('/my-page')}
+                                    className="text-sm px-3 py-1.5 rounded-md border border-gray-300 text-gray-600 hover:bg-gray-50 transition-colors cursor-pointer"
+                                >
+                                    마이페이지
+                                </button>
+                            )}
                             <button
                                 onClick={handleLogout}
                                 className="text-sm px-3 py-1.5 rounded-md border border-gray-300 text-gray-600 hover:bg-gray-50 transition-colors cursor-pointer"
@@ -49,12 +58,20 @@ const Header = () => {
                             </button>
                         </>
                     ) : (
-                        <button
-                            onClick={() => navigate('/login')}
-                            className="text-sm px-3 py-1.5 rounded-md bg-blue-600 text-white hover:bg-blue-700 transition-colors cursor-pointer"
-                        >
-                            로그인
-                        </button>
+                        <>
+                            <button
+                                onClick={() => navigate('/login')}
+                                className="text-sm px-3 py-1.5 rounded-md border border-gray-300 text-gray-600 hover:bg-gray-50 transition-colors cursor-pointer"
+                            >
+                                로그인
+                            </button>
+                            <button
+                                onClick={() => navigate('/signup')}
+                                className="text-sm px-3 py-1.5 rounded-md bg-blue-600 text-white hover:bg-blue-700 transition-colors cursor-pointer"
+                            >
+                                회원가입
+                            </button>
+                        </>
                     )}
                 </div>
             </div>

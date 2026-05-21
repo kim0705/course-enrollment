@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import { getCourseList } from '../api/course';
 import { useAuth } from '../context/AuthContext';
 import { COURSE_STATUS_CARD_STYLE, COURSE_STATUS_LABEL } from '../utils/statusConfig';
+import { useCourseList } from '../hooks/useCourseList';
 
 /* 강의 목록 페이지 */
 const CourseListPage = () => {
@@ -31,27 +31,8 @@ const CourseListPage = () => {
         setTempKeyword(searchParams.get('keyword') || '');
     }, [searchParams]);
 
-    /* 목록 데이터 상태 */
-    const [data, setData] = useState({
-        content: [],
-        totalCount: 0,
-        totalPages: 0,
-        last: false,
-    });
-
-    /* API 호출 (searchParams가 바뀔 때마다 실행) */
-    useEffect(() => {
-        const fetchCourseList = async () => {
-            try {
-                const result = await getCourseList(search);
-                setData(result.data);
-            } catch (err) {
-                console.error(err);
-            }
-        };
-
-        fetchCourseList();
-    }, [searchParams]);
+    /* 강의 목록 조회 (searchParams가 바뀔 때마다 자동 실행) */
+    const { data = { content: [], totalCount: 0, totalPages: 0, last: false }, isLoading } = useCourseList(search);
 
     /* 검색 실행 */
     const handleSearch = (e) => {
@@ -83,6 +64,8 @@ const CourseListPage = () => {
             page: 0
         });
     };
+
+    if (isLoading) return <div className="text-center py-20 text-gray-400">로딩 중...</div>;
 
     return (
         <div className="max-w-7xl mx-auto mt-10 p-6">
@@ -141,20 +124,20 @@ const CourseListPage = () => {
             </div>
 
             {/* 강의 목록 섹션 */}
-            {data?.content?.length === 0 ? (
+            {data.content.length === 0 ? (
                 <div className="text-center text-gray-400 py-32 border-2 border-dashed border-gray-100 rounded-2xl">
                     검색 결과와 일치하는 강의가 없습니다.
                 </div>
             ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                    {data?.content?.map(course => (
+                    {data.content.map(course => (
                         <div key={course.id} onClick={() => navigate(`/courses/${course.id}`, { state: { fromSearch: location.search } })}
                             className="group flex flex-col bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-xl transition-all duration-300 cursor-pointer">
 
                             {/* 카드 상단: 이미지 영역(썸네일 대신 제목 앞글자) */}
                             <div className="relative aspect-video bg-gray-100 flex items-center justify-center overflow-hidden">
                                 <span className="text-gray-300 font-bold text-lg group-hover:scale-110 transition-transform">
-                                    {course?.title?.substring(0, 2)}
+                                    {course.title.substring(0, 2)}
                                 </span>
                                 {/* 상태 배지 */}
                                 <div className="absolute top-2 left-2">
@@ -167,14 +150,14 @@ const CourseListPage = () => {
                             {/* 카드 하단: 상세 정보 */}
                             <div className="p-4 flex flex-col flex-1">
                                 <h2 className="text-sm font-bold text-gray-800 line-clamp-2 h-10 mb-1 group-hover:text-blue-600">
-                                    {course?.title}
+                                    {course.title}
                                 </h2>
                                 <p className="text-xs text-gray-500 mb-3">{course.creatorName}</p>
 
                                 <div className="mt-auto">
                                     {/* 가격 */}
                                     <p className="text-base font-extrabold text-gray-900">
-                                        {course?.price === 0 ? '무료' : `${course.price.toLocaleString()}원`}
+                                        {course.price === 0 ? '무료' : `${course.price.toLocaleString()}원`}
                                     </p>
 
                                     {/* 인원수 바 */}
@@ -198,7 +181,7 @@ const CourseListPage = () => {
             )}
 
             {/* 페이징 섹션 */}
-            {(data?.totalPages ?? 0) > 1 && (
+            {(data.totalPages ?? 0) > 1 && (
                 <div className="flex justify-center items-center gap-4 mt-12">
                     <button disabled={search.page === 0}
                         onClick={() => setSearchParams({ ...Object.fromEntries(searchParams), page: search.page - 1 })}
@@ -209,7 +192,7 @@ const CourseListPage = () => {
                     </button>
 
                     <span className="text-sm font-medium text-gray-700">
-                        <span className="text-blue-600">{search.page + 1}</span> / {data?.totalPages}
+                        <span className="text-blue-600">{search.page + 1}</span> / {data.totalPages}
                     </span>
 
                     <button disabled={data.last}

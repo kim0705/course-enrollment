@@ -18,6 +18,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
@@ -36,12 +37,14 @@ public class EnrollmentService {
     private final EnrollmentMapper enrollmentMapper;
     private final CourseMapper courseMapper;
     private final UserMapper userMapper;
+    private final PaymentService paymentService;
 
     /**
      * 수강 신청
      * 정원이 남아있으면 PENDING, 초과 시 WAITLIST로 등록
      * @param userId 신청하는 사용자 ID
      * @param reqEnrollmentCreateDto 수강 신청 요청 DTO
+     * @return 수강 신청 응답 DTO
      * @throws BusinessException 사용자 없음(400), 강의 없음(400), 본인 강의 신청(403), 모집 중 아님(400), 중복 신청(400)
      */
     @Transactional
@@ -88,6 +91,47 @@ public class EnrollmentService {
             throw new BusinessException(HttpStatus.BAD_REQUEST, "이미 신청한 강의입니다.");
         }
 
+        // 재신청: UNIQUE 충돌 방지를 위해 INSERT 대신 기존 행 UPDATE (AND status = 'CANCELLED' 조건으로 동시 재신청 방어)
+        if (existing != null) {
+            if (course.getEnrolledCount() >= course.getCapacity()) {
+                log.info("[EnrollmentService] 정원 초과 - 재신청 대기열 등록 - userId: {}, courseId: {}", userId, courseId);
+
+                int reEnrolled = enrollmentMapper.updateEnrollmentStatusReEnroll(Enrollment.ofWaitlistById(existing.getId()));
+                if (reEnrolled == 0) {
+                    throw new BusinessException(HttpStatus.BAD_REQUEST, "이미 신청한 강의입니다.");
+                }
+
+                Enrollment saved = enrollmentMapper.selectEnrollmentById(existing.getId());
+
+                return RespEnrollmentDto.of(saved, course.getTitle());
+            }
+
+            int updated = courseMapper.updateCourseEnrolledCountPlus(courseId);
+            if (updated == 0) {
+                log.info("[EnrollmentService] 동시 신청으로 정원 초과 - 재신청 대기열 등록 - userId: {}, courseId: {}", userId, courseId);
+
+                int reEnrolled = enrollmentMapper.updateEnrollmentStatusReEnroll(Enrollment.ofWaitlistById(existing.getId()));
+                if (reEnrolled == 0) {
+                    throw new BusinessException(HttpStatus.BAD_REQUEST, "이미 신청한 강의입니다.");
+                }
+
+                Enrollment saved = enrollmentMapper.selectEnrollmentById(existing.getId());
+
+                return RespEnrollmentDto.of(saved, course.getTitle());
+            }
+
+            int reEnrolled = enrollmentMapper.updateEnrollmentStatusReEnroll(Enrollment.ofPending(existing.getId()));
+            if (reEnrolled == 0) {
+                throw new BusinessException(HttpStatus.BAD_REQUEST, "이미 신청한 강의입니다.");
+            }
+
+            log.info("[EnrollmentService] 재신청 완료 - userId: {}, courseId: {}", userId, courseId);
+
+            Enrollment saved = enrollmentMapper.selectEnrollmentById(existing.getId());
+
+            return RespEnrollmentDto.of(saved, course.getTitle());
+        }
+
         // 정원 초과 시 WAITLIST 등록
         if (course.getEnrolledCount() >= course.getCapacity()) {
             log.info("[EnrollmentService] 정원 초과 - 대기열 등록 - userId: {}, courseId: {}", userId, courseId);
@@ -118,6 +162,7 @@ public class EnrollmentService {
      * 나의 수강 신청 목록 조회
      * @param userId 사용자 ID
      * @param reqEnrollmentPageDto 페이징 조건 DTO
+     * @return 페이징된 수강 신청 목록
      */
     public RespPageDto<RespEnrollmentStudentDto> findMyEnrollments(Long userId, ReqEnrollmentPageDto reqEnrollmentPageDto) {
         log.info("[EnrollmentService] 나의 수강 신청 목록 조회 - userId: {}, page: {}, size: {}", userId, reqEnrollmentPageDto.getPage(), reqEnrollmentPageDto.getSize());
@@ -135,6 +180,7 @@ public class EnrollmentService {
      * 결제 요청 (PENDING → CONFIRMED)
      * @param userId 사용자 ID
      * @param enrollmentId 수강 신청 ID
+     * @return 수강 신청 응답 DTO
      * @throws BusinessException 수강 신청 없음(400), 본인 신청 아님(403), PENDING 상태 아님(400)
      */
     @Transactional
@@ -173,13 +219,16 @@ public class EnrollmentService {
 
     /**
      * 수강 취소 (PENDING, CONFIRMED, WAITLIST → CANCELLED)
+     * CONFIRMED 유료 강의 취소 시 토스 환불 API 호출 후 상태 변경
      * PENDING/CONFIRMED 취소 시 대기열 첫 번째 사람 자동 PENDING 승격
      * @param userId 사용자 ID
      * @param enrollmentId 수강 신청 ID
-     * @throws BusinessException 수강 신청 없음(400), 본인 신청 아님(403), 이미 취소됨(400), CONFIRMED 7일 초과(400)
+     * @param cancelReason 취소 사유 (CONFIRMED 취소 시 필수)
+     * @return 취소된 수강 신청 응답 DTO
+     * @throws BusinessException 수강 신청 없음(400), 본인 신청 아님(403), 이미 취소됨(400), CONFIRMED 7일 초과(400), 취소 사유 없음(400)
      */
-    @Transactional
-    public RespEnrollmentDto cancelEnrollment(Long userId, Long enrollmentId) {
+    @Transactional(isolation = Isolation.READ_COMMITTED)
+    public RespEnrollmentDto cancelEnrollment(Long userId, Long enrollmentId, String cancelReason) {
         log.info("[EnrollmentService] 수강 취소 - userId: {}, enrollmentId: {}", userId, enrollmentId);
 
         // 수강 신청 존재 여부 확인
@@ -196,17 +245,25 @@ public class EnrollmentService {
         }
 
         // 이미 취소됨 확인
-        if (EnrollmentStatus.CANCELLED.equals(enrollment.getStatus())) {
+        if (EnrollmentStatus.CANCELLED.equals(enrollment.getStatus()) || EnrollmentStatus.FORCE_CLOSED.equals(enrollment.getStatus())) {
             log.warn("[EnrollmentService] 이미 취소됨 - enrollmentId: {}", enrollmentId);
             throw new BusinessException(HttpStatus.BAD_REQUEST, "이미 취소된 수강 신청입니다.");
         }
 
-        // CONFIRMED 상태 취소 기간 확인 (확정 후 7일 이내)
+        // CONFIRMED 상태 취소 기간 확인 (확정 후 7일 이내) + 환불 처리
         if (EnrollmentStatus.CONFIRMED.equals(enrollment.getStatus())) {
             if (enrollment.getConfirmedAt().plusDays(7).isBefore(LocalDateTime.now())) {
                 log.warn("[EnrollmentService] 취소 기간 초과 - enrollmentId: {}, confirmedAt: {}", enrollmentId, enrollment.getConfirmedAt());
                 throw new BusinessException(HttpStatus.BAD_REQUEST, "수강 확정 후 7일이 지나 취소할 수 없습니다.");
             }
+
+            if (cancelReason == null || cancelReason.isBlank()) {
+                log.warn("[EnrollmentService] 취소 사유 없음 - enrollmentId: {}", enrollmentId);
+                throw new BusinessException(HttpStatus.BAD_REQUEST, "취소 사유를 입력해주세요.");
+            }
+
+            // 토스 환불 API 호출 후 payment CANCELLED 업데이트 (외부 API 먼저 호출)
+            paymentService.refund(enrollmentId, cancelReason);
         }
 
         enrollmentMapper.updateEnrollmentStatus(Enrollment.ofCancel(enrollmentId));
@@ -221,16 +278,21 @@ public class EnrollmentService {
             return RespEnrollmentDto.of(saved, course.getTitle());
         }
 
-        courseMapper.updateCourseEnrolledCountMinus(enrollment.getCourseId());
+        int minused = courseMapper.updateCourseEnrolledCountMinus(enrollment.getCourseId());
 
-        // 대기열 첫 번째 사람 자동 PENDING 승격
-        Enrollment nextWaitlist = enrollmentMapper.selectNextWaitlist(enrollment.getCourseId());
-        if (nextWaitlist != null) {
-            int updated = courseMapper.updateCourseEnrolledCountPlus(enrollment.getCourseId());
+        // minus 성공 시에만 대기열 승격 시도 (동시 경쟁 실패 시 다음 대기자로 재시도)
+        if (minused > 0) {
+            Enrollment nextWaitlist;
 
-            if (updated > 0) {
-                enrollmentMapper.updateEnrollmentStatus(Enrollment.ofPromote(nextWaitlist.getId()));
-                log.info("[EnrollmentService] 대기열 승격 - enrollmentId: {}", nextWaitlist.getId());
+            while ((nextWaitlist = enrollmentMapper.selectNextWaitlist(enrollment.getCourseId())) != null) {
+                int promoted = enrollmentMapper.updateEnrollmentStatusPromote(nextWaitlist.getId());
+
+                if (promoted > 0) {
+                    courseMapper.updateCourseEnrolledCountPlus(enrollment.getCourseId());
+                    log.info("[EnrollmentService] 대기열 승격 - enrollmentId: {}", nextWaitlist.getId());
+
+                    break;
+                }
             }
         }
 

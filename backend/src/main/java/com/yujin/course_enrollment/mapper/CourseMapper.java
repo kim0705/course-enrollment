@@ -1,10 +1,13 @@
 package com.yujin.course_enrollment.mapper;
 
+import com.yujin.course_enrollment.dto.req.ReqAdminCoursePageDto;
 import com.yujin.course_enrollment.dto.req.ReqCourseSearchDto;
+import com.yujin.course_enrollment.dto.req.ReqMyCoursePageDto;
 import com.yujin.course_enrollment.dto.resp.RespCourseDetailDto;
 import com.yujin.course_enrollment.dto.resp.RespCourseListDto;
 import com.yujin.course_enrollment.entity.Course;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
 
@@ -38,9 +41,24 @@ public interface CourseMapper {
     /* 수강 인원 증가 (정원 미만일 때만, 반환값: 업데이트된 행 수) */
     int updateCourseEnrolledCountPlus(Long courseId);
 
-    /* 수강 인원 감소 */
-    void updateCourseEnrolledCountMinus(Long courseId);
+    /* 수강 인원 감소 (0 초과일 때만, 반환값: 업데이트된 행 수) */
+    int updateCourseEnrolledCountMinus(Long courseId);
 
     /* 나의 강의 목록 조회 (CREATOR 전용) */
-    List<RespCourseListDto> selectCourseListByCreatorId(Long creatorId);
+    List<RespCourseListDto> selectCourseListByCreatorId(ReqMyCoursePageDto reqMyCoursePageDto);
+
+    /* 나의 강의 목록 전체 수 조회 (페이징용) */
+    int selectCourseListByCreatorIdCount(Long creatorId);
+
+    /* 관리자 전체 강의 목록 조회 */
+    List<RespCourseListDto> selectAdminCourseList(ReqAdminCoursePageDto reqAdminCoursePageDto);
+
+    /* 관리자 전체 강의 수 조회 */
+    int selectAdminCourseListCount();
+
+    /* 상태별 강의 수 조회 */
+    int selectCourseCountByStatus(@Param("status") String status);
+
+    /* 수강 인원 초기화 (강제 폐강 시) */
+    void updateCourseEnrolledCountReset(Long courseId);
 }

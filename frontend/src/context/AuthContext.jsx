@@ -6,8 +6,19 @@ import instance, { plainAxios } from '../api/axios';
 /* 인증 컨텍스트 */
 const AuthContext = createContext(null);
 
-/* StrictMode 이중 실행 방지 — useRef는 remount 시 초기화되므로 모듈 레벨 변수 사용 */
+/* StrictMode 이중 실행 방지 - useRef는 remount 시 초기화되므로 모듈 레벨 변수 사용 */
 let didAuthInit = false;
+
+/* 토큰 갱신 상태 플래그 */
+let isRefreshing = false;
+/* 토큰 갱신 대기 중인 요청 큐 */
+let failedQueue = [];
+
+/* 토큰 갱신 완료 후 대기 중인 요청 처리 */
+const processQueue = (error) => {
+    failedQueue.forEach(({ resolve, reject }) => error ? reject(error) : resolve());
+    failedQueue = [];
+};
 
 export const AuthProvider = ({ children }) => {
     /* 네비게이션 훅 */
@@ -18,7 +29,8 @@ export const AuthProvider = ({ children }) => {
     const [isInitializing, setIsInitializing] = useState(true);
 
     /* 응답 인터셉터: 401 Unauthorized 응답 시 자동으로 토큰 갱신 시도
-     * - refresh/login 요청 자체거나 이미 재시도한 경우는 그대로 reject
+     * - refresh/login 요청 자체인 경우는 그대로 reject
+     * - refresh 진행 중이면 대기 큐에 추가 후 완료 시 재시도
      * - refresh 성공 시 원래 요청 재시도
      * - refresh 실패 시 로컬 스토리지에서 사용자 정보 제거 후 로그인 페이지로 리다이렉트 */
     useEffect(() => {
@@ -29,23 +41,34 @@ export const AuthProvider = ({ children }) => {
 
                 if (
                     error.response?.status !== 401 ||
-                    original._retry ||
                     original.url === '/api/auth/refresh' ||
                     original.url === '/api/auth/login'
                 ) {
                     return Promise.reject(error);
                 }
 
-                original._retry = true;
+                /* refresh 진행 중이면 큐에 대기 */
+                if (isRefreshing) {
+                    return new Promise((resolve, reject) => {
+                        failedQueue.push({ resolve, reject });
+                    }).then(() => instance(original))
+                      .catch(err => Promise.reject(err));
+                }
+
+                isRefreshing = true;
 
                 try {
                     await instance.post('/api/auth/refresh');
+                    processQueue(null);
                     return instance(original);
-                } catch {
+                } catch (err) {
+                    processQueue(err);
                     localStorage.removeItem('user');
                     setUser(null);
                     navigate('/login', { replace: true });
-                    return Promise.reject(error);
+                    return Promise.reject(err);
+                } finally {
+                    isRefreshing = false;
                 }
             }
         );

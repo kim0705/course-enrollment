@@ -1,5 +1,6 @@
 package com.yujin.course_enrollment.config;
 
+import com.yujin.course_enrollment.service.TokenBlacklistService;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -26,6 +27,7 @@ import java.util.List;
 public class JwtFilter extends OncePerRequestFilter {
 
     private final JwtUtil jwtUtil;
+    private final TokenBlacklistService tokenBlacklistService;
 
     /* 요청마다 실행 — 쿠키에서 토큰 추출 후 유효하면 SecurityContext에 인증 정보 설정 */
     @Override
@@ -36,6 +38,12 @@ public class JwtFilter extends OncePerRequestFilter {
 
         if (token != null) {
             try {
+                // 블랙리스트(로그아웃) 토큰 차단
+                if (tokenBlacklistService.isBlacklisted(token)) {
+                    filterChain.doFilter(request, response);
+                    return;
+                }
+
                 Claims claims = jwtUtil.parseToken(token);
                 Long userId = Long.parseLong(claims.getSubject());
                 String role = claims.get("role", String.class);

@@ -87,6 +87,7 @@ public class AuthController {
         log.debug("[AuthController] 로그아웃 요청");
 
         authService.deleteRefreshToken(extractRefreshToken(request));
+        authService.blacklistAccessToken(extractAccessToken(request));
 
         response.addHeader(HttpHeaders.SET_COOKIE, expiredCookie("accessToken").toString());
         response.addHeader(HttpHeaders.SET_COOKIE, expiredCookie("refreshToken").toString());
@@ -213,6 +214,21 @@ public class AuthController {
 
         for (Cookie cookie : request.getCookies()) {
             if ("refreshToken".equals(cookie.getName())) return cookie.getValue();
+        }
+
+        return null;
+    }
+
+    /**
+     * 요청 쿠키에서 accessToken 추출
+     * @param request HTTP 요청
+     * @return accessToken 값, 없으면 null
+     */
+    private String extractAccessToken(HttpServletRequest request) {
+        if (request.getCookies() == null) return null;
+
+        for (Cookie cookie : request.getCookies()) {
+            if ("accessToken".equals(cookie.getName())) return cookie.getValue();
         }
 
         return null;

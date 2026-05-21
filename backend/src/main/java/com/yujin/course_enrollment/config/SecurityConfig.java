@@ -1,5 +1,6 @@
 package com.yujin.course_enrollment.config;
 
+import com.yujin.course_enrollment.service.TokenBlacklistService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -23,6 +24,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
 
     private final JwtUtil jwtUtil;
+    private final TokenBlacklistService tokenBlacklistService;
 
     /* 비밀번호 암호화 빈 */
     @Bean
@@ -72,7 +74,7 @@ public class SecurityConfig {
                                 response.sendError(HttpServletResponse.SC_FORBIDDEN)))
                 /* H2 콘솔 iframe 허용 */
                 .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()))
-                .addFilterBefore(new JwtFilter(jwtUtil), UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(new JwtFilter(jwtUtil, tokenBlacklistService), UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }

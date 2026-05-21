@@ -13,6 +13,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.BDDMockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -99,5 +100,18 @@ class SecurityIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"username\":\"newuser\",\"password\":\"pass\",\"name\":\"테스트\",\"email\":\"test@test.com\"}"))
                 .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("블랙리스트 토큰 - 보호된 엔드포인트 접근 시 401")
+    void blacklistedToken_protectedEndpoint_returns401() throws Exception {
+        // given
+        String token = jwtUtil.generateToken(1L, "STUDENT");
+        given(stringRedisTemplate.hasKey("BL:" + token)).willReturn(true);
+
+        // when & then
+        mockMvc.perform(get("/api/enrollments")
+                        .cookie(new Cookie("accessToken", token)))
+                .andExpect(status().isUnauthorized());
     }
 }

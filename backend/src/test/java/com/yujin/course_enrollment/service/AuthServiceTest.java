@@ -4,6 +4,7 @@ import com.yujin.course_enrollment.config.JwtUtil;
 import com.yujin.course_enrollment.entity.User;
 import com.yujin.course_enrollment.global.exception.BusinessException;
 import com.yujin.course_enrollment.mapper.UserMapper;
+import io.jsonwebtoken.JwtException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -11,6 +12,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+
+import java.util.Date;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.BDDMockito.*;
@@ -35,6 +38,9 @@ class AuthServiceTest {
 
     @Mock
     private RefreshTokenService refreshTokenService;
+
+    @Mock
+    private TokenBlacklistService tokenBlacklistService;
 
     @Test
     @DisplayName("로그인 성공")
@@ -177,5 +183,42 @@ class AuthServiceTest {
 
         // then
         then(refreshTokenService).should(never()).delete(any());
+    }
+
+    @Test
+    @DisplayName("AccessToken 블랙리스트 등록 - 유효한 토큰")
+    void blacklistAccessToken_validToken() {
+        // given
+        Date expiration = new Date(System.currentTimeMillis() + 60_000);
+        given(jwtUtil.getExpiration("valid-token")).willReturn(expiration);
+
+        // when
+        authService.blacklistAccessToken("valid-token");
+
+        // then
+        then(tokenBlacklistService).should().add("valid-token", expiration);
+    }
+
+    @Test
+    @DisplayName("AccessToken 블랙리스트 등록 - 만료된 토큰은 생략")
+    void blacklistAccessToken_expiredToken_skips() {
+        // given
+        given(jwtUtil.getExpiration("expired-token")).willThrow(new JwtException("expired"));
+
+        // when
+        authService.blacklistAccessToken("expired-token");
+
+        // then
+        then(tokenBlacklistService).should(never()).add(any(), any());
+    }
+
+    @Test
+    @DisplayName("AccessToken 블랙리스트 등록 - null이면 생략")
+    void blacklistAccessToken_null_skips() {
+        // when
+        authService.blacklistAccessToken(null);
+
+        // then
+        then(tokenBlacklistService).should(never()).add(any(), any());
     }
 }

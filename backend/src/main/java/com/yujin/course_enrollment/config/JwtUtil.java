@@ -12,7 +12,7 @@ import java.util.Date;
 
 /**
  * JWT 유틸리티
- * AccessToken 생성 및 파싱을 담당
+ * AccessToken 생성, 파싱 및 만료 시각 조회를 담당
  */
 @Component
 public class JwtUtil {
@@ -50,6 +50,15 @@ public class JwtUtil {
                 .build()
                 .parseSignedClaims(token)
                 .getPayload();
+    }
+
+    /**
+     * 토큰 만료 시각 반환
+     * @param token JWT 문자열
+     * @return 만료 시각
+     */
+    public Date getExpiration(String token) {
+        return parseToken(token).getExpiration();
     }
 
     /* Base64 디코딩된 secret으로 HMAC-SHA 서명 키 생성 */

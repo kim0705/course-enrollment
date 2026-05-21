@@ -4,6 +4,7 @@ import com.yujin.course_enrollment.config.JwtUtil;
 import com.yujin.course_enrollment.entity.User;
 import com.yujin.course_enrollment.global.exception.BusinessException;
 import com.yujin.course_enrollment.mapper.UserMapper;
+import io.jsonwebtoken.JwtException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -26,6 +27,7 @@ public class AuthService {
     private final BCryptPasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
     private final RefreshTokenService refreshTokenService;
+    private final TokenBlacklistService tokenBlacklistService;
 
     /**
      * AccessToken 생성
@@ -85,6 +87,21 @@ public class AuthService {
     public void deleteRefreshToken(String refreshToken) {
         if (refreshToken != null) {
             refreshTokenService.delete(refreshToken);
+        }
+    }
+
+    /**
+     * AccessToken 블랙리스트 등록 (로그아웃)
+     * @param accessToken 무효화할 accessToken (null이거나 만료된 경우 무시)
+     */
+    public void blacklistAccessToken(String accessToken) {
+        if (accessToken == null) return;
+
+        try {
+            tokenBlacklistService.add(accessToken, jwtUtil.getExpiration(accessToken));
+        } catch (JwtException e) {
+            // 이미 만료된 토큰은 블랙리스트 불필요
+            log.debug("[AuthService] AccessToken 블랙리스트 등록 생략 - 이미 만료된 토큰");
         }
     }
 

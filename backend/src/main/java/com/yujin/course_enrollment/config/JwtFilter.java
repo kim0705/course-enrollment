@@ -1,5 +1,6 @@
 package com.yujin.course_enrollment.config;
 
+import com.yujin.course_enrollment.global.CookieConstants;
 import com.yujin.course_enrollment.service.TokenBlacklistService;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
@@ -69,7 +70,7 @@ public class JwtFilter extends OncePerRequestFilter {
         if (request.getCookies() == null) return null;
 
         for (Cookie cookie : request.getCookies()) {
-            if ("accessToken".equals(cookie.getName())) {
+            if (CookieConstants.ACCESS_TOKEN.equals(cookie.getName())) {
                 return cookie.getValue();
             }
         }

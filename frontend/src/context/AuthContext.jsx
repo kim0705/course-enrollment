@@ -20,6 +20,18 @@ const processQueue = (error) => {
     failedQueue = [];
 };
 
+/* 사용자 정보 저장 및 상태 업데이트 헬퍼 */
+const saveUser = (userInfo, setUser) => {
+    localStorage.setItem('user', JSON.stringify(userInfo));
+    setUser(userInfo);
+};
+
+/* 사용자 정보 제거 및 상태 초기화 헬퍼 */
+const clearUser = (setUser) => {
+    localStorage.removeItem('user');
+    setUser(null);
+};
+
 export const AuthProvider = ({ children }) => {
     /* 네비게이션 훅 */
     const navigate = useNavigate();
@@ -66,8 +78,7 @@ export const AuthProvider = ({ children }) => {
                     return instance(original);
                 } catch (err) {
                     processQueue(err);
-                    localStorage.removeItem('user');
-                    setUser(null);
+                    clearUser(setUser);
                     navigate('/login', { replace: true });
                     return Promise.reject(err);
                 } finally {
@@ -114,8 +125,7 @@ export const AuthProvider = ({ children }) => {
                 }
 
                 if (res.status === 200) {
-                    setUser(res.data.data);
-                    localStorage.setItem('user', JSON.stringify(res.data.data));
+                    saveUser(res.data.data, setUser);
                 }
             } catch {
                 /* network error — user stays null */
@@ -130,24 +140,18 @@ export const AuthProvider = ({ children }) => {
     /* 로그인: API 호출 후 응답에서 사용자 정보 저장 */
     const login = async (username, password) => {
         const res = await loginApi({ username, password });
-        const userInfo = res.data;
-
-        localStorage.setItem('user', JSON.stringify(userInfo));
-        setUser(userInfo);
+        saveUser(res.data, setUser);
     };
 
     /* 로그아웃: API 호출 후 상태 및 localStorage 초기화 */
     const logout = async () => {
         await logoutApi();
-
-        localStorage.removeItem('user');
-        setUser(null);
+        clearUser(setUser);
     };
 
     /* 프로필 수정 후 사용자 정보 갱신 */
     const updateUser = (newUserInfo) => {
-        localStorage.setItem('user', JSON.stringify(newUserInfo));
-        setUser(newUserInfo);
+        saveUser(newUserInfo, setUser);
     };
 
     return (

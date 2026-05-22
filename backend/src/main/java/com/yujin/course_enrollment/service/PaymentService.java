@@ -21,7 +21,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * 결제 서비스
@@ -32,6 +31,10 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class PaymentService {
+
+    private static final String TOSS_EVENT_PAYMENT_STATUS_CHANGED = "PAYMENT_STATUS_CHANGED";
+    private static final String TOSS_STATUS_CANCELED = "CANCELED";
+    private static final String WEBHOOK_CANCEL_REASON = "Toss 웹훅 취소";
 
     private final PaymentMapper paymentMapper;
     private final EnrollmentMapper enrollmentMapper;
@@ -156,7 +159,7 @@ public class PaymentService {
     @Transactional
     public void handleTossWebhook(ReqTossWebhookDto reqTossWebhookDto) {
         // 결제 상태 변경 이벤트만 처리
-        if (!"PAYMENT_STATUS_CHANGED".equals(reqTossWebhookDto.getEventType())) {
+        if (!TOSS_EVENT_PAYMENT_STATUS_CHANGED.equals(reqTossWebhookDto.getEventType())) {
             return;
         }
 
@@ -169,7 +172,7 @@ public class PaymentService {
         }
 
         // 취소 상태만 처리
-        if (!"CANCELED".equals(data.getStatus())) {
+        if (!TOSS_STATUS_CANCELED.equals(data.getStatus())) {
             return;
         }
 
@@ -193,7 +196,7 @@ public class PaymentService {
         }
 
         // 결제 CANCELLED 처리
-        paymentMapper.updatePaymentCancelled(Payment.ofCancelled(payment.getId(), "Toss 웹훅 취소"));
+        paymentMapper.updatePaymentCancelled(Payment.ofCancelled(payment.getId(), WEBHOOK_CANCEL_REASON));
 
         // enrollment 상태 동기화 (CONFIRMED → CANCELLED)
         Enrollment enrollment = enrollmentMapper.selectEnrollmentById(payment.getEnrollmentId());
@@ -218,7 +221,7 @@ public class PaymentService {
 
         List<RespPaymentDto> content = paymentMapper.selectPaymentListByUserId(reqMyPaymentPageDto).stream()
                 .map(RespPaymentDto::of)
-                .collect(Collectors.toList());
+                .toList();
 
         int totalCount = paymentMapper.selectPaymentListByUserIdCount(userId);
 

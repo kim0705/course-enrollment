@@ -1,6 +1,7 @@
 package com.yujin.course_enrollment.controller;
 
 import com.yujin.course_enrollment.dto.req.ReqLoginDto;
+import com.yujin.course_enrollment.global.CookieConstants;
 import com.yujin.course_enrollment.dto.resp.RespLoginDto;
 import com.yujin.course_enrollment.entity.User;
 import com.yujin.course_enrollment.global.exception.BusinessException;
@@ -89,8 +90,8 @@ public class AuthController {
         authService.deleteRefreshToken(extractRefreshToken(request));
         authService.blacklistAccessToken(extractAccessToken(request));
 
-        response.addHeader(HttpHeaders.SET_COOKIE, expiredCookie("accessToken").toString());
-        response.addHeader(HttpHeaders.SET_COOKIE, expiredCookie("refreshToken").toString());
+        response.addHeader(HttpHeaders.SET_COOKIE, expiredCookie(CookieConstants.ACCESS_TOKEN).toString());
+        response.addHeader(HttpHeaders.SET_COOKIE, expiredCookie(CookieConstants.REFRESH_TOKEN).toString());
 
         return ResponseEntity.ok(ApiResponse.success());
     }
@@ -168,7 +169,7 @@ public class AuthController {
      * @return Set-Cookie 헤더용 ResponseCookie
      */
     private ResponseCookie buildAccessTokenCookie(String value) {
-        return ResponseCookie.from("accessToken", value)
+        return ResponseCookie.from(CookieConstants.ACCESS_TOKEN, value)
                 .httpOnly(true)
                 .path("/")
                 .maxAge(Duration.ofMinutes(15))
@@ -182,7 +183,7 @@ public class AuthController {
      * @return Set-Cookie 헤더용 ResponseCookie
      */
     private ResponseCookie buildRefreshTokenCookie(String value) {
-        return ResponseCookie.from("refreshToken", value)
+        return ResponseCookie.from(CookieConstants.REFRESH_TOKEN, value)
                 .httpOnly(true)
                 .path("/")
                 .maxAge(Duration.ofDays(7))
@@ -213,7 +214,7 @@ public class AuthController {
         if (request.getCookies() == null) return null;
 
         for (Cookie cookie : request.getCookies()) {
-            if ("refreshToken".equals(cookie.getName())) return cookie.getValue();
+            if (CookieConstants.REFRESH_TOKEN.equals(cookie.getName())) return cookie.getValue();
         }
 
         return null;
@@ -228,7 +229,7 @@ public class AuthController {
         if (request.getCookies() == null) return null;
 
         for (Cookie cookie : request.getCookies()) {
-            if ("accessToken".equals(cookie.getName())) return cookie.getValue();
+            if (CookieConstants.ACCESS_TOKEN.equals(cookie.getName())) return cookie.getValue();
         }
 
         return null;

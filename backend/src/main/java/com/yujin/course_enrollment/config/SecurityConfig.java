@@ -2,6 +2,7 @@ package com.yujin.course_enrollment.config;
 
 import com.yujin.course_enrollment.service.TokenBlacklistService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -14,6 +15,11 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.util.List;
 
 /**
  * Spring Security 설정
@@ -25,6 +31,9 @@ public class SecurityConfig {
 
     private final JwtUtil jwtUtil;
     private final TokenBlacklistService tokenBlacklistService;
+
+    @Value("${cors.allowed-origins}")
+    private List<String> allowedOrigins;
 
     /* 비밀번호 암호화 빈 */
     @Bean
@@ -77,5 +86,19 @@ public class SecurityConfig {
                 .addFilterBefore(new JwtFilter(jwtUtil, tokenBlacklistService), UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
+    }
+
+    /* CORS 허용 출처 — CORS_ALLOWED_ORIGINS 환경변수로 주입 */
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration config = new CorsConfiguration();
+        config.setAllowedOrigins(allowedOrigins);
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+        config.setAllowedHeaders(List.of("*"));
+        config.setAllowCredentials(true);
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", config);
+        return source;
     }
 }

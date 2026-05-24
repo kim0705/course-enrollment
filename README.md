@@ -3,6 +3,8 @@
 강사가 강의를 등록하고 수강생이 신청·결제할 수 있는 커머스 플랫폼입니다.
 동시 요청 상황에서도 정원 초과나 중복 처리 없이 동작하는 걸 목표로 설계했습니다.
 
+**배포 URL**: https://d3vgazv4kqn9do.cloudfront.net
+
 ---
 
 ## 화면
@@ -38,7 +40,7 @@
 |---|---|
 | Backend | Java 17, Spring Boot, Spring Security, MyBatis |
 | Frontend | React, Vite |
-| Database | MySQL (로컬 Docker / Testcontainers) |
+| Database | MySQL (AWS RDS / Testcontainers) |
 | 인증 | JWT — accessToken / refreshToken 쿠키, Redis |
 | 결제 | Toss Payments API |
 | 테스트 | JUnit 5, Testcontainers |

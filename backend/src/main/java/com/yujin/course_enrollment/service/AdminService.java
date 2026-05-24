@@ -16,6 +16,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import org.springframework.transaction.support.TransactionTemplate;
@@ -109,6 +110,7 @@ public class AdminService {
      * @param courseId 강의 ID
      * @throws BusinessException 강의 없음(404), 이미 폐강(400)
      */
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public void forceCloseCourse(Long courseId) {
         log.info("[AdminService] 강의 강제 폐강 - courseId: {}", courseId);
 

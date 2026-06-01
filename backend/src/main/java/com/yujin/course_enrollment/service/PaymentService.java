@@ -33,6 +33,7 @@ import java.util.List;
 public class PaymentService {
 
     private static final String TOSS_EVENT_PAYMENT_STATUS_CHANGED = "PAYMENT_STATUS_CHANGED";
+    private static final String TOSS_STATUS_DONE = "DONE";
     private static final String TOSS_STATUS_CANCELED = "CANCELED";
     private static final String WEBHOOK_CANCEL_REASON = "Toss 웹훅 취소";
 
@@ -152,8 +153,9 @@ public class PaymentService {
 
     /**
      * Toss 웹훅 처리
-     * PAYMENT_STATUS_CHANGED + CANCELED 이벤트 수신 시 결제 상태를 CANCELLED로 업데이트
-     * refund() 인라인 업데이트 실패로 인한 불일치를 복구하는 안전망
+     * PAYMENT_STATUS_CHANGED 이벤트 수신 시 상태별로 DB 동기화
+     * - DONE: confirmPayment() DB 업데이트 실패 시 결제 완료 보정
+     * - CANCELED: refund() 인라인 업데이트 실패 시 결제 취소 보정
      * @param reqTossWebhookDto 웹훅 페이로드
      */
     @Transactional
@@ -171,7 +173,33 @@ public class PaymentService {
             return;
         }
 
-        // 취소 상태만 처리
+        // DONE: confirmPayment() DB 업데이트 실패 시 결제 완료 보정
+        if (TOSS_STATUS_DONE.equals(data.getStatus())) {
+            Payment payment = paymentMapper.selectPaymentByOrderId(data.getOrderId());
+            if (payment == null) {
+                log.warn("[PaymentService] 웹훅 - 결제 내역 없음 - orderId: {}", data.getOrderId());
+                return;
+            }
+
+            if (PaymentStatus.DONE.equals(payment.getStatus())) {
+                log.info("[PaymentService] 웹훅 - 이미 완료된 결제 - orderId: {}", data.getOrderId());
+                return;
+            }
+
+            if (!PaymentStatus.PENDING.equals(payment.getStatus())) {
+                log.warn("[PaymentService] 웹훅 - 처리 불가 상태 - orderId: {}, status: {}", data.getOrderId(), payment.getStatus());
+                return;
+            }
+
+            paymentMapper.updatePaymentDone(Payment.ofDone(payment.getId(), data.getPaymentKey(), data.getMethod(), data.getApprovedAtAsLocalDateTime()));
+            enrollmentMapper.updateEnrollmentStatus(Enrollment.ofConfirm(payment.getEnrollmentId()));
+
+            log.info("[PaymentService] 웹훅 - 결제 완료 보정 - orderId: {}", data.getOrderId());
+
+            return;
+        }
+
+        // CANCELED: refund() 인라인 업데이트 실패 시 결제 취소 보정
         if (!TOSS_STATUS_CANCELED.equals(data.getStatus())) {
             return;
         }

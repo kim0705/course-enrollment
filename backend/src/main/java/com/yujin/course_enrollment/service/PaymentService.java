@@ -173,6 +173,8 @@ public class PaymentService {
             return;
         }
 
+        log.info("[PaymentService] 웹훅 - status: {}, orderId: {}", data.getStatus(), data.getOrderId());
+
         // DONE: confirmPayment() DB 업데이트 실패 시 결제 완료 보정
         if (TOSS_STATUS_DONE.equals(data.getStatus())) {
             Payment payment = paymentMapper.selectPaymentByOrderId(data.getOrderId());
@@ -201,6 +203,7 @@ public class PaymentService {
 
         // CANCELED: refund() 인라인 업데이트 실패 시 결제 취소 보정
         if (!TOSS_STATUS_CANCELED.equals(data.getStatus())) {
+            log.info("[PaymentService] 웹훅 - 처리 대상 아님 - status: {}", data.getStatus());
             return;
         }
 

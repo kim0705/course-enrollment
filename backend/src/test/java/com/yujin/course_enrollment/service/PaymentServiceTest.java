@@ -20,7 +20,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
-import java.util.List;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.BDDMockito.*;
@@ -297,10 +296,10 @@ class PaymentServiceTest {
     }
 
     @Test
-    @DisplayName("웹훅 - 정상 취소 처리 - payment CANCELLED + enrollment CANCELLED 동기화")
-    void handleTossWebhook_success() {
+    @DisplayName("웹훅 - CANCELED 이벤트 - payment CANCELLED + enrollment CANCELLED 동기화")
+    void handleTossWebhook_canceled_success() {
         // given
-        ReqTossWebhookDto reqTossWebhookDto = new ReqTossWebhookDto("PAYMENT_STATUS_CHANGED", "2026-05-21T00:00:00+09:00", new ReqTossWebhookDto.TossPaymentData("tgen_abc123", "order_001", "CANCELED"));
+        ReqTossWebhookDto reqTossWebhookDto = new ReqTossWebhookDto("PAYMENT_STATUS_CHANGED", "2026-05-21T00:00:00+09:00", new ReqTossWebhookDto.TossPaymentData("tgen_abc123", "order_001", "CANCELED", null, null));
         Payment done = Payment.builder()
                 .id(1L)
                 .enrollmentId(1L)
@@ -327,6 +326,70 @@ class PaymentServiceTest {
     }
 
     @Test
+    @DisplayName("웹훅 - DONE 이벤트 - PENDING 결제 완료 보정 (payment DONE + enrollment CONFIRMED)")
+    void handleTossWebhook_done_보정_성공() {
+        // given
+        ReqTossWebhookDto reqTossWebhookDto = new ReqTossWebhookDto("PAYMENT_STATUS_CHANGED", "2026-05-21T00:00:00+09:00", new ReqTossWebhookDto.TossPaymentData("tgen_abc123", "order_001", "DONE", "카드", "2024-01-01T10:00:00+09:00"));
+        Payment pending = Payment.builder()
+                .id(1L)
+                .enrollmentId(1L)
+                .orderId("order_001")
+                .status("PENDING")
+                .build();
+
+        given(paymentMapper.selectPaymentByOrderId("order_001")).willReturn(pending);
+        willDoNothing().given(paymentMapper).updatePaymentDone(any());
+        willDoNothing().given(enrollmentMapper).updateEnrollmentStatus(any());
+
+        // when
+        paymentService.handleTossWebhook(reqTossWebhookDto);
+
+        // then
+        then(paymentMapper).should().updatePaymentDone(any());
+        then(enrollmentMapper).should().updateEnrollmentStatus(any());
+        then(paymentMapper).should(never()).updatePaymentCancelled(any());
+    }
+
+    @Test
+    @DisplayName("웹훅 - DONE 이벤트 - 이미 DONE 상태면 멱등성 스킵")
+    void handleTossWebhook_done_이미완료_스킵() {
+        // given
+        ReqTossWebhookDto reqTossWebhookDto = new ReqTossWebhookDto("PAYMENT_STATUS_CHANGED", "2026-05-21T00:00:00+09:00", new ReqTossWebhookDto.TossPaymentData("tgen_abc123", "order_001", "DONE", "카드", "2024-01-01T10:00:00+09:00"));
+        Payment done = Payment.builder()
+                .id(1L)
+                .enrollmentId(1L)
+                .paymentKey("tgen_abc123")
+                .orderId("order_001")
+                .status("DONE")
+                .build();
+
+        given(paymentMapper.selectPaymentByOrderId("order_001")).willReturn(done);
+
+        // when
+        paymentService.handleTossWebhook(reqTossWebhookDto);
+
+        // then
+        then(paymentMapper).should(never()).updatePaymentDone(any());
+        then(enrollmentMapper).should(never()).updateEnrollmentStatus(any());
+    }
+
+    @Test
+    @DisplayName("웹훅 - DONE 이벤트 - 결제 내역 없음 - 처리 스킵")
+    void handleTossWebhook_done_결제없음_스킵() {
+        // given
+        ReqTossWebhookDto reqTossWebhookDto = new ReqTossWebhookDto("PAYMENT_STATUS_CHANGED", "2026-05-21T00:00:00+09:00", new ReqTossWebhookDto.TossPaymentData("tgen_abc123", "order_999", "DONE", "카드", "2024-01-01T10:00:00+09:00"));
+
+        given(paymentMapper.selectPaymentByOrderId("order_999")).willReturn(null);
+
+        // when
+        paymentService.handleTossWebhook(reqTossWebhookDto);
+
+        // then
+        then(paymentMapper).should(never()).updatePaymentDone(any());
+        then(enrollmentMapper).should(never()).updateEnrollmentStatus(any());
+    }
+
+    @Test
     @DisplayName("웹훅 - PAYMENT_STATUS_CHANGED 아닌 이벤트 무시")
     void handleTossWebhook_ignore_otherEvent() {
         // given
@@ -340,15 +403,16 @@ class PaymentServiceTest {
     }
 
     @Test
-    @DisplayName("웹훅 - CANCELED 아닌 상태 무시")
-    void handleTossWebhook_ignore_nonCanceledStatus() {
+    @DisplayName("웹훅 - DONE/CANCELED 외 상태(ABORTED 등) 무시")
+    void handleTossWebhook_ignore_unknownStatus() {
         // given
-        ReqTossWebhookDto reqTossWebhookDto = new ReqTossWebhookDto("PAYMENT_STATUS_CHANGED", "2026-05-21T00:00:00+09:00", new ReqTossWebhookDto.TossPaymentData("tgen_abc123", "order_001", "DONE"));
+        ReqTossWebhookDto reqTossWebhookDto = new ReqTossWebhookDto("PAYMENT_STATUS_CHANGED", "2026-05-21T00:00:00+09:00", new ReqTossWebhookDto.TossPaymentData("tgen_abc123", "order_001", "ABORTED", null, null));
 
         // when
         paymentService.handleTossWebhook(reqTossWebhookDto);
 
         // then
+        then(paymentMapper).should(never()).updatePaymentDone(any());
         then(paymentMapper).should(never()).updatePaymentCancelled(any());
     }
 
@@ -356,7 +420,7 @@ class PaymentServiceTest {
     @DisplayName("웹훅 - 이미 CANCELLED 상태면 멱등성 스킵")
     void handleTossWebhook_idempotent_alreadyCancelled() {
         // given
-        ReqTossWebhookDto reqTossWebhookDto = new ReqTossWebhookDto("PAYMENT_STATUS_CHANGED", "2026-05-21T00:00:00+09:00", new ReqTossWebhookDto.TossPaymentData("tgen_abc123", "order_001", "CANCELED"));
+        ReqTossWebhookDto reqTossWebhookDto = new ReqTossWebhookDto("PAYMENT_STATUS_CHANGED", "2026-05-21T00:00:00+09:00", new ReqTossWebhookDto.TossPaymentData("tgen_abc123", "order_001", "CANCELED", null, null));
         Payment cancelled = Payment.builder()
                 .id(1L)
                 .paymentKey("tgen_abc123")
@@ -377,7 +441,7 @@ class PaymentServiceTest {
     @DisplayName("웹훅 - 결제 내역 없음 - 처리 스킵")
     void handleTossWebhook_skip_paymentNotFound() {
         // given
-        ReqTossWebhookDto reqTossWebhookDto = new ReqTossWebhookDto("PAYMENT_STATUS_CHANGED", "2026-05-21T00:00:00+09:00", new ReqTossWebhookDto.TossPaymentData("tgen_abc123", "order_999", "CANCELED"));
+        ReqTossWebhookDto reqTossWebhookDto = new ReqTossWebhookDto("PAYMENT_STATUS_CHANGED", "2026-05-21T00:00:00+09:00", new ReqTossWebhookDto.TossPaymentData("tgen_abc123", "order_999", "CANCELED", null, null));
 
         given(paymentMapper.selectPaymentByOrderId("order_999")).willReturn(null);
 
@@ -392,7 +456,7 @@ class PaymentServiceTest {
     @DisplayName("웹훅 - paymentKey 불일치 - 처리 스킵")
     void handleTossWebhook_skip_paymentKeyMismatch() {
         // given
-        ReqTossWebhookDto reqTossWebhookDto = new ReqTossWebhookDto("PAYMENT_STATUS_CHANGED", "2026-05-21T00:00:00+09:00", new ReqTossWebhookDto.TossPaymentData("tgen_WRONG", "order_001", "CANCELED"));
+        ReqTossWebhookDto reqTossWebhookDto = new ReqTossWebhookDto("PAYMENT_STATUS_CHANGED", "2026-05-21T00:00:00+09:00", new ReqTossWebhookDto.TossPaymentData("tgen_WRONG", "order_001", "CANCELED", null, null));
         Payment done = Payment.builder()
                 .id(1L)
                 .paymentKey("tgen_abc123")

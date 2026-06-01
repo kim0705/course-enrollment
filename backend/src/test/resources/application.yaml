@@ -23,3 +23,6 @@ toss:
   secret-key: ""
   confirm-url: https://api.tosspayments.com/v1/payments/confirm
   cancel-url-template: https://api.tosspayments.com/v1/payments/%s/cancel
+
+cors:
+  allowed-origins: "*"

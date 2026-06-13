@@ -1,9 +1,11 @@
 package com.yujin.course_enrollment.controller;
 
 import com.yujin.course_enrollment.dto.req.ReqAdminCoursePageDto;
+import com.yujin.course_enrollment.dto.req.ReqAdminPaymentPageDto;
 import com.yujin.course_enrollment.dto.req.ReqAdminRoleUpdateDto;
 import com.yujin.course_enrollment.dto.req.ReqUpdatePasswordDto;
 import com.yujin.course_enrollment.dto.resp.RespAdminDashboardDto;
+import com.yujin.course_enrollment.dto.resp.RespAdminPaymentDto;
 import com.yujin.course_enrollment.dto.resp.RespCourseListDto;
 import com.yujin.course_enrollment.dto.resp.RespPageDto;
 import com.yujin.course_enrollment.entity.User;
@@ -103,6 +105,19 @@ public class AdminController {
         adminService.forceCloseCourse(courseId);
 
         return ResponseEntity.ok(ApiResponse.success());
+    }
+
+    /**
+     * 전체 결제 내역 조회
+     * GET /api/admin/payments
+     * @param reqAdminPaymentPageDto 페이징 조건 (status 필터 선택)
+     * @return 전체 결제 내역 (DONE, CANCELLED)
+     */
+    @GetMapping("/payments")
+    public ResponseEntity<ApiResponse<RespPageDto<RespAdminPaymentDto>>> getPaymentList(ReqAdminPaymentPageDto reqAdminPaymentPageDto) {
+        log.debug("[AdminController] 전체 결제 내역 조회 요청");
+
+        return ResponseEntity.ok(ApiResponse.success(adminService.findAdminPayments(reqAdminPaymentPageDto)));
     }
 
     /**

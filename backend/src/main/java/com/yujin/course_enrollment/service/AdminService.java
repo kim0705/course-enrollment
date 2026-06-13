@@ -1,7 +1,9 @@
 package com.yujin.course_enrollment.service;
 
 import com.yujin.course_enrollment.dto.req.ReqAdminCoursePageDto;
+import com.yujin.course_enrollment.dto.req.ReqAdminPaymentPageDto;
 import com.yujin.course_enrollment.dto.resp.RespAdminDashboardDto;
+import com.yujin.course_enrollment.dto.resp.RespAdminPaymentDto;
 import com.yujin.course_enrollment.dto.resp.RespCourseListDto;
 import com.yujin.course_enrollment.dto.resp.RespPageDto;
 import com.yujin.course_enrollment.entity.Course;
@@ -11,6 +13,7 @@ import com.yujin.course_enrollment.global.CourseStatus;
 import com.yujin.course_enrollment.global.exception.BusinessException;
 import com.yujin.course_enrollment.mapper.CourseMapper;
 import com.yujin.course_enrollment.mapper.EnrollmentMapper;
+import com.yujin.course_enrollment.mapper.PaymentMapper;
 import com.yujin.course_enrollment.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -36,12 +39,13 @@ public class AdminService {
     private final UserMapper userMapper;
     private final CourseMapper courseMapper;
     private final EnrollmentMapper enrollmentMapper;
+    private final PaymentMapper paymentMapper;
     private final PaymentService paymentService;
     private final TransactionTemplate transactionTemplate;
 
     /**
      * 대시보드 통계 조회
-     * @return 전체 사용자 수, 강의 수, 확정 수강 신청 수
+     * @return 전체 사용자 수, 강의 수, 확정 수강 신청 수, 결제 통계
      */
     public RespAdminDashboardDto getDashboardStats() {
         log.info("[AdminService] 대시보드 통계 조회");
@@ -55,8 +59,11 @@ public class AdminService {
         int closedCount = courseMapper.selectCourseCountByStatus("CLOSED");
         int forceClosedCount = courseMapper.selectCourseCountByStatus("FORCE_CLOSED");
         int totalEnrollments = enrollmentMapper.selectActiveEnrollmentCount();
+        Long totalRevenue = paymentMapper.selectTotalRevenue();
+        Long totalRefund = paymentMapper.selectTotalRefund();
+        Long monthlyRevenue = paymentMapper.selectMonthlyRevenue();
 
-        return RespAdminDashboardDto.of(totalUsers, studentCount, creatorCount, totalCourses, draftCount, openCount, closedCount, forceClosedCount, totalEnrollments);
+        return RespAdminDashboardDto.of(totalUsers, studentCount, creatorCount, totalCourses, draftCount, openCount, closedCount, forceClosedCount, totalEnrollments, totalRevenue, totalRefund, monthlyRevenue);
     }
 
     /**
@@ -103,6 +110,20 @@ public class AdminService {
         int totalCount = courseMapper.selectAdminCourseListCount();
 
         return RespPageDto.of(content, reqAdminCoursePageDto.getPage(), reqAdminCoursePageDto.getSize(), totalCount);
+    }
+
+    /**
+     * 관리자 전체 결제 내역 조회
+     * @param reqAdminPaymentPageDto 페이징 조건 (status 필터 선택)
+     * @return 페이징된 결제 내역 (DONE, CANCELLED)
+     */
+    public RespPageDto<RespAdminPaymentDto> findAdminPayments(ReqAdminPaymentPageDto reqAdminPaymentPageDto) {
+        log.info("[AdminService] 전체 결제 내역 조회 - page: {}, size: {}, status: {}", reqAdminPaymentPageDto.getPage(), reqAdminPaymentPageDto.getSize(), reqAdminPaymentPageDto.getStatus());
+
+        List<RespAdminPaymentDto> content = paymentMapper.selectAdminPaymentList(reqAdminPaymentPageDto);
+        int totalCount = paymentMapper.selectAdminPaymentListCount(reqAdminPaymentPageDto);
+
+        return RespPageDto.of(content, reqAdminPaymentPageDto.getPage(), reqAdminPaymentPageDto.getSize(), totalCount);
     }
 
     /**

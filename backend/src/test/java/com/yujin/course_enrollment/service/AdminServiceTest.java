@@ -2,11 +2,14 @@ package com.yujin.course_enrollment.service;
 
 import com.yujin.course_enrollment.entity.Course;
 import com.yujin.course_enrollment.entity.Enrollment;
+import com.yujin.course_enrollment.entity.Payment;
 import com.yujin.course_enrollment.global.CourseStatus;
 import com.yujin.course_enrollment.global.EnrollmentStatus;
+import com.yujin.course_enrollment.global.PaymentStatus;
 import com.yujin.course_enrollment.global.exception.BusinessException;
 import com.yujin.course_enrollment.mapper.CourseMapper;
 import com.yujin.course_enrollment.mapper.EnrollmentMapper;
+import com.yujin.course_enrollment.mapper.PaymentMapper;
 import com.yujin.course_enrollment.mapper.UserMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -45,6 +48,9 @@ class AdminServiceTest {
 
     @Mock
     private EnrollmentMapper enrollmentMapper;
+
+    @Mock
+    private PaymentMapper paymentMapper;
 
     @Mock
     private PaymentService paymentService;
@@ -111,8 +117,8 @@ class AdminServiceTest {
     }
 
     @Test
-    @DisplayName("강제 폐강 - 환불 실패한 건은 로그 후 다음 건으로 진행")
-    void forceCloseCourse_refundFails_continuesOtherEnrollments() {
+    @DisplayName("강제 폐강 - 환불 최종 실패 시 payment REFUND_FAILED 마킹 후 다음 건 진행")
+    void forceCloseCourse_refundFails_marksPaymentRefundFailed() {
         // given
         Long courseId = 1L;
         Course course = Course.builder().id(courseId).status(CourseStatus.OPEN).build();
@@ -125,10 +131,11 @@ class AdminServiceTest {
         // when
         assertThatCode(() -> adminService.forceCloseCourse(courseId)).doesNotThrowAnyException();
 
-        // then: 10L 실패해도 11L 처리됨
-        then(paymentService).should().refund(eq(11L), eq("강의 폐강"));
+        // then: 10L 실패 → REFUND_FAILED 마킹, 11L은 정상 처리
+        then(paymentMapper).should().updatePaymentRefundFailed(10L);
         then(enrollmentMapper).should(never()).updateEnrollmentStatus(argThat(e ->
                 Long.valueOf(10L).equals(e.getId()) && EnrollmentStatus.FORCE_CLOSED.equals(e.getStatus())));
+        then(paymentService).should().refund(eq(11L), eq("강의 폐강"));
         then(enrollmentMapper).should().updateEnrollmentStatus(argThat(e ->
                 Long.valueOf(11L).equals(e.getId()) && EnrollmentStatus.FORCE_CLOSED.equals(e.getStatus())));
     }
@@ -169,5 +176,70 @@ class AdminServiceTest {
         assertThatThrownBy(() -> adminService.forceCloseCourse(1L))
                 .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("이미 폐강");
+    }
+
+    @Test
+    @DisplayName("환불 재시도 성공")
+    void retryRefund_success() {
+        // given
+        Long enrollmentId = 10L;
+        Enrollment enrollment = Enrollment.builder().id(enrollmentId).status(EnrollmentStatus.CONFIRMED).build();
+        Payment payment = Payment.builder().id(1L).status(PaymentStatus.REFUND_FAILED).build();
+
+        given(enrollmentMapper.selectEnrollmentById(enrollmentId)).willReturn(enrollment);
+        given(paymentMapper.selectPaymentByEnrollmentId(enrollmentId)).willReturn(payment);
+
+        // when
+        adminService.retryRefund(enrollmentId);
+
+        // then
+        then(paymentService).should().refund(enrollmentId, "강의 폐강");
+        then(enrollmentMapper).should().updateEnrollmentStatus(argThat(e ->
+                enrollmentId.equals(e.getId()) && EnrollmentStatus.FORCE_CLOSED.equals(e.getStatus())));
+    }
+
+    @Test
+    @DisplayName("환불 재시도 실패 - 수강 신청 없음 404")
+    void retryRefund_enrollmentNotFound_throws404() {
+        // given
+        given(enrollmentMapper.selectEnrollmentById(any())).willReturn(null);
+
+        // when & then
+        assertThatThrownBy(() -> adminService.retryRefund(99L))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("존재하지 않는 수강 신청");
+    }
+
+    @Test
+    @DisplayName("환불 재시도 실패 - REFUND_FAILED 상태 아님 400")
+    void retryRefund_paymentNotRefundFailed_throws400() {
+        // given
+        Long enrollmentId = 10L;
+        Enrollment enrollment = Enrollment.builder().id(enrollmentId).status(EnrollmentStatus.CONFIRMED).build();
+        Payment payment = Payment.builder().id(1L).status(PaymentStatus.DONE).build();
+
+        given(enrollmentMapper.selectEnrollmentById(enrollmentId)).willReturn(enrollment);
+        given(paymentMapper.selectPaymentByEnrollmentId(enrollmentId)).willReturn(payment);
+
+        // when & then
+        assertThatThrownBy(() -> adminService.retryRefund(enrollmentId))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("환불 실패 상태의 결제만 재시도");
+    }
+
+    @Test
+    @DisplayName("환불 재시도 실패 - 결제 내역 없음 404")
+    void retryRefund_paymentNotFound_throws404() {
+        // given
+        Long enrollmentId = 10L;
+        Enrollment enrollment = Enrollment.builder().id(enrollmentId).status(EnrollmentStatus.CONFIRMED).build();
+
+        given(enrollmentMapper.selectEnrollmentById(enrollmentId)).willReturn(enrollment);
+        given(paymentMapper.selectPaymentByEnrollmentId(enrollmentId)).willReturn(null);
+
+        // when & then
+        assertThatThrownBy(() -> adminService.retryRefund(enrollmentId))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("결제 내역이 없습니다");
     }
 }

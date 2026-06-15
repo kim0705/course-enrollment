@@ -1,15 +1,19 @@
 import { useEffect, useState } from 'react';
-import { getAdminPayments } from '../../api/admin';
+import { getAdminPayments, retryRefund } from '../../api/admin';
 
 /* 결제 상태 배지 스타일 */
 const PAYMENT_STATUS_BADGE_STYLE = {
     DONE: 'bg-green-50 text-green-700 border-green-200',
     CANCELLED: 'bg-gray-50 text-gray-500 border-gray-200',
+    FAILED: 'bg-orange-50 text-orange-600 border-orange-200',
+    REFUND_FAILED: 'bg-red-50 text-red-600 border-red-200',
 };
 /* 결제 상태 레이블 */
 const PAYMENT_STATUS_LABEL = {
     DONE: '결제완료',
     CANCELLED: '환불완료',
+    FAILED: '결제실패',
+    REFUND_FAILED: '환불실패',
 };
 
 /* 상태 필터 목록 */
@@ -17,6 +21,8 @@ const STATUS_FILTERS = [
     { key: '', label: '전체' },
     { key: 'DONE', label: '결제완료' },
     { key: 'CANCELLED', label: '환불완료' },
+    { key: 'FAILED', label: '결제실패' },
+    { key: 'REFUND_FAILED', label: '환불실패' },
 ];
 
 /* 관리자 결제 관리 탭 */
@@ -33,6 +39,8 @@ const PaymentManagementTab = () => {
     const [status, setStatus] = useState('');
     /* 로딩 상태 */
     const [isLoading, setIsLoading] = useState(true);
+    /* 재시도 중인 enrollmentId 목록 */
+    const [retrying, setRetrying] = useState(new Set());
 
     /* 결제 목록 조회 */
     const fetchPayments = (p, s) => {
@@ -59,6 +67,23 @@ const PaymentManagementTab = () => {
         setPage(0);
     };
 
+    /* 환불 재시도 */
+    const handleRetry = (enrollmentId) => {
+        setRetrying(prev => new Set(prev).add(enrollmentId));
+
+        retryRefund(enrollmentId)
+            .then(() => {
+                alert('환불 재시도가 완료되었습니다.');
+                fetchPayments(page, status);
+            })
+            .catch(err => alert(err.response?.data?.message || '환불 재시도에 실패했습니다.'))
+            .finally(() => setRetrying(prev => {
+                const next = new Set(prev);
+                next.delete(enrollmentId);
+                return next;
+            }));
+    };
+
     return (
         <>
             {/* 상태 필터 */}
@@ -82,7 +107,7 @@ const PaymentManagementTab = () => {
                 <div className="text-center py-20 text-gray-400">로딩 중...</div>
             ) : payments.length === 0 ? (
                 <div className="text-center text-gray-400 py-32 border-2 border-dashed border-gray-100 rounded-2xl">
-                    결제 내역이 없습니다.
+                    {PAYMENT_STATUS_LABEL[status] ? `${PAYMENT_STATUS_LABEL[status]} 내역이 없습니다.` : '결제 내역이 없습니다.'}
                 </div>
             ) : (
                 <>
@@ -112,7 +137,18 @@ const PaymentManagementTab = () => {
                                             </span>
                                         </td>
                                         <td className="py-4 pr-6 text-gray-500">{payment.paidAt?.substring(0, 10) ?? '-'}</td>
-                                        <td className="py-4 text-gray-500">{payment.canceledAt?.substring(0, 10) ?? '-'}</td>
+                                        <td className="py-4 text-gray-500">
+                                            {payment.canceledAt?.substring(0, 10) ?? '-'}
+                                            {payment.status === 'REFUND_FAILED' && (
+                                                <button
+                                                    onClick={() => handleRetry(payment.enrollmentId)}
+                                                    disabled={retrying.has(payment.enrollmentId)}
+                                                    className="ml-3 px-2 py-0.5 text-xs font-semibold text-white bg-red-500 rounded hover:bg-red-600 disabled:opacity-50 cursor-pointer transition-colors"
+                                                >
+                                                    {retrying.has(payment.enrollmentId) ? '재시도 중...' : '재시도'}
+                                                </button>
+                                            )}
+                                        </td>
                                     </tr>
                                 ))}
                             </tbody>

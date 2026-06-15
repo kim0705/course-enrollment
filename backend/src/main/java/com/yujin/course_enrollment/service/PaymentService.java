@@ -8,6 +8,7 @@ import com.yujin.course_enrollment.dto.resp.RespPaymentDto;
 import com.yujin.course_enrollment.entity.Course;
 import com.yujin.course_enrollment.entity.Enrollment;
 import com.yujin.course_enrollment.entity.Payment;
+import com.yujin.course_enrollment.global.CourseStatus;
 import com.yujin.course_enrollment.global.EnrollmentStatus;
 import com.yujin.course_enrollment.global.PaymentStatus;
 import com.yujin.course_enrollment.global.exception.BusinessException;
@@ -229,11 +230,18 @@ public class PaymentService {
         // 결제 CANCELLED 처리
         paymentMapper.updatePaymentCancelled(Payment.ofCancelled(payment.getId(), WEBHOOK_CANCEL_REASON));
 
-        // enrollment 상태 동기화 (CONFIRMED → CANCELLED)
+        // enrollment 상태 동기화 — 강제 폐강 강의이면 FORCE_CLOSED, 아니면 CANCELLED
         Enrollment enrollment = enrollmentMapper.selectEnrollmentById(payment.getEnrollmentId());
         if (enrollment != null && EnrollmentStatus.CONFIRMED.equals(enrollment.getStatus())) {
-            enrollmentMapper.updateEnrollmentStatus(Enrollment.ofCancel(payment.getEnrollmentId()));
-            log.info("[PaymentService] 웹훅 - enrollment 취소 동기화 - enrollmentId: {}", payment.getEnrollmentId());
+            Course course = courseMapper.selectCourseById(enrollment.getCourseId());
+
+            if (course != null && CourseStatus.FORCE_CLOSED.equals(course.getStatus())) {
+                enrollmentMapper.updateEnrollmentStatus(Enrollment.ofForceClose(enrollment.getId()));
+                log.info("[PaymentService] 웹훅 - enrollment 강제 폐강 동기화 - enrollmentId: {}", payment.getEnrollmentId());
+            } else {
+                enrollmentMapper.updateEnrollmentStatus(Enrollment.ofCancel(enrollment.getId()));
+                log.info("[PaymentService] 웹훅 - enrollment 취소 동기화 - enrollmentId: {}", payment.getEnrollmentId());
+            }
         }
 
         log.info("[PaymentService] 웹훅 - 결제 취소 처리 완료 - orderId: {}", data.getOrderId());

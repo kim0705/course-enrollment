@@ -30,6 +30,11 @@ export const getAdminPayments = (page = 0, size = 10, status = '') => {
     return instance.get('/api/admin/payments', { params: { page, size, status: status || undefined } }).then(res => res.data);
 };
 
+/* 환불 실패 건 재시도 */
+export const retryRefund = (enrollmentId) => {
+    return instance.patch(`/api/admin/enrollments/${enrollmentId}/refund-retry`).then(res => res.data);
+};
+
 /* 관리자 비밀번호 변경 */
 export const updateAdminPassword = (currentPassword, newPassword) => {
     return instance.patch('/api/admin/me/password', { currentPassword, newPassword }).then(res => res.data);

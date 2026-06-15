@@ -29,6 +29,9 @@ public interface PaymentMapper {
     /* 수강 신청 ID로 DONE 상태 결제 조회 */
     Payment selectPaymentByEnrollmentId(Long enrollmentId);
 
+    /* 환불 실패 마킹 (REFUND_FAILED 업데이트) */
+    void updatePaymentRefundFailed(Long enrollmentId);
+
     /* 결제 취소 상태 업데이트 */
     void updatePaymentCancelled(Payment payment);
 

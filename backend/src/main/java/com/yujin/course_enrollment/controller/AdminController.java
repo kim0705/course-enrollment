@@ -121,6 +121,21 @@ public class AdminController {
     }
 
     /**
+     * 환불 실패 건 수동 재시도
+     * PATCH /api/admin/enrollments/{enrollmentId}/refund-retry
+     * @param enrollmentId 수강 신청 ID
+     * @return 200 OK
+     */
+    @PatchMapping("/enrollments/{enrollmentId}/refund-retry")
+    public ResponseEntity<ApiResponse<Void>> retryRefund(@PathVariable Long enrollmentId) {
+        log.debug("[AdminController] 환불 재시도 - enrollmentId: {}", enrollmentId);
+
+        adminService.retryRefund(enrollmentId);
+
+        return ResponseEntity.ok(ApiResponse.success());
+    }
+
+    /**
      * 관리자 비밀번호 변경
      * PATCH /api/admin/me/password
      * @param userId SecurityContext에서 추출된 관리자 ID

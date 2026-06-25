@@ -3,6 +3,7 @@ import CreatorRequestTab from './admin/CreatorRequestTab';
 import DashboardTab from './admin/DashboardTab';
 import UserManagementTab from './admin/UserManagementTab';
 import CourseManagementTab from './admin/CourseManagementTab';
+import PaymentManagementTab from './admin/PaymentManagementTab';
 import { updateAdminPassword } from '../api/admin';
 
 /* 관리자 페이지 */
@@ -22,6 +23,7 @@ const AdminPage = () => {
         { key: 'creator-requests', label: '강사 신청 관리' },
         { key: 'users', label: '사용자 관리' },
         { key: 'courses', label: '강의 관리' },
+        { key: 'payments', label: '결제 관리' },
     ];
 
     /* 모달 닫기 */
@@ -87,6 +89,7 @@ const AdminPage = () => {
             {activeTab === 'creator-requests' && <CreatorRequestTab />}
             {activeTab === 'users' && <UserManagementTab />}
             {activeTab === 'courses' && <CourseManagementTab />}
+            {activeTab === 'payments' && <PaymentManagementTab />}
 
             {/* 비밀번호 변경 모달 */}
             {showPasswordModal && (

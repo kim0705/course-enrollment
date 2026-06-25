@@ -1,9 +1,11 @@
 package com.yujin.course_enrollment.controller;
 
 import com.yujin.course_enrollment.dto.req.ReqAdminCoursePageDto;
+import com.yujin.course_enrollment.dto.req.ReqAdminPaymentPageDto;
 import com.yujin.course_enrollment.dto.req.ReqAdminRoleUpdateDto;
 import com.yujin.course_enrollment.dto.req.ReqUpdatePasswordDto;
 import com.yujin.course_enrollment.dto.resp.RespAdminDashboardDto;
+import com.yujin.course_enrollment.dto.resp.RespAdminPaymentDto;
 import com.yujin.course_enrollment.dto.resp.RespCourseListDto;
 import com.yujin.course_enrollment.dto.resp.RespPageDto;
 import com.yujin.course_enrollment.entity.User;
@@ -101,6 +103,34 @@ public class AdminController {
         log.debug("[AdminController] 강의 강제 폐강 요청 - courseId: {}", courseId);
 
         adminService.forceCloseCourse(courseId);
+
+        return ResponseEntity.ok(ApiResponse.success());
+    }
+
+    /**
+     * 전체 결제 내역 조회
+     * GET /api/admin/payments
+     * @param reqAdminPaymentPageDto 페이징 조건 (status 필터 선택)
+     * @return 전체 결제 내역 (DONE, CANCELLED)
+     */
+    @GetMapping("/payments")
+    public ResponseEntity<ApiResponse<RespPageDto<RespAdminPaymentDto>>> getPaymentList(ReqAdminPaymentPageDto reqAdminPaymentPageDto) {
+        log.debug("[AdminController] 전체 결제 내역 조회 요청");
+
+        return ResponseEntity.ok(ApiResponse.success(adminService.findAdminPayments(reqAdminPaymentPageDto)));
+    }
+
+    /**
+     * 환불 실패 건 수동 재시도
+     * PATCH /api/admin/enrollments/{enrollmentId}/refund-retry
+     * @param enrollmentId 수강 신청 ID
+     * @return 200 OK
+     */
+    @PatchMapping("/enrollments/{enrollmentId}/refund-retry")
+    public ResponseEntity<ApiResponse<Void>> retryRefund(@PathVariable Long enrollmentId) {
+        log.debug("[AdminController] 환불 재시도 - enrollmentId: {}", enrollmentId);
+
+        adminService.retryRefund(enrollmentId);
 
         return ResponseEntity.ok(ApiResponse.success());
     }

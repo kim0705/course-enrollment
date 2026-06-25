@@ -38,6 +38,11 @@ const IconCheck = () => (
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
     </svg>
 );
+const IconWon = () => (
+    <svg className="w-5 h-5 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+);
 
 /* 관리자 대시보드 탭 */
 const DashboardTab = () => {
@@ -80,11 +85,34 @@ const DashboardTab = () => {
 
     if (isLoading) return <div className="text-center py-20 text-gray-400">로딩 중...</div>;
 
+    /* 결제 통계 카드 데이터 */
+    const paymentCards = [
+        { label: '총 결제금액', value: stats?.totalRevenue ?? 0, unit: '원', icon: <IconWon /> },
+        { label: '총 환불금액', value: stats?.totalRefund ?? 0, unit: '원', icon: <IconWon /> },
+        { label: '이번 달 매출', value: stats?.monthlyRevenue ?? 0, unit: '원', icon: <IconWon /> },
+    ];
+
     return (
         <div className="space-y-8">
             {/* 요약 카드 */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
                 {cards.map(card => (
+                    <div key={card.label} className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm">
+                        <div className="flex items-start justify-between mb-1">
+                            <p className="text-xs font-semibold text-gray-400 tracking-wide uppercase">{card.label}</p>
+                            {card.icon}
+                        </div>
+                        <p className="text-4xl font-extrabold text-gray-900">
+                            {card.value.toLocaleString()}
+                            <span className="text-sm font-medium text-gray-400 ml-1">{card.unit}</span>
+                        </p>
+                    </div>
+                ))}
+            </div>
+
+            {/* 결제 통계 카드 */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+                {paymentCards.map(card => (
                     <div key={card.label} className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm">
                         <div className="flex items-start justify-between mb-1">
                             <p className="text-xs font-semibold text-gray-400 tracking-wide uppercase">{card.label}</p>

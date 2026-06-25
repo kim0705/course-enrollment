@@ -1,8 +1,12 @@
 package com.yujin.course_enrollment.service;
 
 import com.yujin.course_enrollment.dto.req.ReqAdminCoursePageDto;
+import com.yujin.course_enrollment.dto.req.ReqAdminPaymentPageDto;
 import com.yujin.course_enrollment.dto.resp.RespAdminDashboardDto;
+import com.yujin.course_enrollment.dto.resp.RespAdminPaymentDto;
 import com.yujin.course_enrollment.dto.resp.RespCourseListDto;
+import com.yujin.course_enrollment.entity.Payment;
+import com.yujin.course_enrollment.global.PaymentStatus;
 import com.yujin.course_enrollment.dto.resp.RespPageDto;
 import com.yujin.course_enrollment.entity.Course;
 import com.yujin.course_enrollment.entity.Enrollment;
@@ -11,6 +15,7 @@ import com.yujin.course_enrollment.global.CourseStatus;
 import com.yujin.course_enrollment.global.exception.BusinessException;
 import com.yujin.course_enrollment.mapper.CourseMapper;
 import com.yujin.course_enrollment.mapper.EnrollmentMapper;
+import com.yujin.course_enrollment.mapper.PaymentMapper;
 import com.yujin.course_enrollment.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -33,15 +38,18 @@ import java.util.List;
 @Transactional(readOnly = true)
 public class AdminService {
 
+    private static final int MAX_REFUND_RETRIES = 2;
+
     private final UserMapper userMapper;
     private final CourseMapper courseMapper;
     private final EnrollmentMapper enrollmentMapper;
+    private final PaymentMapper paymentMapper;
     private final PaymentService paymentService;
     private final TransactionTemplate transactionTemplate;
 
     /**
      * 대시보드 통계 조회
-     * @return 전체 사용자 수, 강의 수, 확정 수강 신청 수
+     * @return 전체 사용자 수, 강의 수, 확정 수강 신청 수, 결제 통계
      */
     public RespAdminDashboardDto getDashboardStats() {
         log.info("[AdminService] 대시보드 통계 조회");
@@ -55,8 +63,11 @@ public class AdminService {
         int closedCount = courseMapper.selectCourseCountByStatus("CLOSED");
         int forceClosedCount = courseMapper.selectCourseCountByStatus("FORCE_CLOSED");
         int totalEnrollments = enrollmentMapper.selectActiveEnrollmentCount();
+        Long totalRevenue = paymentMapper.selectTotalRevenue();
+        Long totalRefund = paymentMapper.selectTotalRefund();
+        Long monthlyRevenue = paymentMapper.selectMonthlyRevenue();
 
-        return RespAdminDashboardDto.of(totalUsers, studentCount, creatorCount, totalCourses, draftCount, openCount, closedCount, forceClosedCount, totalEnrollments);
+        return RespAdminDashboardDto.of(totalUsers, studentCount, creatorCount, totalCourses, draftCount, openCount, closedCount, forceClosedCount, totalEnrollments, totalRevenue, totalRefund, monthlyRevenue);
     }
 
     /**
@@ -106,6 +117,20 @@ public class AdminService {
     }
 
     /**
+     * 관리자 전체 결제 내역 조회
+     * @param reqAdminPaymentPageDto 페이징 조건 (status 필터 선택)
+     * @return 페이징된 결제 내역 (DONE, CANCELLED)
+     */
+    public RespPageDto<RespAdminPaymentDto> findAdminPayments(ReqAdminPaymentPageDto reqAdminPaymentPageDto) {
+        log.info("[AdminService] 전체 결제 내역 조회 - page: {}, size: {}, status: {}", reqAdminPaymentPageDto.getPage(), reqAdminPaymentPageDto.getSize(), reqAdminPaymentPageDto.getStatus());
+
+        List<RespAdminPaymentDto> content = paymentMapper.selectAdminPaymentList(reqAdminPaymentPageDto);
+        int totalCount = paymentMapper.selectAdminPaymentListCount(reqAdminPaymentPageDto);
+
+        return RespPageDto.of(content, reqAdminPaymentPageDto.getPage(), reqAdminPaymentPageDto.getSize(), totalCount);
+    }
+
+    /**
      * 강의 강제 폐강
      * @param courseId 강의 ID
      * @throws BusinessException 강의 없음(404), 이미 폐강(400)
@@ -138,19 +163,65 @@ public class AdminService {
             return;
         }
 
-        // CONFIRMED 건별 환불 후 취소 — 실패해도 다음 건으로 진행
+        // CONFIRMED 건별 환불 후 취소 — 실패 시 재시도 후 REFUND_FAILED 마킹
         int successCount = 0;
         for (Long enrollmentId : confirmedIds) {
-            try {
-                paymentService.refund(enrollmentId, "강의 폐강");
+            boolean refunded = false;
+
+            for (int attempt = 1; attempt <= MAX_REFUND_RETRIES; attempt++) {
+                try {
+                    paymentService.refund(enrollmentId, "강의 폐강");
+                    refunded = true;
+                    break;
+                } catch (Exception e) {
+                    log.warn("[AdminService] 환불 시도 {}/{} 실패 - enrollmentId: {}", attempt, MAX_REFUND_RETRIES, enrollmentId, e);
+                }
+            }
+
+            // 재시도 성공
+            if (refunded) {
                 transactionTemplate.executeWithoutResult(s ->
                         enrollmentMapper.updateEnrollmentStatus(Enrollment.ofForceClose(enrollmentId)));
                 successCount++;
-            } catch (Exception e) {
-                log.error("[AdminService] 환불 처리 실패 - enrollmentId: {}", enrollmentId, e);
+            // 재시도 최종 실패 → REFUND_FAILED 마킹
+            } else {
+                log.error("[AdminService] 환불 최종 실패 - REFUND_FAILED 마킹 - enrollmentId: {}", enrollmentId);
+                transactionTemplate.executeWithoutResult(s ->
+                        paymentMapper.updatePaymentRefundFailed(enrollmentId));
             }
         }
 
         log.info("[AdminService] 강의 강제 폐강 완료 - courseId: {}, 환불 성공: {}/{}", courseId, successCount, confirmedIds.size());
+    }
+
+    /**
+     * 환불 실패 건 수동 재시도
+     * REFUND_FAILED 상태 수강 신청에 대해 Toss 환불 API 재호출
+     * @param enrollmentId 수강 신청 ID
+     * @throws BusinessException 수강 신청 없음(404), REFUND_FAILED 상태 아님(400)
+     */
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    public void retryRefund(Long enrollmentId) {
+        log.info("[AdminService] 환불 재시도 - enrollmentId: {}", enrollmentId);
+
+        Enrollment enrollment = enrollmentMapper.selectEnrollmentById(enrollmentId);
+        if (enrollment == null) {
+            throw new BusinessException(HttpStatus.NOT_FOUND, "존재하지 않는 수강 신청입니다.");
+        }
+
+        Payment payment = paymentMapper.selectPaymentByEnrollmentId(enrollmentId);
+        if (payment == null) {
+            throw new BusinessException(HttpStatus.NOT_FOUND, "결제 내역이 없습니다.");
+        }
+
+        if (!PaymentStatus.REFUND_FAILED.equals(payment.getStatus())) {
+            throw new BusinessException(HttpStatus.BAD_REQUEST, "환불 실패 상태의 결제만 재시도할 수 있습니다.");
+        }
+
+        paymentService.refund(enrollmentId, "강의 폐강");
+        transactionTemplate.executeWithoutResult(s ->
+                enrollmentMapper.updateEnrollmentStatus(Enrollment.ofForceClose(enrollmentId)));
+
+        log.info("[AdminService] 환불 재시도 성공 - enrollmentId: {}", enrollmentId);
     }
 }

@@ -62,7 +62,7 @@
          WHERE order_id = #{orderId}
     </select>
 
-    <!-- 수강 신청 ID로 DONE 상태 결제 조회 -->
+    <!-- 수강 신청 ID로 DONE/REFUND_FAILED 상태 결제 조회 -->
     <select id="selectPaymentByEnrollmentId" parameterType="Long" resultType="Payment">
         SELECT id
              , enrollment_id
@@ -79,8 +79,16 @@
              , updated_at
           FROM payments
          WHERE enrollment_id = #{enrollmentId}
-           AND status = 'DONE'
+           AND status IN ('DONE', 'REFUND_FAILED')
     </select>
+
+    <!-- 환불 실패 마킹 (REFUND_FAILED 업데이트) -->
+    <update id="updatePaymentRefundFailed" parameterType="Long">
+        UPDATE payments
+           SET status = 'REFUND_FAILED'
+         WHERE enrollment_id = #{enrollmentId}
+           AND status = 'DONE'
+    </update>
 
     <!-- 결제 취소 상태 업데이트 -->
     <update id="updatePaymentCancelled" parameterType="Payment">
@@ -89,7 +97,7 @@
              , canceled_at = #{canceledAt}
              , cancel_reason = #{cancelReason}
          WHERE id = #{id}
-           AND status = 'DONE'
+           AND status IN ('DONE', 'REFUND_FAILED')
     </update>
 
     <!-- 사용자 결제 내역 조회 (DONE, CANCELLED) -->
@@ -122,6 +130,65 @@
           JOIN enrollments e ON p.enrollment_id = e.id
          WHERE e.user_id = #{userId}
            AND p.status IN ('DONE', 'CANCELLED')
+    </select>
+
+    <!-- 관리자 전체 결제 내역 조회 -->
+    <select id="selectAdminPaymentList" parameterType="ReqAdminPaymentPageDto" resultType="RespAdminPaymentDto">
+        SELECT p.id
+             , p.enrollment_id
+             , u.name AS userName
+             , c.title AS courseName
+             , p.order_id
+             , p.order_name
+             , p.amount
+             , p.method
+             , p.status
+             , p.paid_at
+             , p.canceled_at
+             , p.cancel_reason
+             , p.created_at
+          FROM payments p
+          JOIN enrollments e ON p.enrollment_id = e.id
+          JOIN users u ON e.user_id = u.id
+          JOIN courses c ON e.course_id = c.id
+         WHERE p.status IN ('DONE', 'CANCELLED', 'FAILED', 'REFUND_FAILED')
+        <if test="status != null and status != ''">
+           AND p.status = #{status}
+        </if>
+        ORDER BY p.created_at DESC
+        LIMIT #{size} OFFSET #{offset}
+    </select>
+
+    <!-- 관리자 전체 결제 내역 수 조회 (페이징용) -->
+    <select id="selectAdminPaymentListCount" parameterType="ReqAdminPaymentPageDto" resultType="int">
+        SELECT COUNT(*)
+          FROM payments
+         WHERE status IN ('DONE', 'CANCELLED', 'FAILED', 'REFUND_FAILED')
+        <if test="status != null and status != ''">
+           AND status = #{status}
+        </if>
+    </select>
+
+    <!-- 전체 결제 금액 (DONE) -->
+    <select id="selectTotalRevenue" resultType="Long">
+        SELECT IFNULL(SUM(amount), 0)
+          FROM payments
+         WHERE status = 'DONE'
+    </select>
+
+    <!-- 전체 환불 금액 (CANCELLED) -->
+    <select id="selectTotalRefund" resultType="Long">
+        SELECT IFNULL(SUM(amount), 0)
+          FROM payments
+         WHERE status = 'CANCELLED'
+    </select>
+
+    <!-- 이번 달 매출 (DONE, paid_at 기준) -->
+    <select id="selectMonthlyRevenue" resultType="Long">
+        SELECT IFNULL(SUM(amount), 0)
+          FROM payments
+         WHERE status = 'DONE'
+           AND DATE_FORMAT(paid_at, '%Y-%m') = DATE_FORMAT(NOW(), '%Y-%m')
     </select>
 
 </mapper>
